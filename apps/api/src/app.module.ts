@@ -5,6 +5,9 @@ import { validateEnv, type Env } from './config/env.validation';
 import { HealthModule } from './health/health.module';
 import { RedisModule } from './realtime/redis.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { EventsModule } from './events/events.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -22,6 +25,9 @@ import { RealtimeModule } from './realtime/realtime.module';
     RedisModule,
     RealtimeModule,
     HealthModule,
+    EventsModule,
+    UsersModule,
+    AuthModule,
   ],
 })
 export class AppModule {}
