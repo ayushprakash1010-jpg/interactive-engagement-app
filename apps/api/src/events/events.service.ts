@@ -75,6 +75,12 @@ export class EventsService {
     return event;
   }
 
+  async findByEventCode(code: string): Promise<EventDocument | null> {
+    return this.eventModel
+      .findOne({ eventCode: code.toUpperCase() })
+      .exec();
+  }
+
   // ── Update ────────────────────────────────────────────────────────────────
 
   async update(

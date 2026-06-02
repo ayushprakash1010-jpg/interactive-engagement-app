@@ -14,7 +14,13 @@ import { getAccessToken, withApiAuthRequired } from '@auth0/nextjs-auth0';
  *   /api/proxy/events/:id/qr -> GET  {API}/events/:id/qr
  *   /api/proxy/events/:id    -> PATCH/DELETE {API}/events/:id
  */
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+// This handler runs SERVER-SIDE (inside the web container in docker), so it must
+// reach the API by its internal hostname (e.g. http://api:4000), not the public
+// browser URL. Falls back to the public URL for local `pnpm dev`.
+const API_URL =
+  process.env.API_INTERNAL_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  'http://localhost:4000';
 
 const handler = withApiAuthRequired(async function handler(req: NextRequest) {
   // The catch-all segment lives after "/api/proxy/".
@@ -24,9 +30,23 @@ const handler = withApiAuthRequired(async function handler(req: NextRequest) {
   let accessToken: string | undefined;
   try {
     ({ accessToken } = await getAccessToken());
-  } catch {
+  } catch (err) {
+    // Surface the real reason (audience/API mismatch, expired token, no refresh
+    // token, etc.) so it shows up in `docker compose logs web`.
+    console.error('[proxy] getAccessToken failed:', err);
     return NextResponse.json(
-      { message: 'Could not obtain an access token' },
+      {
+        message: 'Could not obtain an access token',
+        reason: err instanceof Error ? err.message : String(err),
+      },
+      { status: 401 },
+    );
+  }
+
+  if (!accessToken) {
+    console.error('[proxy] getAccessToken returned no token (session has no access token)');
+    return NextResponse.json(
+      { message: 'No access token in session — log out and back in' },
       { status: 401 },
     );
   }

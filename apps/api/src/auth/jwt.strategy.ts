@@ -10,7 +10,8 @@ export interface JwtPayload {
   sub: string; // Auth0 user ID  (e.g. "auth0|abc123")
   name?: string; // set by Auth0 if included in token
   email?: string; // standard OIDC email claim
-  'https://iep.app/email'?: string; // custom namespace fallback
+  'https://iep.app/email'?: string; // custom namespace fallback (post-login Action)
+  'https://iep.app/name'?: string; // custom namespace fallback (post-login Action)
   aud: string | string[];
   iss: string;
   iat: number;
@@ -63,11 +64,24 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       throw new UnauthorizedException('Token is missing the sub claim');
     }
 
-    const email = payload.email ?? payload['https://iep.app/email'] ?? '';
+    // Auth0 access tokens omit email/name by default. A post-login Action can
+    // add them as namespaced custom claims (https://iep.app/email|name). We fall
+    // back to a sub-derived value so the user upsert (which requires both) never
+    // fails — login works even before the Action is configured.
+    const email =
+      payload.email ??
+      payload['https://iep.app/email'] ??
+      `${payload.sub}@users.noreply.iep`;
+
+    const name =
+      payload.name ??
+      payload['https://iep.app/name'] ??
+      (email.includes('@') ? email.split('@')[0] : '') ??
+      'Host';
 
     const user = await this.usersService.upsert({
       auth0Sub: payload.sub,
-      name: payload.name ?? email.split('@')[0] ?? 'Host',
+      name: name || 'Host',
       email,
     });
 

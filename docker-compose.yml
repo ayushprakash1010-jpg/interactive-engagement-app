@@ -35,6 +35,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # Secrets (Auth0 issuer/audience, etc.) are read from apps/api/.env.
+    # The explicit `environment:` block below overrides it for docker-internal
+    # hostnames so the localhost values in the .env file don't leak into the container.
+    env_file:
+      - apps/api/.env
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -55,11 +60,20 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    # Server-side Auth0 vars (AUTH0_SECRET, CLIENT_ID/SECRET, ISSUER, AUDIENCE,
+    # BASE_URL) are needed at RUNTIME for host login — read from apps/web/.env.local.
+    # NEXT_PUBLIC_* are baked at build time via the build args above; the
+    # `environment:` block keeps them correct for the running container too.
+    env_file:
+      - apps/web/.env.local
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://localhost:4000
       NEXT_PUBLIC_SOCKET_URL: http://localhost:4000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # Server-side calls (BFF proxy, SSR health) reach the API via its internal
+      # docker hostname — the browser-facing NEXT_PUBLIC_* URLs stay on localhost.
+      API_INTERNAL_URL: http://api:4000
     ports:
       - '3000:3000'
 

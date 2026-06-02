@@ -2,6 +2,7 @@
 import {
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -9,6 +10,7 @@ import { Observable } from 'rxjs';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
+  private readonly logger = new Logger(JwtAuthGuard.name);
   /**
    * Delegates to Passport's 'jwt' strategy (registered by JwtStrategy).
    * Returning super.canActivate() lets Passport run the full
@@ -45,6 +47,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
           : typeof info === 'string'
             ? info
             : 'No token provided';
+
+      // Always log the real reason server-side (the HTTP response stays generic
+      // in production). This is what to read in `docker compose logs api`.
+      this.logger.warn(
+        `JWT validation failed: ${detail}${err ? ` (err: ${err.message})` : ''}`,
+      );
 
       throw new UnauthorizedException(
         process.env.NODE_ENV !== 'production'

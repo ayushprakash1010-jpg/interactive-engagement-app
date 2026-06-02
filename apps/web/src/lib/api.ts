@@ -1,6 +1,13 @@
 /** Base URL of the NestJS API. Public so client components can use it too. */
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
+/**
+ * Server-side base URL. Inside containers the API is reachable via its internal
+ * hostname (API_INTERNAL_URL, e.g. http://api:4000) rather than the public
+ * localhost URL. Falls back to the public URL for local dev.
+ */
+const SERVER_API_URL = process.env.API_INTERNAL_URL ?? API_URL;
+
 export type HealthStatus = {
   ok: boolean;
   status: 'ok' | 'error' | 'unreachable';
@@ -14,7 +21,7 @@ export type HealthStatus = {
  */
 export async function fetchHealth(): Promise<HealthStatus> {
   try {
-    const res = await fetch(`${API_URL}/health`, { cache: 'no-store' });
+    const res = await fetch(`${SERVER_API_URL}/health`, { cache: 'no-store' });
     const body = (await res.json()) as {
       status?: string;
       details?: Record<string, { status: string }>;

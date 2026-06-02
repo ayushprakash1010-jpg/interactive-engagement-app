@@ -15,6 +15,12 @@ export const rooms = {
 /** Client -> Server events. */
 export const ClientEvents = {
   EVENT_JOIN: 'event:join',
+  /**
+   * Read-only room subscription for host dashboard + projector surfaces.
+   * Joins the event room (and host room) to receive broadcasts WITHOUT being
+   * registered or counted as a participant.
+   */
+  EVENT_OBSERVE: 'event:observe',
   ACTIVITY_RESPOND: 'activity:respond',
   QUIZ_ANSWER: 'quiz:answer',
   WORDCLOUD_SUBMIT: 'wordcloud:submit',

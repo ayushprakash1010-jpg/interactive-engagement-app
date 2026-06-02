@@ -8,6 +8,7 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { EventsModule } from './events/events.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
+import { ParticipantModule } from './participants/participant.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AuthModule } from './auth/auth.module';
     EventsModule,
     UsersModule,
     AuthModule,
+    ParticipantModule,
   ],
 })
 export class AppModule {}

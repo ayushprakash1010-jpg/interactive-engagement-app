@@ -22,7 +22,9 @@ import {
 } from '@/components/ui/dialog';
 import { EventForm } from '@/components/event-form';
 import { EventStatusBadge } from '@/components/event-status-badge';
+import { ConnectionStatus } from '@/components/connection-status';
 import { useToast } from '@/components/ui/use-toast';
+import { useEventRealtime } from '@/lib/use-event-realtime';
 import {
   useEvent,
   useEventQr,
@@ -39,6 +41,8 @@ export default function EventDetailPage() {
 
   const { data: event, isLoading, isError, error } = useEvent(id);
   const { data: qr } = useEventQr(id);
+  // Read-only observe of the event room for a live participant count.
+  const { count: liveCount } = useEventRealtime(event?.eventCode, 'observe');
   const updateEvent = useUpdateEvent(id);
   const deleteEvent = useDeleteEvent();
 
@@ -104,6 +108,24 @@ export default function EventDetailPage() {
           </Button>
         </div>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base">Live participants</CardTitle>
+            <CardDescription>
+              Updates in real time as people join and leave.
+            </CardDescription>
+          </div>
+          <ConnectionStatus />
+        </CardHeader>
+        <CardContent>
+          <span className="text-4xl font-bold tabular-nums">{liveCount}</span>
+          <span className="ml-2 text-sm text-muted-foreground">
+            {liveCount === 1 ? 'person connected' : 'people connected'}
+          </span>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
