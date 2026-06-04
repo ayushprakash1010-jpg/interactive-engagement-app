@@ -125,8 +125,6 @@ export class EventsService {
   ): Promise<{ eventCode: string; joinUrl: string; qrDataUrl: string }> {
     const event = await this.findOne(id, hostId);
 
-    // WEB_ORIGIN is the public origin of the Next.js web app (validated in
-    // env.validation, default http://localhost:3000) — participants join there.
     const webOrigin = this.configService.get<string>(
       'WEB_ORIGIN',
       'http://localhost:3000',
@@ -143,12 +141,32 @@ export class EventsService {
     return { eventCode: event.eventCode, joinUrl, qrDataUrl };
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Sprint 3: Active activity ─────────────────────────────────────────────
 
   /**
-   * Generates a collision-free event code by retrying up to MAX_CODE_RETRIES
-   * times. Relies on the unique index on `eventCode` in the schema.
+   * Sets or clears the activeActivityId on an event.
+   * Called by the gateway when a host launches or closes an activity.
    */
+  async setActiveActivity(
+    eventId: string,
+    activityId: string | null,
+  ): Promise<void> {
+    await this.eventModel
+      .updateOne(
+        { _id: new Types.ObjectId(eventId) },
+        {
+          $set: {
+            activeActivityId: activityId
+              ? new Types.ObjectId(activityId)
+              : null,
+          },
+        },
+      )
+      .exec();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   private async generateUniqueCode(): Promise<string> {
     for (let attempt = 1; attempt <= MAX_CODE_RETRIES; attempt++) {
       const code = generateEventCode();
@@ -165,13 +183,17 @@ export class EventsService {
   }
 
   private assertOwnership(
-    event: EventDocument,
-    hostId: string,
-  ): void {
-    if (event.hostId.toString() !== hostId) {
-      throw new ForbiddenException('You do not own this event');
-    }
+  event: EventDocument,
+  hostId: string,
+): void {
+  this.logger.warn(
+    `ownership check event.hostId=${event.hostId?.toString()} hostId=${hostId}`,
+  );
+
+  if (event.hostId.toString() !== hostId) {
+    throw new ForbiddenException('You do not own this event');
   }
+}
 
   private assertObjectId(id: string): void {
     if (!Types.ObjectId.isValid(id)) {

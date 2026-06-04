@@ -1,7 +1,6 @@
 {
   "extends": "@iep/config/tsconfig/node.json",
   "compilerOptions": {
-    "baseUrl": "./",
     "outDir": "./dist",
     "rootDir": "./src",
     "noUncheckedIndexedAccess": false,

@@ -1,10 +1,5 @@
 import type { Event, CreateEvent, UpdateEvent } from '@iep/types';
 
-/**
- * Client-side API surface. Every call goes through the same-origin
- * /api/proxy/* route, which attaches the Auth0 Bearer token server-side
- * before forwarding to the NestJS API.
- */
 const PROXY_BASE = '/api/proxy';
 
 export type EventQr = {
@@ -23,8 +18,10 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${PROXY_BASE}/${path}`, {
+export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const normalizedPath = path.replace(/^\/+/, '');
+
+  const res = await fetch(`${PROXY_BASE}/${normalizedPath}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -42,7 +39,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
           : body.message;
       }
     } catch {
-      // non-JSON error body — keep the default message
+      // keep default message
     }
     throw new ApiError(message, res.status);
   }

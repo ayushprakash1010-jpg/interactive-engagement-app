@@ -1,3 +1,4 @@
+// apps/api/src/realtime/realtime.gateway.spec.ts
 import { ServerEvents } from '@iep/types';
 import { RealtimeGateway } from './realtime.gateway';
 
@@ -7,6 +8,7 @@ import { RealtimeGateway } from './realtime.gateway';
  */
 function createFakeRedis() {
   const hashes = new Map<string, Map<string, number>>();
+
   const hash = (key: string) => {
     let h = hashes.get(key);
     if (!h) {
@@ -15,6 +17,7 @@ function createFakeRedis() {
     }
     return h;
   };
+
   return {
     client: {
       hincrby: jest.fn(async (key: string, field: string, by: number) => {
@@ -43,30 +46,54 @@ function createClient(id: string) {
 describe('RealtimeGateway participant count', () => {
   let gateway: RealtimeGateway;
   let emit: jest.Mock;
+  let redis: ReturnType<typeof createFakeRedis>;
+
   const events = {
     findByEventCode: jest.fn(),
   };
+
   const participants = {
     upsertParticipant: jest.fn(async () => undefined),
     markDisconnected: jest.fn(async () => undefined),
   };
-  let redis: ReturnType<typeof createFakeRedis>;
 
-  const event = { _id: 'evt1', eventCode: 'ABC123', status: 'live', activeActivityId: null };
+  const activityService = {
+    findById: jest.fn(),
+    closeLiveActivity: jest.fn(),
+    setStatus: jest.fn(),
+  };
+
+  const responseService = {
+    saveResponse: jest.fn(),
+    computeTally: jest.fn(async () => null),
+  };
+
+  const event = {
+    _id: 'evt1',
+    eventCode: 'ABC123',
+    status: 'live',
+    activeActivityId: null,
+  };
 
   beforeEach(() => {
+    jest.clearAllMocks();
+
     redis = createFakeRedis();
+
+    events.findByEventCode.mockResolvedValue(event);
+    responseService.computeTally.mockResolvedValue(null);
+
     gateway = new RealtimeGateway(
       events as any,
       participants as any,
       redis as any,
+      activityService as any,
+      responseService as any,
     );
+
     emit = jest.fn();
     gateway.server = { to: jest.fn(() => ({ emit })) } as any;
-    events.findByEventCode.mockResolvedValue(event);
   });
-
-  afterEach(() => jest.clearAllMocks());
 
   const lastCount = () => {
     const calls = emit.mock.calls.filter(
@@ -76,20 +103,35 @@ describe('RealtimeGateway participant count', () => {
   };
 
   it('counts two tabs of the same anonId as one participant', async () => {
-    await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, createClient('s1'));
-    await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, createClient('s2'));
+    await gateway.handleEventJoin(
+      { eventCode: 'ABC123', anonId: 'a' },
+      createClient('s1'),
+    );
+    await gateway.handleEventJoin(
+      { eventCode: 'ABC123', anonId: 'a' },
+      createClient('s2'),
+    );
+
     expect(lastCount()).toBe(1);
   });
 
   it('counts distinct anonIds separately', async () => {
-    await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, createClient('s1'));
-    await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'b' }, createClient('s2'));
+    await gateway.handleEventJoin(
+      { eventCode: 'ABC123', anonId: 'a' },
+      createClient('s1'),
+    );
+    await gateway.handleEventJoin(
+      { eventCode: 'ABC123', anonId: 'b' },
+      createClient('s2'),
+    );
+
     expect(lastCount()).toBe(2);
   });
 
   it('keeps a participant counted until their last socket disconnects', async () => {
     const s1 = createClient('s1');
     const s2 = createClient('s2');
+
     await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, s1);
     await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, s2);
 
@@ -105,6 +147,7 @@ describe('RealtimeGateway participant count', () => {
   it('rejects an invalid code with a friendly error and does not count it', async () => {
     events.findByEventCode.mockResolvedValueOnce(null);
     const client = createClient('s1');
+
     await gateway.handleEventJoin({ eventCode: 'NOPE12', anonId: 'a' }, client);
 
     expect(client.emit).toHaveBeenCalledWith(
@@ -118,7 +161,9 @@ describe('RealtimeGateway participant count', () => {
   it('rejects an ended event', async () => {
     events.findByEventCode.mockResolvedValueOnce({ ...event, status: 'ended' });
     const client = createClient('s1');
+
     await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, client);
+
     expect(client.emit).toHaveBeenCalledWith(
       ServerEvents.ERROR,
       expect.objectContaining({ message: expect.any(String) }),
@@ -127,12 +172,14 @@ describe('RealtimeGateway participant count', () => {
 
   it('observers join the room without being counted', async () => {
     const client = createClient('obs');
+
     await gateway.handleEventObserve({ eventCode: 'ABC123' }, client);
 
     expect(client.join).toHaveBeenCalledWith('event:evt1');
     expect(client.join).toHaveBeenCalledWith('host:evt1');
     expect(participants.upsertParticipant).not.toHaveBeenCalled();
-    // observer is shown the current count (0) but never increments it
-    expect(client.emit).toHaveBeenCalledWith(ServerEvents.PARTICIPANT_COUNT, { count: 0 });
+    expect(client.emit).toHaveBeenCalledWith(ServerEvents.PARTICIPANT_COUNT, {
+      count: 0,
+    });
   });
 });

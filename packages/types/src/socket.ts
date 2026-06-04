@@ -38,6 +38,7 @@ export const ServerEvents = {
   PARTICIPANT_COUNT: 'participant:count',
   ACTIVITY_LAUNCHED: 'activity:launched',
   ACTIVITY_CLOSED: 'activity:closed',
+  ACTIVITY_RESPONDED: 'activity:responded',
   POLL_RESULTS: 'poll:results',
   QUIZ_QUESTION: 'quiz:question',
   QUIZ_LEADERBOARD: 'quiz:leaderboard',

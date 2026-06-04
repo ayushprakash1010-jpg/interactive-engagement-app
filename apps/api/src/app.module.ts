@@ -9,6 +9,8 @@ import { EventsModule } from './events/events.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ParticipantModule } from './participants/participant.module';
+import { ActivityModule } from './activities/activity.module';   // ← Sprint 3
+import { ResponseModule } from './responses/response.module';   // ← Sprint 3
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { ParticipantModule } from './participants/participant.module';
     UsersModule,
     AuthModule,
     ParticipantModule,
+    ActivityModule,   // ← Sprint 3
+    ResponseModule,   // ← Sprint 3
   ],
 })
 export class AppModule {}

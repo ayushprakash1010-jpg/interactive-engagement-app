@@ -15,6 +15,8 @@ import { EventsService } from '../events/events.service';
 import { ParticipantService } from '../participants/participant.service';
 import { RedisService } from './redis.service';
 import { ClientEvents, ServerEvents, rooms } from '@iep/types';
+import { ActivityService } from '../activities/activity.service';
+import { ResponseService } from '../responses/response.service';
 
 type JoinPayload = {
   eventCode: string;
@@ -30,6 +32,10 @@ type ObservePayload = {
 type SocketState =
   | { role: 'participant'; eventId: string; anonId: string }
   | { role: 'observer'; eventId: string };
+
+// ── Throttle map: activityId → pending broadcast timeout ─────────────────────
+// Limits poll:results broadcasts to ≤4/sec per activity (250ms debounce).
+const pollBroadcastTimers = new Map<string, NodeJS.Timeout>();
 
 @WebSocketGateway({ cors: true })
 export class RealtimeGateway
@@ -48,6 +54,8 @@ export class RealtimeGateway
     private readonly eventsService: EventsService,
     private readonly participantService: ParticipantService,
     private readonly redisService: RedisService,
+    private readonly activityService: ActivityService,
+    private readonly responseService: ResponseService,
   ) {}
 
   @WebSocketServer()
@@ -91,6 +99,10 @@ export class RealtimeGateway
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SPRINT 2 — Join / Observe
+  // ═══════════════════════════════════════════════════════════════════════════
+
   @SubscribeMessage(ClientEvents.EVENT_JOIN)
   async handleEventJoin(
     @MessageBody() payload: JoinPayload,
@@ -120,7 +132,9 @@ export class RealtimeGateway
     await this.incrementConnection(eventId, anonId);
     await this.broadcastCount(eventId);
 
-    client.emit(ServerEvents.SESSION_SNAPSHOT, this.buildSnapshot(event));
+    // Enrich snapshot with current tally if a poll is live
+    const snapshot = await this.buildSnapshot(event);
+    client.emit(ServerEvents.SESSION_SNAPSHOT, snapshot);
 
     this.logger.log(
       `Participant joined event=${event.eventCode} anonId=${anonId}`,
@@ -159,12 +173,184 @@ export class RealtimeGateway
     client.emit(ServerEvents.PARTICIPANT_COUNT, {
       count: await this.getCount(eventId),
     });
-    client.emit(ServerEvents.SESSION_SNAPSHOT, this.buildSnapshot(event));
+
+    const snapshot = await this.buildSnapshot(event);
+    client.emit(ServerEvents.SESSION_SNAPSHOT, snapshot);
 
     this.logger.log(`Observer joined event=${event.eventCode}`);
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SPRINT 3 — Activity launch / close / respond
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * activity:launch  { activityId }  — emitted by host client
+   *
+   * 1. Close any currently live activity for the same event.
+   * 2. Set the new activity to 'live' + update event.activeActivityId.
+   * 3. Broadcast activity:launched to everyone in the event room.
+   */
+  @SubscribeMessage(ClientEvents.ACTIVITY_LAUNCH)
+  async handleActivityLaunch(
+    @MessageBody() payload: { activityId: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { activityId } = payload ?? {};
+
+    if (!activityId) {
+      client.emit(ServerEvents.ERROR, { message: 'activityId is required.' });
+      return;
+    }
+
+    let activity: any;
+    try {
+      activity = await this.activityService.findById(activityId);
+    } catch {
+      client.emit(ServerEvents.ERROR, { message: 'Activity not found.' });
+      return;
+    }
+
+    const eventId = activity.eventId.toString();
+
+    // Close any previously live activity and notify the room
+    const closed = await this.activityService.closeLiveActivity(eventId);
+    if (closed) {
+      this.server
+        .to(rooms.event(eventId))
+        .emit(ServerEvents.ACTIVITY_CLOSED, {
+          activityId: closed._id.toString(),
+        });
+    }
+
+    // Set the new activity live and persist on the event
+    const liveActivity = await this.activityService.setStatus(activityId, 'live');
+    await this.eventsService.setActiveActivity(eventId, activityId);
+
+    this.server
+      .to(rooms.event(eventId))
+      .emit(ServerEvents.ACTIVITY_LAUNCHED, { activity: liveActivity });
+
+    this.logger.log(`activity:launched activityId=${activityId} eventId=${eventId}`);
+  }
+
+  /**
+   * activity:close  { activityId }  — emitted by host client
+   *
+   * Sets status = 'closed', clears event.activeActivityId,
+   * cancels any pending throttled broadcast, and notifies the room.
+   */
+  @SubscribeMessage(ClientEvents.ACTIVITY_CLOSE)
+  async handleActivityClose(
+    @MessageBody() payload: { activityId: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { activityId } = payload ?? {};
+
+    if (!activityId) {
+      client.emit(ServerEvents.ERROR, { message: 'activityId is required.' });
+      return;
+    }
+
+    let activity: any;
+    try {
+      activity = await this.activityService.findById(activityId);
+    } catch {
+      client.emit(ServerEvents.ERROR, { message: 'Activity not found.' });
+      return;
+    }
+
+    const eventId = activity.eventId.toString();
+
+    await this.activityService.setStatus(activityId, 'closed');
+    await this.eventsService.setActiveActivity(eventId, null);
+
+    // Cancel any pending throttled poll:results broadcast for this activity
+    const timer = pollBroadcastTimers.get(activityId);
+    if (timer) {
+      clearTimeout(timer);
+      pollBroadcastTimers.delete(activityId);
+    }
+
+    this.server
+      .to(rooms.event(eventId))
+      .emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
+
+    this.logger.log(`activity:closed activityId=${activityId} eventId=${eventId}`);
+  }
+
+  /**
+   * activity:respond  { activityId, anonId, selectedOptionIds?, textValue?, ratingValue? }
+   * — emitted by participant client
+   *
+   * 1. Validate the activity is live.
+   * 2. Persist the response (ResponseService enforces duplicate-vote rules).
+   * 3. Acknowledge to the submitting client.
+   * 4. Schedule a throttled poll:results broadcast (≤4/sec per activity).
+   */
+  @SubscribeMessage(ClientEvents.ACTIVITY_RESPOND)
+  async handleActivityRespond(
+    @MessageBody()
+    payload: {
+      activityId: string;
+      anonId: string;
+      selectedOptionIds?: string[];
+      textValue?: string;
+      ratingValue?: number;
+    },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { activityId, anonId, selectedOptionIds, textValue, ratingValue } =
+      payload ?? {};
+
+    if (!activityId || !anonId) {
+      client.emit(ServerEvents.ERROR, {
+        message: 'activityId and anonId are required.',
+      });
+      return;
+    }
+
+    let activity: any;
+    try {
+      activity = await this.activityService.findById(activityId);
+    } catch {
+      client.emit(ServerEvents.ERROR, { message: 'Activity not found.' });
+      return;
+    }
+
+    if (activity.status !== 'live') {
+      client.emit(ServerEvents.ERROR, { message: 'This activity is not live.' });
+      return;
+    }
+
+    const eventId = activity.eventId.toString();
+
+    try {
+      await this.responseService.saveResponse(activity, {
+        activityId,
+        eventId,
+        participantAnonId: anonId,
+        selectedOptionIds,
+        textValue,
+        ratingValue,
+      });
+    } catch (err: any) {
+      client.emit(ServerEvents.ERROR, {
+        message: err.message ?? 'Could not save response.',
+      });
+      return;
+    }
+
+    // Acknowledge to the submitting client immediately
+    client.emit(ServerEvents.ACTIVITY_RESPONDED, { activityId });
+
+    // Throttled broadcast of poll:results to the room (250ms debounce = ≤4/sec)
+    this.schedulePollResultsBroadcast(activityId, eventId, activity);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Private helpers
+  // ═══════════════════════════════════════════════════════════════════════════
 
   /**
    * Looks up an event by code and validates it can be joined. Emits a friendly
@@ -192,16 +378,78 @@ export class RealtimeGateway
 
   /**
    * Snapshot sent on join/observe so late joiners and reconnecting clients
-   * re-sync. Activities/questions hydrate in later sprints; for now we surface
-   * the active activity reference and an empty approved-questions list.
+   * re-sync. Now includes the active activity document and its current tally
+   * so participants who join mid-poll see results immediately.
    */
-  private buildSnapshot(event: { activeActivityId: unknown }) {
+  private async buildSnapshot(event: {
+    activeActivityId: unknown;
+    _id: unknown;
+  }) {
+    const eventId = (event as any)._id.toString();
+    let activeActivity: any = null;
+    let currentTally: any = null;
+
+    if (event.activeActivityId) {
+      try {
+        activeActivity = await this.activityService.findById(
+          event.activeActivityId.toString(),
+        );
+
+        // Include current tally in snapshot so late joiners see live results
+        if (activeActivity?.config && (activeActivity.config as any).pollType) {
+          currentTally = await this.responseService.computeTally(
+            activeActivity._id.toString(),
+            activeActivity,
+          );
+        }
+      } catch {
+        // Active activity may have been deleted — degrade gracefully
+        activeActivity = null;
+      }
+    }
+
     return {
       activeActivityId: event.activeActivityId
         ? event.activeActivityId.toString()
         : null,
+      activeActivity,
+      currentTally,
       approvedQuestions: [] as unknown[],
     };
+  }
+
+  /**
+   * Debounced poll:results broadcast.
+   * Resets the 250ms timer on every new response so bursts are batched,
+   * delivering at most ~4 broadcasts per second per activity.
+   */
+  private schedulePollResultsBroadcast(
+    activityId: string,
+    eventId: string,
+    activity: any,
+  ): void {
+    const existing = pollBroadcastTimers.get(activityId);
+    if (existing) clearTimeout(existing);
+
+    const timer = setTimeout(async () => {
+      pollBroadcastTimers.delete(activityId);
+      try {
+        const tallies = await this.responseService.computeTally(
+          activityId,
+          activity,
+        );
+        this.server
+          .to(rooms.event(eventId))
+          .emit(ServerEvents.POLL_RESULTS, { activityId, tallies });
+      } catch (err) {
+        this.logger.error(
+          `Failed to broadcast poll:results for activityId=${activityId}`,
+          err,
+        );
+      }
+    }, 250);
+
+    pollBroadcastTimers.set(activityId, timer);
   }
 
   /** Redis hash: field = anonId, value = number of live sockets for it. */
@@ -213,7 +461,11 @@ export class RealtimeGateway
     eventId: string,
     anonId: string,
   ): Promise<void> {
-    await this.redisService.client.hincrby(this.connectionsKey(eventId), anonId, 1);
+    await this.redisService.client.hincrby(
+      this.connectionsKey(eventId),
+      anonId,
+      1,
+    );
   }
 
   private async decrementConnection(
@@ -240,4 +492,3 @@ export class RealtimeGateway
       .emit(ServerEvents.PARTICIPANT_COUNT, { count });
   }
 }
-
