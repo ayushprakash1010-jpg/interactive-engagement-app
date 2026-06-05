@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 
 import { ConnectionStatus } from '@/components/connection-status';
+import { ProjectorQaView } from '@/components/projector/projector-qa-view';
 import { useEventRealtime } from '@/lib/use-event-realtime';
 import { usePoll } from '@/hooks/use-poll';
 import { PollResultsChart } from '@/components/poll/poll-results-chart';
@@ -11,7 +12,7 @@ export default function PresenterPage() {
   const params = useParams<{ code: string }>();
   const code = (params.code ?? '').toUpperCase();
 
-  const { count, error } = useEventRealtime(code, 'observe');
+  const { count, error, approvedQuestions } = useEventRealtime(code, 'observe');
   const { activeActivity, tallies } = usePoll(null);
 
   if (error) {
@@ -24,8 +25,8 @@ export default function PresenterPage() {
   }
 
   const showWaitingState = !activeActivity;
-  const showPoll =
-    activeActivity && activeActivity.type === 'poll';
+  const showPoll = activeActivity && activeActivity.type === 'poll';
+  const showQa = approvedQuestions.length > 0;
 
   return (
     <main className="flex min-h-screen flex-col p-10">
@@ -36,23 +37,22 @@ export default function PresenterPage() {
         <ConnectionStatus />
       </header>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-        {/* Participant count stays visible */}
-        <div>
+      <div className="flex flex-1 flex-col gap-10 pt-10">
+        <div className="text-center">
           <p className="text-8xl font-bold tabular-nums">{count}</p>
           <p className="mt-2 text-xl text-muted-foreground">
             {count === 1 ? 'participant' : 'participants'} joined
           </p>
         </div>
 
-        {/* Waiting state */}
-        {showWaitingState && (
-          <p className="text-lg text-muted-foreground">Waiting for the host…</p>
+        {showWaitingState && !showQa && (
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-lg text-muted-foreground">Waiting for the host…</p>
+          </div>
         )}
 
-        {/* Live poll projector view */}
         {showPoll && (
-          <div className="w-full max-w-5xl space-y-6 text-left">
+          <section className="mx-auto w-full max-w-5xl space-y-6 text-left">
             <div className="space-y-2 text-center">
               <p className="text-sm font-semibold uppercase tracking-wide text-primary">
                 {activeActivity.status === 'live' ? 'Live poll' : 'Poll closed'}
@@ -71,8 +71,12 @@ export default function PresenterPage() {
                 Waiting for responses…
               </div>
             )}
-          </div>
+          </section>
         )}
+
+        <section className="mx-auto w-full">
+          <ProjectorQaView questions={approvedQuestions} />
+        </section>
       </div>
     </main>
   );

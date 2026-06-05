@@ -17,6 +17,7 @@ import { RedisService } from './redis.service';
 import { ClientEvents, ServerEvents, rooms } from '@iep/types';
 import { ActivityService } from '../activities/activity.service';
 import { ResponseService } from '../responses/response.service';
+import { QuestionsService } from '../questions/questions.service';
 
 type JoinPayload = {
   eventCode: string;
@@ -56,6 +57,7 @@ export class RealtimeGateway
     private readonly redisService: RedisService,
     private readonly activityService: ActivityService,
     private readonly responseService: ResponseService,
+    private readonly questionsService: QuestionsService,
   ) {}
 
   @WebSocketServer()
@@ -349,6 +351,161 @@ export class RealtimeGateway
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // SPRINT 4 — Q&A ask / upvote / moderate
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @SubscribeMessage(ClientEvents.QA_ASK)
+  async handleQaAsk(
+    @MessageBody()
+    payload: {
+      eventCode: string;
+      anonId: string;
+      text: string;
+      displayName?: string;
+    },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { eventCode, anonId, text, displayName } = payload ?? {};
+
+    if (!eventCode || !anonId || !text?.trim()) {
+      client.emit(ServerEvents.ERROR, {
+        message: 'eventCode, anonId, and text are required.',
+      });
+      return;
+    }
+
+    const event = await this.resolveJoinableEvent(eventCode, client);
+    if (!event) {
+      return;
+    }
+
+    const eventId = event._id.toString();
+    const requireModeration = Boolean(event.settings?.requireModeration);
+    const status = requireModeration ? 'pending' : 'approved';
+
+    const question = await this.questionsService.create({
+      eventId,
+      text: text.trim(),
+      authorAnonId: anonId,
+      authorName: displayName?.trim() || null,
+      status,
+    });
+
+    if (requireModeration) {
+      this.server
+        .to(rooms.host(eventId))
+        .emit(ServerEvents.QA_NEW, { question });
+    } else {
+      this.server
+        .to(rooms.event(eventId))
+        .emit(ServerEvents.QA_NEW, { question });
+    }
+
+    this.logger.log(
+      `qa:ask eventId=${eventId} questionId=${question._id.toString()} status=${status}`,
+    );
+  }
+
+  @SubscribeMessage(ClientEvents.QA_UPVOTE)
+  async handleQaUpvote(
+    @MessageBody()
+    payload: {
+      questionId: string;
+      anonId: string;
+    },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { questionId, anonId } = payload ?? {};
+
+    if (!questionId || !anonId) {
+      client.emit(ServerEvents.ERROR, {
+        message: 'questionId and anonId are required.',
+      });
+      return;
+    }
+
+    let question: any;
+    try {
+      question = await this.questionsService.addVote(questionId, anonId);
+    } catch (err: any) {
+      client.emit(ServerEvents.ERROR, {
+        message: err.message ?? 'Could not upvote question.',
+      });
+      return;
+    }
+
+    const eventId = question.eventId.toString();
+
+    this.server
+      .to(rooms.event(eventId))
+      .emit(ServerEvents.QA_UPDATED, { question });
+
+    this.server
+      .to(rooms.host(eventId))
+      .emit(ServerEvents.QA_UPDATED, { question });
+
+    this.logger.log(
+      `qa:upvote eventId=${eventId} questionId=${questionId} anonId=${anonId}`,
+    );
+  }
+
+  @SubscribeMessage(ClientEvents.QA_MODERATE)
+  async handleQaModerate(
+    @MessageBody()
+    payload: {
+      questionId: string;
+      status: 'approved' | 'dismissed' | 'answered';
+    },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { questionId, status } = payload ?? {};
+
+    if (!questionId || !status) {
+      client.emit(ServerEvents.ERROR, {
+        message: 'questionId and status are required.',
+      });
+      return;
+    }
+
+    if (!['approved', 'dismissed', 'answered'].includes(status)) {
+      client.emit(ServerEvents.ERROR, {
+        message: 'status must be approved, dismissed, or answered.',
+      });
+      return;
+    }
+
+    let question: any;
+    try {
+      question = await this.questionsService.updateStatus(questionId, status);
+    } catch (err: any) {
+      client.emit(ServerEvents.ERROR, {
+        message: err.message ?? 'Could not moderate question.',
+      });
+      return;
+    }
+
+    const eventId = question.eventId.toString();
+
+    if (status === 'approved') {
+      this.server
+        .to(rooms.event(eventId))
+        .emit(ServerEvents.QA_NEW, { question });
+    }
+
+    this.server
+      .to(rooms.event(eventId))
+      .emit(ServerEvents.QA_UPDATED, { question });
+
+    this.server
+      .to(rooms.host(eventId))
+      .emit(ServerEvents.QA_UPDATED, { question });
+
+    this.logger.log(
+      `qa:moderate eventId=${eventId} questionId=${questionId} status=${status}`,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Private helpers
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -414,7 +571,7 @@ export class RealtimeGateway
         : null,
       activeActivity,
       currentTally,
-      approvedQuestions: [] as unknown[],
+      approvedQuestions: await this.questionsService.findApprovedByEvent(eventId),
     };
   }
 

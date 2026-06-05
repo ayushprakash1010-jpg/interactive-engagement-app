@@ -25,6 +25,7 @@ import { EventStatusBadge } from '@/components/event-status-badge';
 import { ConnectionStatus } from '@/components/connection-status';
 import { useToast } from '@/components/ui/use-toast';
 import { useEventRealtime } from '@/lib/use-event-realtime';
+import { QuestionModerationPanel } from '@/components/questions/question-moderation-panel';
 import {
   useEvent,
   useEventQr,
@@ -44,7 +45,7 @@ import {
 import { PollBuilder } from '@/components/poll/poll-builder';
 import { PollRunPanel } from '@/components/poll/poll-run-panel';
 
-type Tab = 'overview' | 'polls';
+type Tab = 'overview' | 'polls' | 'qa';
 
 function isPollConfig(config: Activity['config']): config is PollConfig {
   return (
@@ -64,15 +65,23 @@ export default function EventDetailPage() {
   const { data: event, isLoading, isError, error } = useEvent(id);
   const { data: qr } = useEventQr(id);
 
-  const { count: liveCount } = useEventRealtime(event?.eventCode, 'observe');
+  const {
+    count: liveCount,
+    allQuestions,
+    moderateQuestion,
+  } = useEventRealtime(event?.eventCode, 'observe', { eventId: id });
 
   const updateEvent = useUpdateEvent(id);
   const deleteEvent = useDeleteEvent();
 
-  const { data: activities = [], isLoading: activitiesLoading } = useActivities(id);
+  const { data: activitiesData, isLoading: activitiesLoading } = useActivities(id);
   const createActivity = useCreateActivity(id);
   const updateActivity = useUpdateActivity(id);
   const deleteActivity = useDeleteActivity(id);
+
+  const activities: Activity[] = React.useMemo(() => {
+    return Array.isArray(activitiesData) ? activitiesData : [];
+  }, [activitiesData]);
 
   const [activeTab, setActiveTab] = React.useState<Tab>('overview');
   const [editOpen, setEditOpen] = React.useState(false);
@@ -80,8 +89,42 @@ export default function EventDetailPage() {
   const [builderOpen, setBuilderOpen] = React.useState(false);
   const [editingActivity, setEditingActivity] = React.useState<Activity | null>(null);
   const [copied, setCopied] = React.useState(false);
+  const [isModerating, setIsModerating] = React.useState(false);
 
   const pollActivities = activities.filter((activity) => activity.type === 'poll');
+
+  const pendingQuestions = React.useMemo(
+    () =>
+      [...allQuestions]
+        .filter((question) => question.status === 'pending')
+        .sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+    [allQuestions],
+  );
+
+  const approvedQuestions = React.useMemo(
+    () =>
+      [...allQuestions]
+        .filter((question) => question.status === 'approved')
+        .sort((a, b) => {
+          if (b.voteCount !== a.voteCount) {
+            return b.voteCount - a.voteCount;
+          }
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }),
+    [allQuestions],
+  );
+
+  const answeredQuestions = React.useMemo(
+    () =>
+      [...allQuestions]
+        .filter((question) => question.status === 'answered')
+        .sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+    [allQuestions],
+  );
 
   const handleCopy = async () => {
     if (!qr?.joinUrl) return;
@@ -129,6 +172,36 @@ export default function EventDetailPage() {
   const openEditBuilder = (activity: Activity) => {
     setEditingActivity(activity);
     setBuilderOpen(true);
+  };
+
+  const handleModerateQuestion = (
+    questionId: string,
+    status: 'approved' | 'dismissed' | 'answered',
+  ) => {
+    try {
+      setIsModerating(true);
+      moderateQuestion({ questionId, status });
+
+      toast({
+        title:
+          status === 'approved'
+            ? 'Question approved'
+            : status === 'answered'
+              ? 'Question marked answered'
+              : 'Question dismissed',
+      });
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not update question',
+        description:
+          err instanceof ApiError || err instanceof Error
+            ? err.message
+            : 'Unknown error',
+      });
+    } finally {
+      setIsModerating(false);
+    }
   };
 
   if (isLoading) {
@@ -213,6 +286,17 @@ export default function EventDetailPage() {
           }`}
         >
           Polls ({pollActivities.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('qa')}
+          className={`border-b-2 px-1 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'qa'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Q&amp;A ({pendingQuestions.length + approvedQuestions.length + answeredQuestions.length})
         </button>
       </div>
 
@@ -369,6 +453,18 @@ export default function EventDetailPage() {
         </div>
       )}
 
+      {activeTab === 'qa' && (
+        <QuestionModerationPanel
+          pendingQuestions={pendingQuestions}
+          approvedQuestions={approvedQuestions}
+          answeredQuestions={answeredQuestions}
+          onApprove={(questionId) => handleModerateQuestion(questionId, 'approved')}
+          onDismiss={(questionId) => handleModerateQuestion(questionId, 'dismissed')}
+          onMarkAnswered={(questionId) => handleModerateQuestion(questionId, 'answered')}
+          isUpdating={isModerating}
+        />
+      )}
+
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -480,14 +576,15 @@ export default function EventDetailPage() {
   );
 }
 
+
 function BackLink() {
-  return (
-    <Link
-      href="/dashboard"
-      className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
-    >
-      <ArrowLeft className="mr-1 h-4 w-4" />
-      Back to events
-    </Link>
-  );
+  return (
+    <Link
+      href="/dashboard"
+      className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+    >
+      <ArrowLeft className="mr-1 h-4 w-4" />
+      Back to events
+    </Link>
+  );
 }

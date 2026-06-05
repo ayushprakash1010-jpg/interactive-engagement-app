@@ -1,5 +1,5 @@
 // apps/api/src/realtime/realtime.gateway.spec.ts
-import { ServerEvents } from '@iep/types';
+import { ServerEvents, rooms } from '@iep/types';
 import { RealtimeGateway } from './realtime.gateway';
 
 /**
@@ -68,6 +68,13 @@ describe('RealtimeGateway participant count', () => {
     computeTally: jest.fn(async () => null),
   };
 
+  const questionsService = {
+    findApprovedByEvent: jest.fn(async () => []),
+    create: jest.fn(),
+    addVote: jest.fn(),
+    updateStatus: jest.fn(),
+  };
+
   const event = {
     _id: 'evt1',
     eventCode: 'ABC123',
@@ -82,6 +89,7 @@ describe('RealtimeGateway participant count', () => {
 
     events.findByEventCode.mockResolvedValue(event);
     responseService.computeTally.mockResolvedValue(null);
+    questionsService.findApprovedByEvent.mockResolvedValue([]);
 
     gateway = new RealtimeGateway(
       events as any,
@@ -89,6 +97,7 @@ describe('RealtimeGateway participant count', () => {
       redis as any,
       activityService as any,
       responseService as any,
+      questionsService as any,
     );
 
     emit = jest.fn();
@@ -181,5 +190,74 @@ describe('RealtimeGateway participant count', () => {
     expect(client.emit).toHaveBeenCalledWith(ServerEvents.PARTICIPANT_COUNT, {
       count: 0,
     });
+  });
+
+  // ── Sprint 4: Q&A moderation gating ────────────────────────────────────────
+
+  const roomsTargeted = () =>
+    (gateway.server.to as jest.Mock).mock.calls.map(([room]) => room);
+
+  it('holds a question for the host only when moderation is ON', async () => {
+    events.findByEventCode.mockResolvedValueOnce({
+      ...event,
+      settings: { requireModeration: true },
+    });
+    questionsService.create.mockResolvedValueOnce({ _id: 'q1', eventId: 'evt1' });
+
+    await gateway.handleQaAsk(
+      { eventCode: 'ABC123', anonId: 'a', text: 'Hi?' },
+      createClient('s1'),
+    );
+
+    // Created as pending and broadcast to the host room — NEVER the event room.
+    expect(questionsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'pending' }),
+    );
+    expect(roomsTargeted()).toContain(rooms.host('evt1'));
+    expect(roomsTargeted()).not.toContain(rooms.event('evt1'));
+    expect(emit).toHaveBeenCalledWith(ServerEvents.QA_NEW, {
+      question: { _id: 'q1', eventId: 'evt1' },
+    });
+  });
+
+  it('broadcasts a question to everyone when moderation is OFF', async () => {
+    events.findByEventCode.mockResolvedValueOnce({
+      ...event,
+      settings: { requireModeration: false },
+    });
+    questionsService.create.mockResolvedValueOnce({ _id: 'q2', eventId: 'evt1' });
+
+    await gateway.handleQaAsk(
+      { eventCode: 'ABC123', anonId: 'a', text: 'Hi?' },
+      createClient('s1'),
+    );
+
+    expect(questionsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'approved' }),
+    );
+    expect(roomsTargeted()).toContain(rooms.event('evt1'));
+    expect(emit).toHaveBeenCalledWith(ServerEvents.QA_NEW, {
+      question: { _id: 'q2', eventId: 'evt1' },
+    });
+  });
+
+  it('on approval, broadcasts the question to the whole room', async () => {
+    questionsService.updateStatus.mockResolvedValueOnce({
+      _id: 'q3',
+      eventId: 'evt1',
+      status: 'approved',
+    });
+
+    await gateway.handleQaModerate(
+      { questionId: 'q3', status: 'approved' },
+      createClient('s1'),
+    );
+
+    expect(questionsService.updateStatus).toHaveBeenCalledWith('q3', 'approved');
+    expect(roomsTargeted()).toContain(rooms.event('evt1'));
+    expect(emit).toHaveBeenCalledWith(
+      ServerEvents.QA_NEW,
+      expect.objectContaining({ question: expect.objectContaining({ _id: 'q3' }) }),
+    );
   });
 });
