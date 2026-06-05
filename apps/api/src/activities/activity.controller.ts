@@ -63,12 +63,6 @@ export class ActivityController {
     @Req() req: AuthRequest,
     @Body(new ZodValidationPipe(CreateActivitySchema)) dto: CreateActivityDto,
   ) {
-    console.log('[activities.controller] POST hit', {
-      eventId,
-      userId: req.user?._id,
-      body: dto,
-    });
-
     return this.activityService.create(eventId, req.user._id, dto);
   }
 
@@ -77,11 +71,6 @@ export class ActivityController {
     @Param('eventId') eventId: string,
     @Req() req: AuthRequest,
   ) {
-    console.log('[activities.controller] GET hit', {
-      eventId,
-      userId: req.user?._id,
-    });
-
     return this.activityService.findAllByEvent(eventId, req.user._id);
   }
 
@@ -90,9 +79,20 @@ export class ActivityController {
     @Param('eventId') eventId: string,
     @Param('id') id: string,
   ) {
-    console.log('[activities.controller] GET one hit', { eventId, id });
-
     return this.activityService.findOne(id, eventId);
+  }
+
+  // NOTE: this static route MUST be declared before the dynamic `@Patch(':id')`
+  // below, otherwise Express matches "reorder" as an :id and this handler is
+  // never reached (the request 404s inside update()).
+  @Patch('reorder')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  reorder(
+    @Param('eventId') eventId: string,
+    @Req() req: AuthRequest,
+    @Body(new ZodValidationPipe(ReorderSchema)) body: { orderedIds: string[] },
+  ) {
+    return this.activityService.reorder(eventId, req.user._id, body.orderedIds);
   }
 
   @Patch(':id')
@@ -102,13 +102,6 @@ export class ActivityController {
     @Req() req: AuthRequest,
     @Body(new ZodValidationPipe(UpdateActivitySchema)) dto: UpdateActivityDto,
   ) {
-    console.log('[activities.controller] PATCH hit', {
-      eventId,
-      id,
-      userId: req.user?._id,
-      body: dto,
-    });
-
     return this.activityService.update(id, eventId, req.user._id, dto);
   }
 
@@ -119,28 +112,6 @@ export class ActivityController {
     @Param('id') id: string,
     @Req() req: AuthRequest,
   ) {
-    console.log('[activities.controller] DELETE hit', {
-      eventId,
-      id,
-      userId: req.user?._id,
-    });
-
     return this.activityService.remove(id, eventId, req.user._id);
-  }
-
-  @Patch('reorder')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  reorder(
-    @Param('eventId') eventId: string,
-    @Req() req: AuthRequest,
-    @Body(new ZodValidationPipe(ReorderSchema)) body: { orderedIds: string[] },
-  ) {
-    console.log('[activities.controller] PATCH reorder hit', {
-      eventId,
-      userId: req.user?._id,
-      orderedIds: body?.orderedIds,
-    });
-
-    return this.activityService.reorder(eventId, req.user._id, body.orderedIds);
   }
 }

@@ -77,6 +77,14 @@ export class ResponseService {
           'selectedOptionIds is required for choice polls',
         );
       }
+      // Single-choice polls accept exactly one option — reject attempts to
+      // inflate multiple buckets from one submission. (Duplicate submissions by
+      // the same anonId are already blocked by the unique index + upsert below.)
+      if (pollType === 'single' && dto.selectedOptionIds.length !== 1) {
+        throw new BadRequestException(
+          'Single-choice polls accept exactly one option',
+        );
+      }
       setFields.selectedOptionIds = dto.selectedOptionIds;
     }
 

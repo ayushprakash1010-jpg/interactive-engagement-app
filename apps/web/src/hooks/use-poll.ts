@@ -67,7 +67,6 @@ export function usePoll(anonId: string | null): UsePollReturn {
 
   useEffect(() => {
     const onActivityLaunched = (data: { activity: LiveActivity }) => {
-      console.log('ACTIVITY LAUNCHED RECEIVED', data);
       setActiveActivity(data.activity);
       setTallies(null);
       setHasSubmitted(false);
@@ -96,7 +95,6 @@ export function usePoll(anonId: string | null): UsePollReturn {
       activeActivity: LiveActivity | null;
       currentTally: PollTallyResult | null;
     }) => {
-      console.log('SESSION SNAPSHOT RECEIVED', data);
       setActiveActivity(data.activeActivity);
       setTallies(data.currentTally);
     };

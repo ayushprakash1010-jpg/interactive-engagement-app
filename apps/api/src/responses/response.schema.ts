@@ -41,3 +41,4 @@ export class ResponseEntity {
 export const ResponseSchema = SchemaFactory.createForClass(ResponseEntity);
 
 ResponseSchema.index({ eventId: 1, activityId: 1 });
+ResponseSchema.index({ activityId: 1, participantAnonId: 1 }, { unique: true });

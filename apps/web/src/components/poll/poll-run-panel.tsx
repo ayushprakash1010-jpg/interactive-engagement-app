@@ -1,8 +1,9 @@
 // apps/web/src/components/poll/poll-run-panel.tsx
 'use client';
 
+import { ClientEvents } from '@iep/types';
 import { Button } from '@/components/ui/button';
-import { useSocketStore } from '@/stores/socket.store';
+import { socket } from '@/lib/socket';
 import { usePoll } from '@/hooks/use-poll';
 import type { Activity, PollConfig } from '@/hooks/use-activities';
 import { PollResultsChart } from './poll-results-chart';
@@ -20,10 +21,7 @@ function isPollConfig(config: Activity['config']): config is PollConfig {
   );
 }
 
-type SocketStoreState = ReturnType<typeof useSocketStore.getState>;
-
 export function PollRunPanel({ activity }: Props) {
-  const socket = useSocketStore((state: SocketStoreState) => state.socket);
   const { activeActivity, tallies } = usePoll(null);
 
   const pollConfig = isPollConfig(activity.config) ? activity.config : null;
@@ -38,25 +36,12 @@ export function PollRunPanel({ activity }: Props) {
 
   const isThisActivityClosed = activity.status === 'closed';
 
- const launch = () => {
-  console.log('Launch clicked');
-  console.log('Socket:', socket);
-
-  if (!socket) {
-    console.log('Socket is NULL');
-    return;
-  }
-
-  socket.emit('activity:launch', {
-    activityId: activity._id,
-  });
-
-  console.log('Launch event emitted');
-};
+  const launch = () => {
+    socket.emit(ClientEvents.ACTIVITY_LAUNCH, { activityId: activity._id });
+  };
 
   const close = () => {
-    if (!socket) return;
-    socket.emit('activity:close', { activityId: activity._id });
+    socket.emit(ClientEvents.ACTIVITY_CLOSE, { activityId: activity._id });
   };
 
   return (

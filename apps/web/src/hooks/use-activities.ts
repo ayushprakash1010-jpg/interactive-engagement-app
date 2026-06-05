@@ -43,7 +43,7 @@ export const activityKeys = {
 export function useActivities(eventId: string) {
   return useQuery({
     queryKey: activityKeys.all(eventId),
-    queryFn: () => apiFetch<Activity>(`events/${eventId}/activities`),
+    queryFn: () => apiFetch<Activity[]>(`events/${eventId}/activities`),
     enabled: Boolean(eventId),
   });
 }

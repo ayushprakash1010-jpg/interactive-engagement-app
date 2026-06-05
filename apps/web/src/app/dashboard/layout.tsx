@@ -1,10 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/use-auth';
-import { useSocketStore } from '@/stores/socket.store';
 
 export default function DashboardLayout({
   children,
@@ -12,12 +10,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, logoutUrl } = useAuth();
-
-  const connect = useSocketStore((state) => state.connect);
-
-  useEffect(() => {
-    connect();
-  }, [connect]);
 
   return (
     <div className="min-h-screen bg-muted/30">

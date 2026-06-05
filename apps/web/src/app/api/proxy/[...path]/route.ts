@@ -10,9 +10,6 @@ const handler = withApiAuthRequired(async function handler(req: NextRequest) {
   const path = req.nextUrl.pathname.replace(/^\/api\/proxy\/?/, '');
   const target = `${API_URL.replace(/\/+$/, '')}/${path}${req.nextUrl.search}`;
 
-  console.log('[proxy] incoming', req.method, req.nextUrl.pathname);
-  console.log('[proxy] target', target);
-
   let accessToken: string | undefined;
 
   try {
@@ -54,7 +51,6 @@ const handler = withApiAuthRequired(async function handler(req: NextRequest) {
   }
 
   const apiRes = await fetch(target, init);
-  console.log('[proxy] upstream status', apiRes.status, target);
 
   const contentType = apiRes.headers.get('content-type') ?? 'application/json';
 
@@ -63,7 +59,6 @@ const handler = withApiAuthRequired(async function handler(req: NextRequest) {
   }
 
   const payload = await apiRes.text();
-  console.log('[proxy] upstream body', payload);
 
   return new NextResponse(payload, {
     status: apiRes.status,
