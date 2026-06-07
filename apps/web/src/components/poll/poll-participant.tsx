@@ -1,20 +1,40 @@
-// apps/web/src/components/poll/poll-participant.tsx
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { PollResultsChart } from './poll-results-chart';
-import type { LiveActivity, UsePollReturn } from '../../hooks/use-poll';
+import type {
+  LiveActivity,
+  QuizAnswerState,
+  QuizLeaderboardEntry,
+  QuizQuestionState,
+  UsePollReturn,
+} from '../../hooks/use-poll';
 
 interface Props {
   activity: LiveActivity;
   tallies: UsePollReturn['tallies'];
   hasSubmitted: boolean;
   onSubmit: UsePollReturn['submitResponse'];
+  quizQuestion?: QuizQuestionState | null;
+  hasAnsweredQuiz?: boolean;
+  quizAnswerState?: QuizAnswerState | null;
+  quizLeaderboard?: QuizLeaderboardEntry[];
+  onSubmitQuizAnswer?: UsePollReturn['submitQuizAnswer'];
 }
 
-export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: Props) {
+export function PollParticipant({
+  activity,
+  tallies,
+  hasSubmitted,
+  onSubmit,
+  quizQuestion = null,
+  hasAnsweredQuiz = false,
+  quizAnswerState = null,
+  quizLeaderboard = [],
+  onSubmitQuizAnswer,
+}: Props) {
   const config = activity.config;
   const pollType = config.pollType ?? 'single';
   const options = config.options ?? [];
@@ -25,22 +45,54 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
   const [ratingValue, setRatingValue] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [selectedQuizOptionId, setSelectedQuizOptionId] = useState<string>('');
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const [timeLeftMs, setTimeLeftMs] = useState(0);
+
+  useEffect(() => {
+    setSelectedIds([]);
+    setTextValue('');
+    setRatingValue(null);
+    setSubmitting(false);
+  }, [activity._id]);
+
+  useEffect(() => {
+    setSelectedQuizOptionId('');
+    setQuizSubmitting(false);
+  }, [quizQuestion?.questionId]);
+
+  useEffect(() => {
+    if (activity.type !== 'quiz' || !quizQuestion?.endsAt) {
+      setTimeLeftMs(0);
+      return;
+    }
+
+    const update = () => {
+      const diff = new Date(quizQuestion.endsAt).getTime() - Date.now();
+      setTimeLeftMs(Math.max(0, diff));
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [activity.type, quizQuestion?.endsAt, quizQuestion?.questionId]);
+
   const isClosed = activity.status === 'closed';
   const showResults = hasSubmitted || isClosed;
-
-  // ── Submit handler ────────────────────────────────────────────────────────
 
   const handleSubmit = () => {
     if (submitting || hasSubmitted) return;
 
     setSubmitting(true);
+
     onSubmit({
       activityId: activity._id,
       selectedOptionIds:
         pollType === 'single' || pollType === 'multiple'
           ? selectedIds
           : undefined,
-      textValue: pollType === 'open' ? textValue : undefined,
+      textValue: pollType === 'open' ? textValue.trim() : undefined,
       ratingValue: pollType === 'rating' ? (ratingValue ?? undefined) : undefined,
     });
   };
@@ -54,26 +106,270 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
     return false;
   })();
 
-  // ── After submission — show live results ──────────────────────────────────
+  const quizExpired = timeLeftMs <= 0;
+  const showQuizLeaderboard =
+    activity.type === 'quiz' &&
+    (quizExpired || isClosed || quizLeaderboard.length > 0);
+
+  const canSubmitQuiz =
+    activity.type === 'quiz' &&
+    !!quizQuestion &&
+    !!selectedQuizOptionId &&
+    !quizExpired &&
+    !isClosed &&
+    !hasAnsweredQuiz &&
+    !quizSubmitting &&
+    !!onSubmitQuizAnswer;
+
+  const quizTimeLabel = useMemo(() => {
+    const totalSeconds = Math.ceil(timeLeftMs / 1000);
+    const seconds = Math.max(0, totalSeconds);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, [timeLeftMs]);
+
+  const handleQuizSubmit = () => {
+    if (
+      !quizQuestion ||
+      !selectedQuizOptionId ||
+      !onSubmitQuizAnswer ||
+      hasAnsweredQuiz ||
+      quizExpired ||
+      quizSubmitting
+    ) {
+      return;
+    }
+
+    setQuizSubmitting(true);
+
+    onSubmitQuizAnswer({
+      activityId: quizQuestion.activityId,
+      questionId: quizQuestion.questionId,
+      optionId: selectedQuizOptionId,
+      clientTimeMs: Date.now(),
+    });
+  };
+
+  if (activity.type === 'quiz') {
+    const locked = hasAnsweredQuiz || quizExpired || isClosed;
+    const questionText = quizQuestion?.text || config.question || 'Waiting for question…';
+
+    return (
+      <div className="space-y-5">
+        <div
+          className="rounded-lg border p-4"
+          style={{
+            borderColor: 'var(--color-border)',
+            background: 'var(--color-surface)',
+          }}
+        >
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="space-y-1">
+              <p
+                className="text-sm font-medium"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                {quizQuestion?.questionNumber
+                  ? `Question ${quizQuestion.questionNumber}`
+                  : 'Quiz question'}
+              </p>
+              <p
+                className="text-lg font-semibold leading-snug"
+                style={{ color: 'var(--color-text)' }}
+              >
+                {questionText}
+              </p>
+            </div>
+
+            <div
+              className="rounded-md border px-3 py-2 text-sm font-semibold tabular-nums"
+              style={{
+                borderColor: quizExpired
+                  ? 'var(--color-error)'
+                  : 'var(--color-border)',
+                background: quizExpired
+                  ? 'var(--color-error-highlight)'
+                  : 'var(--color-surface-2)',
+                color: quizExpired
+                  ? 'var(--color-error)'
+                  : 'var(--color-text)',
+              }}
+            >
+              {quizTimeLabel}
+            </div>
+          </div>
+
+          {hasAnsweredQuiz && (
+            <p
+              className="text-sm font-medium"
+              style={{
+                color:
+                  quizAnswerState?.isCorrect === undefined
+                    ? 'var(--color-primary)'
+                    : quizAnswerState.isCorrect
+                      ? 'var(--color-success)'
+                      : 'var(--color-error)',
+              }}
+            >
+              {quizAnswerState?.isCorrect === undefined
+                ? 'Answer submitted'
+                : quizAnswerState.isCorrect
+                  ? 'Correct'
+                  : 'Incorrect'}
+              {typeof quizAnswerState?.awardedPoints === 'number'
+                ? ` · +${quizAnswerState.awardedPoints} pts`
+                : ''}
+            </p>
+          )}
+
+          {!hasAnsweredQuiz && quizExpired && (
+            <p
+              className="text-sm font-medium"
+              style={{ color: 'var(--color-error)' }}
+            >
+              Time is up.
+            </p>
+          )}
+        </div>
+
+        {quizQuestion?.options?.length ? (
+          <div className="space-y-2">
+            {quizQuestion.options.map((opt) => {
+              const isSelected =
+                selectedQuizOptionId === opt.id ||
+                quizAnswerState?.selectedOptionId === opt.id;
+
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    if (locked) return;
+                    setSelectedQuizOptionId(opt.id);
+                  }}
+                  disabled={locked}
+                  className="w-full rounded-lg border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-80"
+                  style={{
+                    borderColor: isSelected
+                      ? 'var(--color-primary)'
+                      : 'var(--color-border)',
+                    background: isSelected
+                      ? 'var(--color-primary-highlight)'
+                      : 'var(--color-surface)',
+                    color: 'var(--color-text)',
+                  }}
+                  aria-pressed={isSelected}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p
+            className="py-6 text-center text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Waiting for answer options…
+          </p>
+        )}
+
+        <Button
+          type="button"
+          onClick={handleQuizSubmit}
+          disabled={!canSubmitQuiz}
+          className="w-full"
+          style={{
+            background: canSubmitQuiz ? 'var(--color-primary)' : undefined,
+            color: canSubmitQuiz ? '#fff' : undefined,
+          }}
+        >
+          {quizSubmitting || hasAnsweredQuiz ? 'Answer submitted' : 'Submit answer'}
+        </Button>
+
+        {showQuizLeaderboard && (
+          <div
+            className="rounded-lg border p-4"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-surface)',
+            }}
+          >
+            <div className="mb-3">
+              <p
+                className="text-sm font-medium"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                Leaderboard
+              </p>
+            </div>
+
+            {quizLeaderboard.length > 0 ? (
+              <div className="space-y-2">
+                {quizLeaderboard.map((entry, index) => (
+                  <div
+                    key={`${entry.name}-${index}`}
+                    className="flex items-center justify-between rounded-md border px-3 py-2"
+                    style={{
+                      borderColor: 'var(--color-border)',
+                      background: 'var(--color-surface-2)',
+                    }}
+                  >
+                    <span style={{ color: 'var(--color-text)' }}>
+                      {index + 1}. {entry.name}
+                    </span>
+                    <span
+                      className="font-semibold"
+                      style={{ color: 'var(--color-text)' }}
+                    >
+                      {entry.points} pts
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p
+                className="text-sm"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                Waiting for leaderboard…
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (showResults) {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border p-4"
-          style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-          <p className="text-sm font-medium mb-1"
-            style={{ color: 'var(--color-primary)' }}>
+        <div
+          className="rounded-lg border p-4"
+          style={{
+            borderColor: 'var(--color-border)',
+            background: 'var(--color-surface)',
+          }}
+        >
+          <p
+            className="mb-1 text-sm font-medium"
+            style={{ color: 'var(--color-primary)' }}
+          >
             {isClosed ? 'Poll closed' : '✓ Response submitted'}
           </p>
           <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
             {config.question}
           </p>
         </div>
+
         {tallies ? (
           <PollResultsChart tallies={tallies} />
         ) : (
-          <p className="text-sm text-center py-8"
-            style={{ color: 'var(--color-text-muted)' }}>
+          <p
+            className="py-8 text-center text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
             Waiting for results…
           </p>
         )}
@@ -81,23 +377,21 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
     );
   }
 
-  // ── Input UI per poll type ────────────────────────────────────────────────
-
   return (
     <div className="space-y-5">
-      {/* Question */}
-      <p className="text-lg font-semibold leading-snug"
-        style={{ color: 'var(--color-text)' }}>
+      <p
+        className="text-lg font-semibold leading-snug"
+        style={{ color: 'var(--color-text)' }}
+      >
         {config.question}
       </p>
 
-      {/* Single choice */}
       {pollType === 'single' && (
         <fieldset className="space-y-2">
           {options.map((opt) => (
             <label
               key={opt.id}
-              className="flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors"
+              className="flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors"
               style={{
                 borderColor: selectedIds.includes(opt.id)
                   ? 'var(--color-primary)'
@@ -109,7 +403,7 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
             >
               <input
                 type="radio"
-                name="single-choice"
+                name={`single-choice-${activity._id}`}
                 value={opt.id}
                 checked={selectedIds.includes(opt.id)}
                 onChange={() => setSelectedIds([opt.id])}
@@ -121,13 +415,12 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
         </fieldset>
       )}
 
-      {/* Multiple choice */}
       {pollType === 'multiple' && (
         <fieldset className="space-y-2">
           {options.map((opt) => (
             <label
               key={opt.id}
-              className="flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors"
+              className="flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors"
               style={{
                 borderColor: selectedIds.includes(opt.id)
                   ? 'var(--color-primary)'
@@ -156,7 +449,6 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
         </fieldset>
       )}
 
-      {/* Rating */}
       {pollType === 'rating' && (
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: ratingScale }, (_, i) => i + 1).map((n) => (
@@ -164,10 +456,12 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
               key={n}
               type="button"
               onClick={() => setRatingValue(n)}
-              className="w-11 h-11 rounded-lg border font-semibold transition-colors text-sm"
+              className="h-11 w-11 rounded-lg border text-sm font-semibold transition-colors"
               style={{
-                borderColor: ratingValue === n ? 'var(--color-primary)' : 'var(--color-border)',
-                background: ratingValue === n ? 'var(--color-primary)' : 'var(--color-surface)',
+                borderColor:
+                  ratingValue === n ? 'var(--color-primary)' : 'var(--color-border)',
+                background:
+                  ratingValue === n ? 'var(--color-primary)' : 'var(--color-surface)',
                 color: ratingValue === n ? '#fff' : 'var(--color-text)',
               }}
               aria-label={`Rate ${n}`}
@@ -179,7 +473,6 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
         </div>
       )}
 
-      {/* Open text */}
       {pollType === 'open' && (
         <Textarea
           placeholder="Type your response…"
@@ -195,8 +488,8 @@ export function PollParticipant({ activity, tallies, hasSubmitted, onSubmit }: P
         />
       )}
 
-      {/* Submit */}
       <Button
+        type="button"
         onClick={handleSubmit}
         disabled={!canSubmit}
         className="w-full"

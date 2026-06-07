@@ -1,30 +1,34 @@
-// apps/web/src/components/poll/poll-run-panel.tsx
 'use client';
 
 import { ClientEvents } from '@iep/types';
 import { Button } from '@/components/ui/button';
 import { socket } from '@/lib/socket';
 import { usePoll } from '@/hooks/use-poll';
-import type { Activity, PollConfig } from '@/hooks/use-activities';
-import { PollResultsChart } from './poll-results-chart';
+import type { Activity, WordCloudConfig } from '@/hooks/use-activities';
 
 interface Props {
   activity: Activity;
 }
 
-function isPollConfig(config: Activity['config']): config is PollConfig {
+function isWordCloudConfig(
+  config: Activity['config'],
+): config is WordCloudConfig {
   return (
     typeof config === 'object' &&
     config !== null &&
-    'pollType' in config &&
-    'question' in config
+    'prompt' in config &&
+    !('fields' in config) &&
+    !('questions' in config) &&
+    !('pollType' in config)
   );
 }
 
-export function PollRunPanel({ activity }: Props) {
-  const { activeActivity, tallies } = usePoll(null);
+export function WordCloudRunPanel({ activity }: Props) {
+  const { activeActivity } = usePoll(null);
 
-  const pollConfig = isPollConfig(activity.config) ? activity.config : null;
+  const wordCloudConfig = isWordCloudConfig(activity.config)
+    ? activity.config
+    : null;
 
   const isThisActivityLive =
     activeActivity?._id === activity._id && activeActivity.status === 'live';
@@ -35,6 +39,7 @@ export function PollRunPanel({ activity }: Props) {
     activeActivity.status === 'live';
 
   const isThisActivityClosed = activity.status === 'closed';
+  const maxWords = wordCloudConfig?.maxWordsPerParticipant ?? 3;
 
   const launch = () => {
     socket.emit(ClientEvents.ACTIVITY_LAUNCH, { activityId: activity._id });
@@ -57,14 +62,14 @@ export function PollRunPanel({ activity }: Props) {
         transition: 'border-color 0.2s, background 0.2s',
       }}
     >
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <span
               className="text-sm font-medium"
               style={{ color: 'var(--color-text-muted)' }}
             >
-              {POLL_TYPE_LABELS[pollConfig?.pollType ?? 'single']}
+              Word cloud
             </span>
 
             {isThisActivityLive && <LiveBadge />}
@@ -86,7 +91,21 @@ export function PollRunPanel({ activity }: Props) {
             className="mt-0.5 font-semibold"
             style={{ color: 'var(--color-text)' }}
           >
-            {pollConfig?.question ?? activity.title}
+            {activity.title}
+          </p>
+
+          <p
+            className="mt-1 text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            {wordCloudConfig?.prompt ?? 'Word cloud prompt unavailable'}
+          </p>
+
+          <p
+            className="mt-1 text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Up to {maxWords} word{maxWords === 1 ? '' : 's'} per participant
           </p>
         </div>
 
@@ -101,7 +120,7 @@ export function PollRunPanel({ activity }: Props) {
                 color: 'var(--color-error)',
               }}
             >
-              Close poll
+              Close word cloud
             </Button>
           ) : (
             <Button
@@ -124,27 +143,6 @@ export function PollRunPanel({ activity }: Props) {
           )}
         </div>
       </div>
-
-      {isThisActivityLive && (
-        <div className="pt-2">
-          {tallies ? (
-            <PollResultsChart tallies={tallies} />
-          ) : (
-            <p
-              className="py-6 text-center text-sm"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              Waiting for first response…
-            </p>
-          )}
-        </div>
-      )}
-
-      {isThisActivityClosed && tallies && (
-        <div className="pt-2 opacity-75">
-          <PollResultsChart tallies={tallies} />
-        </div>
-      )}
     </div>
   );
 }
@@ -166,10 +164,3 @@ function LiveBadge() {
     </span>
   );
 }
-
-const POLL_TYPE_LABELS: Record<string, string> = {
-  single: 'Single Choice',
-  multiple: 'Multiple Choice',
-  rating: 'Rating Scale',
-  open: 'Open Text',
-};

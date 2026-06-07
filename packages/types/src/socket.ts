@@ -23,6 +23,7 @@ export const ClientEvents = {
   EVENT_OBSERVE: 'event:observe',
   ACTIVITY_RESPOND: 'activity:respond',
   QUIZ_ANSWER: 'quiz:answer',
+  QUIZ_NEXT_QUESTION: 'quiz:next-question',
   WORDCLOUD_SUBMIT: 'wordcloud:submit',
   QA_ASK: 'qa:ask',
   QA_UPVOTE: 'qa:upvote',

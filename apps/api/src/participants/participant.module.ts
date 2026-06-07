@@ -11,6 +11,6 @@ import { ParticipantService } from './participant.service';
     ]),
   ],
   providers: [ParticipantService],
-  exports: [ParticipantService], // exported for use in RealtimeGateway (Sprint 2)
+  exports: [ParticipantService, MongooseModule],
 })
 export class ParticipantModule {}

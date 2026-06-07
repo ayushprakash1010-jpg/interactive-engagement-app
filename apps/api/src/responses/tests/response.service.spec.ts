@@ -31,7 +31,7 @@ describe('ResponseService — duplicate-vote prevention', () => {
     });
 
     const model = { findOneAndUpdate } as any;
-    service = new ResponseService(model);
+    service = new ResponseService(model, {} as any);
   });
 
   const lastCall = () => findOneAndUpdate.mock.calls.at(-1)!;

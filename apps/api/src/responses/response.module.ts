@@ -3,14 +3,16 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ResponseEntity, ResponseSchema } from './response.schema';
 import { ResponseService } from './response.service';
+import { ParticipantModule } from '../participants/participant.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: ResponseEntity.name, schema: ResponseSchema }
+      { name: ResponseEntity.name, schema: ResponseSchema },
     ]),
+    ParticipantModule,
   ],
   providers: [ResponseService],
-  exports: [ResponseService], // exported for RealtimeGateway
+  exports: [ResponseService],
 })
 export class ResponseModule {}

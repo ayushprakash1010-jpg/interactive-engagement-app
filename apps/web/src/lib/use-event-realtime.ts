@@ -17,7 +17,9 @@ export type QaQuestion = {
 };
 
 type SessionSnapshot = {
-  activeActivityId: string | null;
+  activeActivity: unknown | null;
+  currentTally: unknown | null;
+  currentQuizQuestion?: unknown | null;
   approvedQuestions: QaQuestion[];
 };
 
@@ -63,12 +65,6 @@ function upsertQuestion(current: QaQuestion[], incoming: QaQuestion): QaQuestion
   return sortAllQuestions(next);
 }
 
-/**
- * Merge a batch of server-fresh questions into the current list. Incoming
- * questions overwrite existing ones (they carry the latest vote/status);
- * dismissed questions are dropped. Used for the join snapshot and the host's
- * initial REST load.
- */
 function mergeQuestions(
   current: QaQuestion[],
   incoming: QaQuestion[],
@@ -86,16 +82,6 @@ function mergeQuestions(
   return sortAllQuestions(Array.from(map.values()));
 }
 
-/**
- * Joins (or observes) an event room over the shared socket and exposes the live
- * participant count, last session snapshot, question state, and any server error.
- *
- * - mode 'participant' registers + counts the visitor.
- * - mode 'observe' is read-only for host dashboard / projector, but host clients
- *   still receive host-room Q&A moderation events through the shared observer join.
- * - Re-emits the join/observe on every (re)connect so reconnecting clients
- *   automatically re-sync — the server replies with a fresh count + snapshot.
- */
 export function useEventRealtime(
   eventCode: string | undefined,
   mode: 'participant' | 'observe',
@@ -133,8 +119,6 @@ export function useEventRealtime(
 
     const onSnapshot = (payload: SessionSnapshot) => {
       setSnapshot(payload);
-      // Merge (don't replace) so the host's REST-loaded pending/answered
-      // questions survive a snapshot that only carries approved ones.
       setAllQuestions((current) =>
         mergeQuestions(current, payload.approvedQuestions ?? []),
       );
@@ -175,10 +159,6 @@ export function useEventRealtime(
     };
   }, [eventCode, mode]);
 
-  // Host moderation: the join snapshot only carries APPROVED questions, so the
-  // host would otherwise never see questions that were pending/answered before
-  // they opened (or refreshed) the dashboard. Load the full set via the
-  // host-guarded REST endpoint once and merge it with the live stream.
   useEffect(() => {
     if (mode !== 'observe' || !eventId) {
       return;
@@ -201,7 +181,10 @@ export function useEventRealtime(
   }, [mode, eventId]);
 
   const approvedQuestions = useMemo(
-    () => sortApprovedQuestions(allQuestions.filter((question) => question.status === 'approved')),
+    () =>
+      sortApprovedQuestions(
+        allQuestions.filter((question) => question.status === 'approved'),
+      ),
     [allQuestions],
   );
 

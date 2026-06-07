@@ -1,4 +1,3 @@
-// apps/api/src/activities/activity.controller.ts
 import {
   Body,
   Controller,
@@ -31,20 +30,108 @@ const PollConfigSchema = z.object({
   pollType: z.enum(['single', 'multiple', 'rating', 'open']),
   question: z.string().min(1).max(500),
   options: z
-    .array(z.object({ id: z.string(), label: z.string() }))
+    .array(
+      z.object({
+        id: z.string().min(1),
+        label: z.string().min(1).max(200),
+      }),
+    )
     .optional(),
   ratingScale: z.number().int().min(2).max(10).optional(),
 });
 
-const CreateActivitySchema = z.object({
-  type: z.enum(['poll', 'quiz', 'wordcloud', 'feedback']),
-  title: z.string().min(1).max(200),
-  config: PollConfigSchema.passthrough(),
+const QuizQuestionSchema = z
+  .object({
+    id: z.string().min(1),
+    text: z.string().min(1).max(500),
+    options: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          label: z.string().min(1).max(200),
+        }),
+      )
+      .min(2),
+    correctOptionId: z.string().min(1),
+    points: z.number().int().min(1).max(1000),
+    timeLimitSec: z.number().int().min(5).max(300),
+  })
+  .superRefine((question, ctx) => {
+    const optionIds = question.options.map((option) => option.id);
+    const uniqueOptionIds = new Set(optionIds);
+
+    if (uniqueOptionIds.size !== optionIds.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Quiz question option ids must be unique',
+        path: ['options'],
+      });
+    }
+
+    if (!optionIds.includes(question.correctOptionId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'correctOptionId must match one of the option ids',
+        path: ['correctOptionId'],
+      });
+    }
+  });
+
+const QuizConfigSchema = z.object({
+  questions: z.array(QuizQuestionSchema).min(1),
+  speedBonusEnabled: z.boolean().optional().default(false),
 });
+
+// Bounds mirror @iep/types wordcloudConfigSchema (the authoritative source).
+const WordcloudConfigSchema = z.object({
+  prompt: z.string().min(1).max(500),
+  maxWordsPerParticipant: z.number().int().min(1).max(20),
+});
+
+const FeedbackFieldSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(['rating', 'text']),
+  label: z.string().min(1).max(200),
+});
+
+const FeedbackConfigSchema = z.object({
+  prompt: z.string().min(1).max(500),
+  fields: z.array(FeedbackFieldSchema).min(1),
+});
+
+const CreateActivitySchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('poll'),
+    title: z.string().min(1).max(200),
+    config: PollConfigSchema,
+  }),
+  z.object({
+    type: z.literal('quiz'),
+    title: z.string().min(1).max(200),
+    config: QuizConfigSchema,
+  }),
+  z.object({
+    type: z.literal('wordcloud'),
+    title: z.string().min(1).max(200),
+    config: WordcloudConfigSchema,
+  }),
+  z.object({
+    type: z.literal('feedback'),
+    title: z.string().min(1).max(200),
+    config: FeedbackConfigSchema,
+  }),
+]);
 
 const UpdateActivitySchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  config: PollConfigSchema.passthrough().optional(),
+  config: z
+    .union([
+      PollConfigSchema,
+      QuizConfigSchema,
+      WordcloudConfigSchema,
+      FeedbackConfigSchema,
+    ])
+    .optional(),
 });
 
 const ReorderSchema = z.object({
@@ -82,9 +169,6 @@ export class ActivityController {
     return this.activityService.findOne(id, eventId);
   }
 
-  // NOTE: this static route MUST be declared before the dynamic `@Patch(':id')`
-  // below, otherwise Express matches "reorder" as an :id and this handler is
-  // never reached (the request 404s inside update()).
   @Patch('reorder')
   @HttpCode(HttpStatus.NO_CONTENT)
   reorder(

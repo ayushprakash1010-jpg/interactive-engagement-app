@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation';
 
 import { ConnectionStatus } from '@/components/connection-status';
 import { ProjectorQaView } from '@/components/projector/projector-qa-view';
+import { QuizProjectorView } from '@/components/projector/quiz-projector-view';
+import { WordCloudProjectorView } from '@/components/projector/wordcloud-projector-view';
 import { useEventRealtime } from '@/lib/use-event-realtime';
 import { usePoll } from '@/hooks/use-poll';
 import { PollResultsChart } from '@/components/poll/poll-results-chart';
@@ -13,7 +15,13 @@ export default function PresenterPage() {
   const code = (params.code ?? '').toUpperCase();
 
   const { count, error, approvedQuestions } = useEventRealtime(code, 'observe');
-  const { activeActivity, tallies } = usePoll(null);
+  const {
+    activeActivity,
+    tallies,
+    quizQuestion,
+    quizLeaderboard,
+    wordCloudWords,
+  } = usePoll(null);
 
   if (error) {
     return (
@@ -24,8 +32,16 @@ export default function PresenterPage() {
     );
   }
 
-  const showWaitingState = !activeActivity;
+  const hasQuizState = Boolean(
+    (activeActivity && activeActivity.type === 'quiz') ||
+      quizQuestion ||
+      quizLeaderboard.length > 0,
+  );
+
+  const showWaitingState = !activeActivity && !hasQuizState;
   const showPoll = activeActivity && activeActivity.type === 'poll';
+  const showQuiz = hasQuizState;
+  const showWordCloud = activeActivity && activeActivity.type === 'wordcloud';
   const showQa = approvedQuestions.length > 0;
 
   return (
@@ -58,7 +74,7 @@ export default function PresenterPage() {
                 {activeActivity.status === 'live' ? 'Live poll' : 'Poll closed'}
               </p>
               <h1 className="text-4xl font-bold tracking-tight">
-                {(activeActivity.config as any)?.question}
+                {(activeActivity.config as { question?: string })?.question}
               </h1>
             </div>
 
@@ -71,6 +87,25 @@ export default function PresenterPage() {
                 Waiting for responses…
               </div>
             )}
+          </section>
+        )}
+
+        {showQuiz && (
+          <section className="mx-auto w-full max-w-7xl">
+            <QuizProjectorView
+              question={quizQuestion}
+              leaderboard={quizLeaderboard}
+            />
+          </section>
+        )}
+
+        {showWordCloud && activeActivity && (
+          <section className="mx-auto w-full max-w-7xl">
+            <WordCloudProjectorView
+              title={activeActivity.title}
+              prompt={activeActivity.config.prompt ?? activeActivity.config.question}
+              words={wordCloudWords}
+            />
           </section>
         )}
 

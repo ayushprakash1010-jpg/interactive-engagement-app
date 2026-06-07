@@ -261,7 +261,7 @@ export function PollBuilder({
           type="submit"
           disabled={isSaving}
           style={{
-            background: 'var(--color-primary)',
+            background: '#0f172a',
             color: '#fff',
           }}
         >

@@ -36,6 +36,8 @@ export const quizQuestionSchema = z.object({
 
 export const quizConfigSchema = z.object({
   questions: z.array(quizQuestionSchema).default([]),
+  /** Award extra points for fast correct answers (scaled by remaining time). */
+  speedBonusEnabled: z.boolean().default(false),
 });
 export type QuizConfig = z.infer<typeof quizConfigSchema>;
 

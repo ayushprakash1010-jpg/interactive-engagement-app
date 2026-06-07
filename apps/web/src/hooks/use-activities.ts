@@ -12,6 +12,47 @@ export interface PollConfig {
   ratingScale?: number;
 }
 
+export interface QuizOption {
+  id: string;
+  label: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  text: string;
+  options: QuizOption[];
+  correctOptionId: string;
+  points: number;
+  timeLimitSec: number;
+}
+
+export interface QuizConfig {
+  questions: QuizQuestion[];
+  speedBonusEnabled?: boolean;
+}
+
+export interface FeedbackField {
+  id: string;
+  type: 'rating' | 'text';
+  label: string;
+}
+
+export interface FeedbackConfig {
+  prompt: string;
+  fields: FeedbackField[];
+}
+
+export interface WordCloudConfig {
+  prompt: string;
+  maxWordsPerParticipant?: number;
+}
+
+export type ActivityConfig =
+  | PollConfig
+  | QuizConfig
+  | FeedbackConfig
+  | WordCloudConfig;
+
 export interface Activity {
   _id: string;
   eventId: string;
@@ -19,20 +60,36 @@ export interface Activity {
   title: string;
   order: number;
   status: 'idle' | 'live' | 'closed';
-  config: PollConfig | Record<string, unknown>;
+  config: ActivityConfig;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface CreateActivityPayload {
-  type: 'poll' | 'quiz' | 'wordcloud' | 'feedback';
-  title: string;
-  config: PollConfig | Record<string, unknown>;
-}
+export type CreateActivityPayload =
+  | {
+      type: 'poll';
+      title: string;
+      config: PollConfig;
+    }
+  | {
+      type: 'quiz';
+      title: string;
+      config: QuizConfig;
+    }
+  | {
+      type: 'wordcloud';
+      title: string;
+      config: WordCloudConfig;
+    }
+  | {
+      type: 'feedback';
+      title: string;
+      config: FeedbackConfig;
+    };
 
 export interface UpdateActivityPayload {
   title?: string;
-  config?: PollConfig | Record<string, unknown>;
+  config?: ActivityConfig;
 }
 
 export const activityKeys = {

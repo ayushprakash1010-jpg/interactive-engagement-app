@@ -23,7 +23,6 @@ export default function JoinCodePage() {
   const [name, setName] = useState('');
 
   const enter = () => {
-    // Persist the optional name; the actual socket join happens on /event/[code].
     setDisplayName(name);
     router.push(`/event/${code}`);
   };
