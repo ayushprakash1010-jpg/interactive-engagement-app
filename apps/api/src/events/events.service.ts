@@ -1,4 +1,3 @@
-// apps/api/src/events/events.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -62,10 +61,10 @@ export class EventsService {
   async findOne(id: string, hostId: string): Promise<EventDocument> {
     this.assertObjectId(id);
 
-    const event = await this.eventModel
+    const event = (await this.eventModel
       .findById(id)
       .lean()
-      .exec() as unknown as EventDocument | null;
+      .exec()) as unknown as EventDocument | null;
 
     if (!event) {
       throw new NotFoundException(`Event ${id} not found`);
@@ -76,9 +75,7 @@ export class EventsService {
   }
 
   async findByEventCode(code: string): Promise<EventDocument | null> {
-    return this.eventModel
-      .findOne({ eventCode: code.toUpperCase() })
-      .exec();
+    return this.eventModel.findOne({ eventCode: code.toUpperCase() }).exec();
   }
 
   // ── Update ────────────────────────────────────────────────────────────────
@@ -91,10 +88,12 @@ export class EventsService {
     this.assertObjectId(id);
 
     const event = await this.eventModel.findById(id).exec();
-    if (!event) throw new NotFoundException(`Event ${id} not found`);
+    if (!event) {
+      throw new NotFoundException(`Event ${id} not found`);
+    }
+
     this.assertOwnership(event, hostId);
 
-    // Merge settings partially if provided
     if (dto.settings) {
       event.settings = { ...event.settings, ...dto.settings } as any;
     }
@@ -111,9 +110,11 @@ export class EventsService {
     this.assertObjectId(id);
 
     const event = await this.eventModel.findById(id).exec();
-    if (!event) throw new NotFoundException(`Event ${id} not found`);
-    this.assertOwnership(event, hostId);
+    if (!event) {
+      throw new NotFoundException(`Event ${id} not found`);
+    }
 
+    this.assertOwnership(event, hostId);
     await event.deleteOne();
   }
 
@@ -165,13 +166,51 @@ export class EventsService {
       .exec();
   }
 
+  // ── Sprint 6: End session / finalize event ───────────────────────────────
+
+  /**
+   * Ends an event session.
+   * - sets status='ended'
+   * - sets endedAt=now
+   * - clears activeActivityId
+   * Throws NotFoundException if the event does not exist.
+   */
+  async endEvent(eventId: string): Promise<EventDocument> {
+    this.assertObjectId(eventId);
+
+    const event = await this.eventModel
+      .findByIdAndUpdate(
+        eventId,
+        {
+          $set: {
+            status: 'ended',
+            endedAt: new Date(),
+            activeActivityId: null,
+          },
+        },
+        {
+          new: true,
+          runValidators: true,
+        },
+      )
+      .exec();
+
+    if (!event) {
+      throw new NotFoundException(`Event ${eventId} not found`);
+    }
+
+    return event;
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private async generateUniqueCode(): Promise<string> {
     for (let attempt = 1; attempt <= MAX_CODE_RETRIES; attempt++) {
       const code = generateEventCode();
       const exists = await this.eventModel.exists({ eventCode: code }).exec();
+
       if (!exists) return code;
+
       this.logger.warn(
         `Event code collision on attempt ${attempt}: ${code} — retrying`,
       );
@@ -182,18 +221,15 @@ export class EventsService {
     );
   }
 
-  private assertOwnership(
-  event: EventDocument,
-  hostId: string,
-): void {
-  this.logger.warn(
-    `ownership check event.hostId=${event.hostId?.toString()} hostId=${hostId}`,
-  );
+  private assertOwnership(event: EventDocument, hostId: string): void {
+    this.logger.warn(
+      `ownership check event.hostId=${event.hostId?.toString()} hostId=${hostId}`,
+    );
 
-  if (event.hostId.toString() !== hostId) {
-    throw new ForbiddenException('You do not own this event');
+    if (event.hostId.toString() !== hostId) {
+      throw new ForbiddenException('You do not own this event');
+    }
   }
-}
 
   private assertObjectId(id: string): void {
     if (!Types.ObjectId.isValid(id)) {

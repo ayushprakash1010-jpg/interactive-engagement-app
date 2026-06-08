@@ -4,7 +4,15 @@ import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Check, Copy, Pencil, Trash2, Plus } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Copy,
+  Pencil,
+  Trash2,
+  Plus,
+  Square,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuizRunPanel } from '@/components/poll/quiz-run-panel';
 import { FeedbackRunPanel } from '@/components/poll/feedback-run-panel';
@@ -118,6 +126,11 @@ export default function EventDetailPage() {
     count: liveCount,
     allQuestions,
     moderateQuestion,
+    endSession,
+    isEndingSession,
+    sessionEnded,
+    sessionEndError,
+    resetSessionEndState,
   } = useEventRealtime(event?.eventCode, 'observe', { eventId: id });
 
   const updateEvent = useUpdateEvent(id);
@@ -182,6 +195,29 @@ export default function EventDetailPage() {
         ),
     [allQuestions],
   );
+
+  React.useEffect(() => {
+    if (!sessionEnded) return;
+
+    toast({ title: 'Session ended' });
+    resetSessionEndState();
+    router.push(`/dashboard/events/${id}/analytics`);
+  }, [sessionEnded, id, resetSessionEndState, router, toast]);
+
+  React.useEffect(() => {
+    if (!sessionEndError) return;
+
+    toast({
+      variant: 'destructive',
+      title: 'Could not end session',
+      description: sessionEndError,
+    });
+  }, [sessionEndError, toast]);
+
+  const handleEndSession = () => {
+    if (!event || event.status === 'ended') return;
+    endSession({ eventId: id });
+  };
 
   const handleCopy = async () => {
     if (!qr?.joinUrl) return;
@@ -399,7 +435,16 @@ export default function EventDetailPage() {
             <p className="text-sm text-muted-foreground">{event.description}</p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleEndSession}
+            disabled={isEndingSession || event.status === 'ended'}
+          >
+            <Square className="mr-2 h-4 w-4" />
+            {isEndingSession ? 'Ending…' : event.status === 'ended' ? 'Session ended' : 'End session'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Edit

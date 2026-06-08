@@ -51,6 +51,52 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return (await res.json()) as T;
 }
 
+export async function apiFetchBlob(
+  path: string,
+  init?: RequestInit,
+): Promise<Blob> {
+  const normalizedPath = path.replace(/^\/+/, '');
+
+  const res = await fetch(`${PROXY_BASE}/${normalizedPath}`, {
+    ...init,
+    headers: {
+      ...init?.headers,
+    },
+  });
+
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const body = (await res.json()) as { message?: string | string[] };
+      if (body?.message) {
+        message = Array.isArray(body.message)
+          ? body.message.join(', ')
+          : body.message;
+      }
+    } catch {
+      // keep default message
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  return await res.blob();
+}
+
+export async function downloadEventReport(
+  eventId: string,
+  format: 'csv' | 'pdf',
+) {
+  const blob = await apiFetchBlob(`events/${eventId}/report.${format}`);
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `event-report-${eventId}.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export const eventsApi = {
   list: () => apiFetch<Event[]>('events'),
 

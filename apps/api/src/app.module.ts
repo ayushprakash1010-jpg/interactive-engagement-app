@@ -9,9 +9,10 @@ import { EventsModule } from './events/events.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ParticipantModule } from './participants/participant.module';
-import { ActivityModule } from './activities/activity.module';   // ← Sprint 3
-import { ResponseModule } from './responses/response.module';   // ← Sprint 3
+import { ActivityModule } from './activities/activity.module';
+import { ResponseModule } from './responses/response.module';
 import { QuestionsModule } from './questions/questions.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -33,9 +34,10 @@ import { QuestionsModule } from './questions/questions.module';
     UsersModule,
     AuthModule,
     ParticipantModule,
-    ActivityModule,   // ← Sprint 3
-    ResponseModule,   // ← Sprint 3
+    ActivityModule,
+    ResponseModule,
     QuestionsModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}

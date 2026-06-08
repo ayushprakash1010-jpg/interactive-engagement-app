@@ -33,3 +33,7 @@ pnpm-debug.log*
 
 # Next.js
 .vercel
+
+chrome/
+apps/api/pdf-debug.png
+pdf-debug.png

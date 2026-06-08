@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientEvents, ServerEvents } from '@iep/types';
 
 import { socket } from './socket';
@@ -29,6 +29,9 @@ export type EventRealtime = {
   snapshot: SessionSnapshot | null;
   approvedQuestions: QaQuestion[];
   allQuestions: QaQuestion[];
+  isEndingSession: boolean;
+  sessionEnded: boolean;
+  sessionEndError: string | null;
   askQuestion: (payload: {
     text: string;
     displayName?: string;
@@ -38,6 +41,8 @@ export type EventRealtime = {
     questionId: string;
     status: 'approved' | 'dismissed' | 'answered';
   }) => void;
+  endSession: (payload?: { eventId?: string }) => void;
+  resetSessionEndState: () => void;
 };
 
 function sortApprovedQuestions(questions: QaQuestion[]): QaQuestion[] {
@@ -91,6 +96,9 @@ export function useEventRealtime(
   const [error, setError] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(null);
   const [allQuestions, setAllQuestions] = useState<QaQuestion[]>([]);
+  const [isEndingSession, setIsEndingSession] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState(false);
+  const [sessionEndError, setSessionEndError] = useState<string | null>(null);
 
   const eventId = options?.eventId;
 
@@ -134,13 +142,27 @@ export function useEventRealtime(
       setAllQuestions((current) => upsertQuestion(current, payload.question));
     };
 
-    const onError = (payload: { message: string }) =>
-      setError(payload?.message ?? 'Something went wrong.');
+    const onSessionEnded = () => {
+      setIsEndingSession(false);
+      setSessionEndError(null);
+      setSessionEnded(true);
+    };
+
+    const onError = (payload: { message: string }) => {
+      const message = payload?.message ?? 'Something went wrong.';
+      setError(message);
+
+      if (isEndingSession) {
+        setIsEndingSession(false);
+        setSessionEndError(message);
+      }
+    };
 
     socket.on(ServerEvents.PARTICIPANT_COUNT, onCount);
     socket.on(ServerEvents.SESSION_SNAPSHOT, onSnapshot);
     socket.on(ServerEvents.QA_NEW, onQaNew);
     socket.on(ServerEvents.QA_UPDATED, onQaUpdated);
+    socket.on(ServerEvents.SESSION_ENDED, onSessionEnded);
     socket.on(ServerEvents.ERROR, onError);
     socket.on('connect', join);
 
@@ -154,10 +176,11 @@ export function useEventRealtime(
       socket.off(ServerEvents.SESSION_SNAPSHOT, onSnapshot);
       socket.off(ServerEvents.QA_NEW, onQaNew);
       socket.off(ServerEvents.QA_UPDATED, onQaUpdated);
+      socket.off(ServerEvents.SESSION_ENDED, onSessionEnded);
       socket.off(ServerEvents.ERROR, onError);
       socket.off('connect', join);
     };
-  }, [eventCode, mode]);
+  }, [eventCode, mode, isEndingSession]);
 
   useEffect(() => {
     if (mode !== 'observe' || !eventId) {
@@ -217,14 +240,44 @@ export function useEventRealtime(
     socket.emit(ClientEvents.QA_MODERATE, payload);
   };
 
+  const endSession = useCallback(
+    (payload?: { eventId?: string }) => {
+      if (mode !== 'observe') return;
+
+      const resolvedEventId = payload?.eventId ?? eventId;
+      if (!resolvedEventId) {
+        setSessionEndError('Missing event id.');
+        return;
+      }
+
+      setSessionEnded(false);
+      setSessionEndError(null);
+      setIsEndingSession(true);
+
+      socket.emit(ClientEvents.SESSION_END, { eventId: resolvedEventId });
+    },
+    [eventId, mode],
+  );
+
+  const resetSessionEndState = useCallback(() => {
+    setIsEndingSession(false);
+    setSessionEnded(false);
+    setSessionEndError(null);
+  }, []);
+
   return {
     count,
     error,
     snapshot,
     approvedQuestions,
     allQuestions,
+    isEndingSession,
+    sessionEnded,
+    sessionEndError,
     askQuestion,
     upvoteQuestion,
     moderateQuestion,
+    endSession,
+    resetSessionEndState,
   };
 }

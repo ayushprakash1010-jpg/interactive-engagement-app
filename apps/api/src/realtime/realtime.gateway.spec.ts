@@ -75,6 +75,12 @@ describe('RealtimeGateway participant count', () => {
     updateStatus: jest.fn(),
   };
 
+  const analyticsService = {
+    invalidateCache: jest.fn(async () => undefined),
+    generateReport: jest.fn(async () => ({})),
+    cacheFinalReport: jest.fn(async () => undefined),
+  };
+
   const event = {
     _id: 'evt1',
     eventCode: 'ABC123',
@@ -98,6 +104,7 @@ describe('RealtimeGateway participant count', () => {
       activityService as any,
       responseService as any,
       questionsService as any,
+      analyticsService as any,
     );
 
     emit = jest.fn();

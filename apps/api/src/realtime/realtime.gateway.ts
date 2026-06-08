@@ -20,6 +20,7 @@ import type { ActivityDocument } from '../activities/activity.schema';
 import type { PollTally } from '../activities/utils/tally.util';
 import { ResponseService } from '../responses/response.service';
 import { QuestionsService } from '../questions/questions.service';
+import { AnalyticsService } from '../analytics/analytics.service';
 import {
   QuizConfig,
   getQuizQuestion,
@@ -61,13 +62,6 @@ function isQuizConfig(value: unknown): value is QuizConfig {
   return Array.isArray(value.questions);
 }
 
-// NOTE (scaling): these maps hold per-activity runtime state (debounce timers,
-// the live quiz question/timer, and advance locks) in this process's memory.
-// They are correct for the single-instance MVP, but do NOT survive a restart
-// and are NOT shared across API instances. Before running multiple API
-// instances behind the Redis adapter (Phase 2 / Sprint 8), this state must move
-// to Redis (e.g. quiz runtime keyed by activityId with a TTL) so any instance
-// can drive the timer and re-sync after a failover.
 const pollBroadcastTimers = new Map<string, NodeJS.Timeout>();
 const wordCloudBroadcastTimers = new Map<string, NodeJS.Timeout>();
 const quizRuntimeByActivityId = new Map<string, QuizRuntimeState>();
@@ -78,7 +72,6 @@ export class RealtimeGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
 {
   private readonly logger = new Logger(RealtimeGateway.name);
-
   private readonly socketState = new Map<string, SocketState>();
 
   constructor(
@@ -88,6 +81,7 @@ export class RealtimeGateway
     private readonly activityService: ActivityService,
     private readonly responseService: ResponseService,
     private readonly questionsService: QuestionsService,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   @WebSocketServer()
@@ -361,6 +355,8 @@ export class RealtimeGateway
           ratingValue,
         });
 
+        await this.analyticsService.invalidateCache(eventId);
+
         client.emit(ServerEvents.ACTIVITY_RESPONDED, { activityId });
         this.schedulePollResultsBroadcast(activityId, eventId, activity);
         return;
@@ -373,6 +369,8 @@ export class RealtimeGateway
           participantAnonId: anonId,
           feedbackAnswers,
         });
+
+        await this.analyticsService.invalidateCache(eventId);
 
         client.emit(ServerEvents.ACTIVITY_RESPONDED, { activityId });
         return;
@@ -442,6 +440,8 @@ export class RealtimeGateway
         participantAnonId: anonId,
         words,
       });
+
+      await this.analyticsService.invalidateCache(eventId);
     } catch (err: unknown) {
       const message =
         isRecord(err) && typeof err.message === 'string'
@@ -453,7 +453,6 @@ export class RealtimeGateway
     }
 
     client.emit(ServerEvents.ACTIVITY_RESPONDED, { activityId });
-
     this.scheduleWordCloudBroadcast(activityId, eventId);
   }
 
@@ -539,6 +538,8 @@ export class RealtimeGateway
         speedBonusEnabled,
       });
 
+      await this.analyticsService.invalidateCache(eventId);
+
       client.emit(ServerEvents.ACTIVITY_RESPONDED, {
         activityId,
         questionId,
@@ -592,6 +593,8 @@ export class RealtimeGateway
       status,
     });
 
+    await this.analyticsService.invalidateCache(eventId);
+
     if (requireModeration) {
       this.server
         .to(rooms.host(eventId))
@@ -628,6 +631,8 @@ export class RealtimeGateway
     try {
       const question = await this.questionsService.addVote(questionId, anonId);
       const eventId = question.eventId.toString();
+
+      await this.analyticsService.invalidateCache(eventId);
 
       this.server
         .to(rooms.event(eventId))
@@ -675,6 +680,8 @@ export class RealtimeGateway
       const question = await this.questionsService.updateStatus(questionId, status);
       const eventId = question.eventId.toString();
 
+      await this.analyticsService.invalidateCache(eventId);
+
       if (status === 'approved') {
         this.server
           .to(rooms.event(eventId))
@@ -693,6 +700,38 @@ export class RealtimeGateway
         isRecord(err) && typeof err.message === 'string'
           ? err.message
           : 'Could not moderate question.';
+
+      client.emit(ServerEvents.ERROR, { message });
+    }
+  }
+
+  @SubscribeMessage(ClientEvents.SESSION_END)
+  async handleSessionEnd(
+    @MessageBody() payload: { eventId: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const { eventId } = payload ?? {};
+
+    if (!eventId) {
+      client.emit(ServerEvents.ERROR, { message: 'eventId is required.' });
+      return;
+    }
+
+    try {
+      await this.eventsService.endEvent(eventId);
+      const report = await this.analyticsService.generateReport(eventId);
+      await this.analyticsService.cacheFinalReport(eventId, report);
+
+      this.server.to(rooms.event(eventId)).emit(ServerEvents.SESSION_ENDED, {
+        eventId,
+      });
+
+      this.logger.log(`session:end eventId=${eventId}`);
+    } catch (err: unknown) {
+      const message =
+        isRecord(err) && typeof err.message === 'string'
+          ? err.message
+          : 'Could not end session.';
 
       client.emit(ServerEvents.ERROR, { message });
     }

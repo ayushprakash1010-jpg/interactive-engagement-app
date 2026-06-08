@@ -5,6 +5,7 @@ import { ParticipantModule } from '../participants/participant.module';
 import { ActivityModule } from '../activities/activity.module';
 import { ResponseModule } from '../responses/response.module';
 import { QuestionsModule } from '../questions/questions.module';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 import { RealtimeGateway } from './realtime.gateway';
 
@@ -12,9 +13,10 @@ import { RealtimeGateway } from './realtime.gateway';
   imports: [
     EventsModule,
     ParticipantModule,
-    ActivityModule,   // ← Sprint 3: provides ActivityService to the gateway
-    ResponseModule,   // ← Sprint 3: provides ResponseService to the gateway
-    QuestionsModule,  // ← Sprint 4: provides QuestionsService to the gateway
+    ActivityModule,
+    ResponseModule,
+    QuestionsModule,
+    AnalyticsModule,
   ],
   providers: [RealtimeGateway],
   exports: [RealtimeGateway],
