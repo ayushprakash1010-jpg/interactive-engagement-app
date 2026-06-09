@@ -8,6 +8,7 @@ import { QuestionsModule } from '../questions/questions.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
 
 import { RealtimeGateway } from './realtime.gateway';
+import { RateLimitService } from './rate-limit.service';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { RealtimeGateway } from './realtime.gateway';
     QuestionsModule,
     AnalyticsModule,
   ],
-  providers: [RealtimeGateway],
-  exports: [RealtimeGateway],
+  providers: [RealtimeGateway, RateLimitService],
+  exports: [RealtimeGateway, RateLimitService],
 })
 export class RealtimeModule {}

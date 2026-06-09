@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { ResponseEntity, ResponseDocument } from './response.schema';
 import { ActivityDocument } from '../activities/activity.schema';
 import { computePollTally, PollTally } from '../activities/utils/tally.util';
+import { sanitizeText } from '../common/sanitize';
 import {
   QuizConfig,
   QuizQuestion,
@@ -239,10 +240,11 @@ export class ResponseService {
       setFields.words = [];
       setFields.feedbackAnswers = [];
     } else if (pollType === 'open') {
-      if (!dto.textValue?.trim()) {
+      const cleanText = sanitizeText(dto.textValue, 1000);
+      if (!cleanText) {
         throw new BadRequestException('textValue is required for open polls');
       }
-      setFields.textValue = dto.textValue.trim();
+      setFields.textValue = cleanText;
       setFields.selectedOptionIds = [];
       setFields.ratingValue = null;
       setFields.words = [];
@@ -335,7 +337,7 @@ export class ResponseService {
         };
       }
 
-      const textValue = answer.textValue?.trim();
+      const textValue = sanitizeText(answer.textValue, 1000);
       if (!textValue) {
         throw new BadRequestException(
           `textValue is required for feedback field ${answer.fieldId}`,
@@ -465,7 +467,7 @@ export class ResponseService {
     }
 
     const normalizedWords = dto.words
-      .map((word) => word.trim().toLowerCase())
+      .map((word) => sanitizeText(word, 80).toLowerCase())
       .filter((word) => word.length > 0);
 
     if (normalizedWords.length === 0) {

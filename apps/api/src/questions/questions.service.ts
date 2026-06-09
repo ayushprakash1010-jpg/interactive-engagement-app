@@ -10,6 +10,7 @@ import {
   QuestionEntity,
   QuestionStatus,
 } from './question.schema';
+import { sanitizeText, sanitizeOptionalText } from '../common/sanitize';
 
 type CreateQuestionInput = {
   eventId: string;
@@ -56,15 +57,16 @@ export class QuestionsService {
       throw new BadRequestException('authorAnonId is required.');
     }
 
-    if (!text?.trim()) {
+    const sanitizedText = sanitizeText(text, 1000);
+    if (!sanitizedText) {
       throw new BadRequestException('Question text is required.');
     }
 
     const question = await this.questionModel.create({
       eventId: new Types.ObjectId(eventId),
-      text: text.trim(),
+      text: sanitizedText,
       authorAnonId: authorAnonId.trim(),
-      authorName: authorName?.trim() || null,
+      authorName: sanitizeOptionalText(authorName, 80) ?? null,
       voteCount: 0,
       voterAnonIds: [],
       status: status ?? 'pending',

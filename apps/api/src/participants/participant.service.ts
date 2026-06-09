@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ParticipantEntity, ParticipantDocument } from './participant.schema';
+import { sanitizeText } from '../common/sanitize';
 
 @Injectable()
 export class ParticipantService {
@@ -32,7 +33,7 @@ export class ParticipantService {
 
     const setFields: Record<string, unknown> = { connected: true };
     if (displayName !== undefined) {
-      setFields.displayName = displayName.trim();
+      setFields.displayName = sanitizeText(displayName, 80);
     }
 
     const participant = await this.participantModel

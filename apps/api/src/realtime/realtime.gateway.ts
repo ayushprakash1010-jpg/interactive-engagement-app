@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, type OnApplicationShutdown } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -10,11 +10,27 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import type { ZodSchema } from 'zod';
 
 import { EventsService } from '../events/events.service';
 import { ParticipantService } from '../participants/participant.service';
 import { RedisService } from './redis.service';
-import { ClientEvents, ServerEvents, rooms } from '@iep/types';
+import { RateLimitService } from './rate-limit.service';
+import {
+  ClientEvents,
+  ServerEvents,
+  rooms,
+  eventJoinSchema,
+  eventObserveSchema,
+  activityIdSchema,
+  activityRespondSocketSchema,
+  wordCloudSubmitSchema,
+  quizAnswerSchema,
+  qaAskSchema,
+  qaUpvoteSchema,
+  qaModerateSchema,
+  sessionEndSchema,
+} from '@iep/types';
 import { ActivityService } from '../activities/activity.service';
 import type { ActivityDocument } from '../activities/activity.schema';
 import type { PollTally } from '../activities/utils/tally.util';
@@ -69,7 +85,11 @@ const quizAdvanceLocks = new Set<string>();
 
 @WebSocketGateway({ cors: true })
 export class RealtimeGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+  implements
+    OnGatewayInit,
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnApplicationShutdown
 {
   private readonly logger = new Logger(RealtimeGateway.name);
   private readonly socketState = new Map<string, SocketState>();
@@ -82,6 +102,7 @@ export class RealtimeGateway
     private readonly responseService: ResponseService,
     private readonly questionsService: QuestionsService,
     private readonly analyticsService: AnalyticsService,
+    private readonly rateLimitService: RateLimitService,
   ) {}
 
   @WebSocketServer()
@@ -89,6 +110,95 @@ export class RealtimeGateway
 
   afterInit(): void {
     this.logger.log('RealtimeGateway initialized');
+  }
+
+  /**
+   * Validate an inbound socket payload against a Zod schema. On failure, logs
+   * the issue server-side, emits a friendly error to the client, and returns
+   * null so the handler can bail out early.
+   */
+  private parsePayload<T>(
+    schema: ZodSchema<T>,
+    payload: unknown,
+    client: Socket,
+  ): T | null {
+    const result = schema.safeParse(payload);
+    if (!result.success) {
+      this.logger.warn(
+        `Invalid socket payload: ${result.error.issues
+          .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+          .join('; ')}`,
+      );
+      client.emit(ServerEvents.ERROR, {
+        message: 'Invalid request. Please refresh and try again.',
+      });
+      return null;
+    }
+    return result.data;
+  }
+
+  private clientIp(client: Socket): string | undefined {
+    const forwarded = client.handshake?.headers?.['x-forwarded-for'];
+    if (typeof forwarded === 'string' && forwarded.length > 0) {
+      return forwarded.split(',')[0]?.trim();
+    }
+    return client.handshake?.address;
+  }
+
+  /**
+   * Enforce a Redis-backed rate limit for a participant action. Emits a
+   * friendly error and returns false when the limit is exceeded.
+   */
+  private async enforceRateLimit(
+    action: string,
+    anonId: string,
+    client: Socket,
+  ): Promise<boolean> {
+    const result = await this.rateLimitService.consumeForAction(
+      action,
+      anonId,
+      this.clientIp(client),
+    );
+    if (!result.allowed) {
+      client.emit(ServerEvents.ERROR, {
+        message: `You're doing that too fast. Try again in ${result.retryAfter}s.`,
+      });
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Graceful shutdown (Sprint 7 reliability): stop in-flight broadcast timers,
+   * disconnect connected sockets, and close the Socket.IO server so the
+   * process can exit cleanly on SIGTERM without dropping work mid-flush.
+   */
+  async onApplicationShutdown(signal?: string): Promise<void> {
+    this.logger.log(`Draining sockets on shutdown (signal=${signal ?? 'n/a'})`);
+
+    for (const timer of pollBroadcastTimers.values()) clearTimeout(timer);
+    pollBroadcastTimers.clear();
+    for (const timer of wordCloudBroadcastTimers.values()) clearTimeout(timer);
+    wordCloudBroadcastTimers.clear();
+    for (const runtime of quizRuntimeByActivityId.values()) {
+      if (runtime.timeout) clearTimeout(runtime.timeout);
+    }
+    quizRuntimeByActivityId.clear();
+    quizAdvanceLocks.clear();
+
+    try {
+      this.server?.disconnectSockets(true);
+      await new Promise<void>((resolve) => {
+        if (!this.server) return resolve();
+        this.server.close(() => resolve());
+      });
+    } catch (err) {
+      this.logger.error(
+        `Error closing Socket.IO server: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   handleConnection(client: Socket): void {
@@ -127,14 +237,9 @@ export class RealtimeGateway
     @MessageBody() payload: JoinPayload,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { eventCode, anonId, displayName } = payload ?? {};
-
-    if (!eventCode || !anonId) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'A valid event code is required to join.',
-      });
-      return;
-    }
+    const data = this.parsePayload(eventJoinSchema, payload, client);
+    if (!data) return;
+    const { eventCode, anonId, displayName } = data;
 
     const event = await this.resolveJoinableEvent(eventCode, client);
     if (!event) {
@@ -164,14 +269,9 @@ export class RealtimeGateway
     @MessageBody() payload: ObservePayload,
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { eventCode } = payload ?? {};
-
-    if (!eventCode) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'A valid event code is required to observe.',
-      });
-      return;
-    }
+    const data = this.parsePayload(eventObserveSchema, payload, client);
+    if (!data) return;
+    const { eventCode } = data;
 
     const event = await this.resolveJoinableEvent(eventCode, client);
     if (!event) {
@@ -199,12 +299,9 @@ export class RealtimeGateway
     @MessageBody() payload: { activityId: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { activityId } = payload ?? {};
-
-    if (!activityId) {
-      client.emit(ServerEvents.ERROR, { message: 'activityId is required.' });
-      return;
-    }
+    const data = this.parsePayload(activityIdSchema, payload, client);
+    if (!data) return;
+    const { activityId } = data;
 
     let activity: { eventId: { toString(): string }; _id: { toString(): string } };
     try {
@@ -254,12 +351,9 @@ export class RealtimeGateway
     @MessageBody() payload: { activityId: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { activityId } = payload ?? {};
-
-    if (!activityId) {
-      client.emit(ServerEvents.ERROR, { message: 'activityId is required.' });
-      return;
-    }
+    const data = this.parsePayload(activityIdSchema, payload, client);
+    if (!data) return;
+    const { activityId } = data;
 
     let activity: { eventId: { toString(): string } };
     try {
@@ -313,6 +407,8 @@ export class RealtimeGateway
     },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
+    const data = this.parsePayload(activityRespondSocketSchema, payload, client);
+    if (!data) return;
     const {
       activityId,
       anonId,
@@ -320,12 +416,9 @@ export class RealtimeGateway
       textValue,
       ratingValue,
       feedbackAnswers,
-    } = payload ?? {};
+    } = data;
 
-    if (!activityId || !anonId) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'activityId and anonId are required.',
-      });
+    if (!(await this.enforceRateLimit('activity:respond', anonId, client))) {
       return;
     }
 
@@ -400,19 +493,11 @@ export class RealtimeGateway
     },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { activityId, anonId, words } = payload ?? {};
+    const data = this.parsePayload(wordCloudSubmitSchema, payload, client);
+    if (!data) return;
+    const { activityId, anonId, words } = data;
 
-    if (!activityId || !anonId) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'activityId and anonId are required.',
-      });
-      return;
-    }
-
-    if (!Array.isArray(words)) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'words must be an array.',
-      });
+    if (!(await this.enforceRateLimit('activity:respond', anonId, client))) {
       return;
     }
 
@@ -461,14 +546,10 @@ export class RealtimeGateway
     @MessageBody() payload: { activityId: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { activityId } = payload ?? {};
+    const data = this.parsePayload(activityIdSchema, payload, client);
+    if (!data) return;
 
-    if (!activityId) {
-      client.emit(ServerEvents.ERROR, { message: 'activityId is required.' });
-      return;
-    }
-
-    await this.advanceQuizQuestion(activityId, client);
+    await this.advanceQuizQuestion(data.activityId, client);
   }
 
   @SubscribeMessage(ClientEvents.QUIZ_ANSWER)
@@ -483,12 +564,11 @@ export class RealtimeGateway
     },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { activityId, anonId, questionId, optionId } = payload ?? {};
+    const data = this.parsePayload(quizAnswerSchema, payload, client);
+    if (!data) return;
+    const { activityId, anonId, questionId, optionId } = data;
 
-    if (!activityId || !anonId || !questionId || !optionId) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'activityId, anonId, questionId, and optionId are required.',
-      });
+    if (!(await this.enforceRateLimit('activity:respond', anonId, client))) {
       return;
     }
 
@@ -567,12 +647,11 @@ export class RealtimeGateway
     },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { eventCode, anonId, text, displayName } = payload ?? {};
+    const data = this.parsePayload(qaAskSchema, payload, client);
+    if (!data) return;
+    const { eventCode, anonId, text, displayName } = data;
 
-    if (!eventCode || !anonId || !text?.trim()) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'eventCode, anonId, and text are required.',
-      });
+    if (!(await this.enforceRateLimit('qa:ask', anonId, client))) {
       return;
     }
 
@@ -619,14 +698,9 @@ export class RealtimeGateway
     },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { questionId, anonId } = payload ?? {};
-
-    if (!questionId || !anonId) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'questionId and anonId are required.',
-      });
-      return;
-    }
+    const data = this.parsePayload(qaUpvoteSchema, payload, client);
+    if (!data) return;
+    const { questionId, anonId } = data;
 
     try {
       const question = await this.questionsService.addVote(questionId, anonId);
@@ -660,21 +734,9 @@ export class RealtimeGateway
     },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { questionId, status } = payload ?? {};
-
-    if (!questionId || !status) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'questionId and status are required.',
-      });
-      return;
-    }
-
-    if (!['approved', 'dismissed', 'answered'].includes(status)) {
-      client.emit(ServerEvents.ERROR, {
-        message: 'status must be approved, dismissed, or answered.',
-      });
-      return;
-    }
+    const data = this.parsePayload(qaModerateSchema, payload, client);
+    if (!data) return;
+    const { questionId, status } = data;
 
     try {
       const question = await this.questionsService.updateStatus(questionId, status);
@@ -710,12 +772,9 @@ export class RealtimeGateway
     @MessageBody() payload: { eventId: string },
     @ConnectedSocket() client: Socket,
   ): Promise<void> {
-    const { eventId } = payload ?? {};
-
-    if (!eventId) {
-      client.emit(ServerEvents.ERROR, { message: 'eventId is required.' });
-      return;
-    }
+    const data = this.parsePayload(sessionEndSchema, payload, client);
+    if (!data) return;
+    const { eventId } = data;
 
     try {
       await this.eventsService.endEvent(eventId);

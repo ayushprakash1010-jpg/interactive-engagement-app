@@ -81,6 +81,15 @@ describe('RealtimeGateway participant count', () => {
     cacheFinalReport: jest.fn(async () => undefined),
   };
 
+  const rateLimitService = {
+    consume: jest.fn(async () => ({ allowed: true, remaining: 99, retryAfter: 0 })),
+    consumeForAction: jest.fn(async () => ({
+      allowed: true,
+      remaining: 99,
+      retryAfter: 0,
+    })),
+  };
+
   const event = {
     _id: 'evt1',
     eventCode: 'ABC123',
@@ -105,6 +114,7 @@ describe('RealtimeGateway participant count', () => {
       responseService as any,
       questionsService as any,
       analyticsService as any,
+      rateLimitService as any,
     );
 
     emit = jest.fn();

@@ -1,0 +1,58 @@
+# Fly.io deployment for apps/api (Sprint 7).
+#
+# The API is a long-running, stateful Socket.IO process (NOT serverless) — it
+# holds thousands of persistent WebSocket connections, so it runs as a
+# persistent container here. The web app deploys separately to Vercel.
+#
+# First-time setup:
+#   fly launch --no-deploy --copy-config --name iep-api
+#   fly secrets set MONGODB_URI=... REDIS_URL=... AUTH0_ISSUER_BASE_URL=... \
+#                   AUTH0_AUDIENCE=... WEB_ORIGIN=https://app.example.com
+#   fly deploy
+
+app = "iep-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "4000"
+  NODE_ENV = "production"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = false   # keep sockets alive; do not idle-stop
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    # WebSocket-heavy: allow many concurrent connections per machine.
+    soft_limit = 800
+    hard_limit = 1000
+
+  # Readiness gates load-balancer traffic; liveness restarts a wedged machine.
+  [[http_service.checks]]
+    method = "get"
+    path = "/ready"
+    interval = "10s"
+    timeout = "2s"
+    grace_period = "10s"
+
+  [[http_service.checks]]
+    method = "get"
+    path = "/live"
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+# Give in-flight sockets time to drain on deploy/rollout (matches the gateway's
+# onApplicationShutdown handler).
+[deploy]
+  strategy = "rolling"

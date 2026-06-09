@@ -1,0 +1,42 @@
+# Render Blueprint (alternative to Fly.io) for the API + Redis (Sprint 7).
+# MongoDB is hosted on Atlas (set MONGODB_URI as a secret). The web app deploys
+# to Vercel separately.
+#
+# Deploy: connect this repo in the Render dashboard ("New > Blueprint").
+
+services:
+  - type: web
+    name: iep-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    healthCheckPath: /ready
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_URL
+        fromService:
+          name: iep-redis
+          type: keyvalue
+          property: connectionString
+      # Secrets — set in the Render dashboard, not committed:
+      - key: MONGODB_URI
+        sync: false
+      - key: AUTH0_ISSUER_BASE_URL
+        sync: false
+      - key: AUTH0_AUDIENCE
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false
+
+  - type: keyvalue
+    name: iep-redis
+    plan: starter
+    region: oregon
+    ipAllowList: [] # only reachable from Render services
+    maxmemoryPolicy: noeviction

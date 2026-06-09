@@ -1,0 +1,72 @@
+# Artillery Socket.IO load test (Sprint 7).
+#
+# Simulates participants joining ONE event and responding to the live activity
+# over Socket.IO, ramping to the MVP target of ~1000 concurrent participants in
+# a single room. Asserts p95 round-trip (emit -> server ack/broadcast) < 1s.
+#
+# Prereqs:
+#   npm i -g artillery artillery-engine-socketio-v3
+#   A running API and a LIVE event whose activeActivity is a poll.
+#
+# Run:
+#   EVENT_CODE=ABC234 ACTIVITY_ID=<id> \
+#   artillery run --target "$SOCKET_URL" load/artillery/socket-load.yml
+#
+# Tune `arrivalRate`/`duration` to your hardware; 1000 concurrent sockets needs
+# a raised ulimit (`ulimit -n 65535`).
+
+config:
+  target: "{{ $processEnvironment.SOCKET_URL }}"
+  processor: "./processor.js"
+  phases:
+    - name: warmup
+      duration: 30
+      arrivalRate: 10
+      rampTo: 50
+    - name: ramp-to-1k
+      duration: 120
+      arrivalRate: 50
+      rampTo: 200 # ~200 new sockets/s * holding => ~1000+ concurrent
+    - name: sustain
+      duration: 120
+      arrivalRate: 100
+  engines:
+    socketio-v3: {}
+  socketio:
+    transports: ["websocket"]
+  ensure:
+    # Broadcast latency budget from the acceptance criteria.
+    p95: 1000
+    maxErrorRate: 1
+  variables:
+    eventCode:
+      - "{{ $processEnvironment.EVENT_CODE }}"
+    activityId:
+      - "{{ $processEnvironment.ACTIVITY_ID }}"
+
+scenarios:
+  - name: join-and-respond
+    engine: socketio-v3
+    flow:
+      # Each virtual user is a distinct anonymous participant.
+      - function: "newAnonId"
+      - emit:
+          channel: "event:join"
+          data:
+            eventCode: "{{ eventCode }}"
+            anonId: "{{ anonId }}"
+            displayName: "load-{{ anonId }}"
+      # Wait for the session snapshot so we only count post-join latency.
+      - think: 1
+      - loop:
+          - emit:
+              channel: "activity:respond"
+              data:
+                activityId: "{{ activityId }}"
+                anonId: "{{ anonId }}"
+                selectedOptionIds: ["o1"]
+            # acknowledge/await the server's activity:responded broadcast
+            acknowledge:
+              timeout: 1000
+          - think: 2
+        count: 5

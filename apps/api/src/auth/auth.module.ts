@@ -6,6 +6,7 @@ import { UsersModule } from '../users/users.module';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthService } from './auth.service';
+import { RolesGuard } from './roles.guard';
 
 /**
  * AuthModule wires together Passport, the Users dependency, and the
@@ -31,10 +32,12 @@ import { AuthService } from './auth.service';
     AuthService,
     JwtStrategy,
     JwtAuthGuard,
+    RolesGuard,
   ],
   exports: [
     AuthService,
     JwtAuthGuard,   // controllers in other modules: @UseGuards(JwtAuthGuard)
+    RolesGuard,     // controllers: @UseGuards(JwtAuthGuard, RolesGuard) + @Roles()
     PassportModule, // exposes AuthGuard() to importing modules
   ],
 })
