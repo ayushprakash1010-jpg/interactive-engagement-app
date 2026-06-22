@@ -1,4 +1,3 @@
-// apps/api/src/activities/activity.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 
@@ -26,6 +25,46 @@ class PollConfig {
 
   @Prop({ min: 2, max: 10 })
   ratingScale?: number;
+
+  @Prop({ min: 5, max: 600 })
+  timeLimitSec?: number;
+}
+
+// ── Feedback config subdocument ───────────────────────────────────────────────
+
+class FeedbackField {
+  @Prop({ required: true })
+  id!: string;
+
+  @Prop({ required: true, enum: ['rating', 'text'] })
+  type!: 'rating' | 'text';
+
+  @Prop({ required: true })
+  label!: string;
+}
+
+class FeedbackConfig {
+  @Prop({ required: true })
+  prompt!: string;
+
+  @Prop({ type: [{ id: String, type: String, label: String }], default: [] })
+  fields!: FeedbackField[];
+
+  @Prop({ min: 5, max: 600 })
+  timeLimitSec?: number;
+}
+
+// ── Wordcloud config subdocument ──────────────────────────────────────────────
+
+class WordcloudConfig {
+  @Prop({ required: true })
+  prompt!: string;
+
+  @Prop({ required: true })
+  maxWordsPerParticipant!: number;
+
+  @Prop({ min: 5, max: 600 })
+  timeLimitSec?: number;
 }
 
 // ── Activity entity ───────────────────────────────────────────────────────────
@@ -62,7 +101,7 @@ export class ActivityEntity {
   // Stored as a flexible Mixed type to support all activity config shapes.
   // Validated at the service layer via Zod before persistence.
   @Prop({ type: MongooseSchema.Types.Mixed, required: true })
-  config!: PollConfig | Record<string, unknown>;
+  config!: PollConfig | FeedbackConfig | WordcloudConfig | Record<string, unknown>;
 }
 
 export const ActivityEntitySchema =

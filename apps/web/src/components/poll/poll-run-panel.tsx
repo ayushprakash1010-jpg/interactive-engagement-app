@@ -1,6 +1,6 @@
-// apps/web/src/components/poll/poll-run-panel.tsx
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { ClientEvents } from '@iep/types';
 import { Button } from '@/components/ui/button';
 import { socket } from '@/lib/socket';
@@ -22,7 +22,8 @@ function isPollConfig(config: Activity['config']): config is PollConfig {
 }
 
 export function PollRunPanel({ activity }: Props) {
-  const { activeActivity, tallies } = usePoll(null);
+  const { activeActivity, tallies, pollEndsAt } = usePoll(null);
+  const [timeLeftMs, setTimeLeftMs] = useState(0);
 
   const pollConfig = isPollConfig(activity.config) ? activity.config : null;
 
@@ -34,7 +35,36 @@ export function PollRunPanel({ activity }: Props) {
     activeActivity._id !== activity._id &&
     activeActivity.status === 'live';
 
-  const isThisActivityClosed = activity.status === 'closed';
+  // THE FIX: Ensure the host panel reflects when the auto-timer closes the poll!
+  const isThisActivityClosed =
+    activity.status === 'closed' ||
+    (activeActivity?._id === activity._id && activeActivity.status === 'closed');
+
+  useEffect(() => {
+    if (!isThisActivityLive || !pollEndsAt) {
+      setTimeLeftMs(0);
+      return;
+    }
+
+    const update = () => {
+      const diff = pollEndsAt - Date.now();
+      setTimeLeftMs(Math.max(0, diff));
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [isThisActivityLive, pollEndsAt]);
+
+  const timeLabel = useMemo(() => {
+    if (!pollEndsAt) return null;
+    const totalSeconds = Math.ceil(timeLeftMs / 1000);
+    const seconds = Math.max(0, totalSeconds);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, [timeLeftMs, pollEndsAt]);
 
   const launch = () => {
     socket.emit(ClientEvents.ACTIVITY_LAUNCH, { activityId: activity._id });
@@ -68,6 +98,15 @@ export function PollRunPanel({ activity }: Props) {
             </span>
 
             {isThisActivityLive && <LiveBadge />}
+
+            {isThisActivityLive && timeLabel && (
+              <span 
+                className="rounded-md border px-2 py-0.5 text-xs font-semibold tabular-nums" 
+                style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
+              >
+                {timeLabel}
+              </span>
+            )}
 
             {isThisActivityClosed && (
               <span

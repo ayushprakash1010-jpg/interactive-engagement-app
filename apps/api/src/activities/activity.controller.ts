@@ -38,6 +38,7 @@ const PollConfigSchema = z.object({
     )
     .optional(),
   ratingScale: z.number().int().min(2).max(10).optional(),
+  timeLimitSec: z.number().int().min(5).max(600).optional(), 
 });
 
 const QuizQuestionSchema = z
@@ -86,6 +87,7 @@ const QuizConfigSchema = z.object({
 const WordcloudConfigSchema = z.object({
   prompt: z.string().min(1).max(500),
   maxWordsPerParticipant: z.number().int().min(1).max(20),
+  timeLimitSec: z.number().int().min(5).max(600).optional(),
 });
 
 const FeedbackFieldSchema = z.object({
@@ -97,6 +99,7 @@ const FeedbackFieldSchema = z.object({
 const FeedbackConfigSchema = z.object({
   prompt: z.string().min(1).max(500),
   fields: z.array(FeedbackFieldSchema).min(1),
+  timeLimitSec: z.number().int().min(5).max(600).optional(), // <--- THE FINAL FIX IS HERE!
 });
 
 const CreateActivitySchema = z.discriminatedUnion('type', [

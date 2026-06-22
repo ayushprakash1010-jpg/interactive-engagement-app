@@ -255,123 +255,104 @@ export function buildAnalyticsReportHtml(data: any): string {
     <meta charset="utf-8" />
     <title>Analytics Report - ${e(eventId)}</title>
     <style>
-      @page {
-        size: A4;
-        margin: 16mm;
-      }
-
-      html, body {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #ffffff !important;
-        color: #000000 !important;
-        font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 12px !important;
-        line-height: 1.45 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+      body {
+        margin: 0;
+        padding: 0;
+        background: #ffffff;
+        color: #000000;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        line-height: 1.45;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
 
       * {
         box-sizing: border-box;
-        color: #000000 !important;
-        text-shadow: none !important;
-        box-shadow: none !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        transform: none !important;
-        filter: none !important;
-      }
-
-      body {
-        width: 100%;
-      }
-
-      h1, h2, h3, p, ul, li, table, tr, th, td, div, section, span, strong {
-        position: static !important;
       }
 
       h1 {
-        font-size: 20px !important;
-        margin: 0 0 8px 0 !important;
-        font-weight: 700 !important;
+        font-size: 20px;
+        margin: 0 0 8px 0;
+        font-weight: 700;
       }
 
       h2 {
-        font-size: 15px !important;
-        margin: 0 0 10px 0 !important;
-        padding: 0 0 4px 0 !important;
-        border-bottom: 1px solid #000 !important;
-        font-weight: 700 !important;
+        font-size: 15px;
+        margin: 0 0 10px 0;
+        padding: 0 0 4px 0;
+        border-bottom: 1px solid #000;
+        font-weight: 700;
       }
 
       h3 {
-        font-size: 13px !important;
-        margin: 0 0 8px 0 !important;
-        font-weight: 700 !important;
+        font-size: 13px;
+        margin: 0 0 8px 0;
+        font-weight: 700;
       }
 
       p {
-        margin: 0 0 8px 0 !important;
+        margin: 0 0 8px 0;
       }
 
       .section {
-        display: block !important;
-        margin: 0 0 18px 0 !important;
+        margin: 0 0 18px 0;
         page-break-inside: avoid;
       }
 
       .block,
       .sub-block {
-        display: block !important;
-        margin: 0 0 12px 0 !important;
-        padding: 8px 10px !important;
-        border: 1px solid #000 !important;
+        margin: 0 0 12px 0;
+        padding: 8px 10px;
+        border: 1px solid #cccccc;
+        border-radius: 4px;
         page-break-inside: avoid;
       }
 
       .kv-table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        margin: 0 0 10px 0 !important;
-        table-layout: fixed !important;
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 10px 0;
+        table-layout: fixed;
       }
 
       .kv-table th,
       .kv-table td {
-        border: 1px solid #000 !important;
-        padding: 6px 8px !important;
-        text-align: left !important;
-        vertical-align: top !important;
-        word-break: break-word !important;
+        border: 1px solid #cccccc;
+        padding: 6px 8px;
+        text-align: left;
+        vertical-align: top;
+        word-break: break-word;
       }
 
       .kv-table th {
-        width: 34% !important;
-        font-weight: 700 !important;
+        width: 34%;
+        font-weight: 700;
+        background-color: #f9f9f9;
       }
 
       ul {
-        margin: 0 0 8px 18px !important;
-        padding: 0 !important;
+        margin: 0 0 8px 18px;
+        padding: 0;
       }
 
       li {
-        margin: 0 0 4px 0 !important;
+        margin: 0 0 4px 0;
       }
 
       .empty {
-        font-style: italic !important;
+        font-style: italic;
+        color: #666666;
       }
 
       .header {
-        margin: 0 0 18px 0 !important;
-        padding: 0 0 10px 0 !important;
-        border-bottom: 2px solid #000 !important;
+        margin: 0 0 18px 0;
+        padding: 0 0 10px 0;
+        border-bottom: 2px solid #000;
       }
 
       .meta {
-        margin: 0 0 4px 0 !important;
+        margin: 0 0 4px 0;
       }
     </style>
   </head>

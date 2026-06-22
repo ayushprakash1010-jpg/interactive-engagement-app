@@ -162,19 +162,24 @@ export class AnalyticsExportService {
     const filename = `event-${eventId}-report.pdf`;
     const html = buildAnalyticsReportHtml(data);
 
-    // Use a custom Chromium only when explicitly configured (e.g. a slim
-    // production image with a system Chromium). Otherwise let puppeteer use the
-    // Chromium it bundles at install time.
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
 
     const browser = await puppeteer.launch({
       headless: true,
       executablePath,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox', 
+        '--disable-gpu',
+        '--disable-dev-shm-usage' // Stabilizes memory on Windows environments
+      ],
     });
 
     try {
       const page = await browser.newPage();
+
+      // Pre-set viewport to A4 dimensions so the layout engine calculates spacing immediately
+      await page.setViewport({ width: 794, height: 1122, deviceScaleFactor: 2 });
 
       page.on('pageerror', (err: unknown) => {
         if (err instanceof Error) {
@@ -184,36 +189,19 @@ export class AnalyticsExportService {
         }
       });
 
-      page.on('requestfailed', (req) => {
-        this.logger.error(
-          `[pdf-request-failed] ${req.url()} :: ${req.failure()?.errorText ?? 'unknown error'}`,
-        );
+      // THE FIX: Convert HTML to a Base64 Data URI and navigate to it like a real URL
+      // This forces Chrome to wait for the entire natural paint lifecycle.
+      const base64Html = Buffer.from(html).toString('base64');
+      const dataUrl = `data:text/html;base64,${base64Html}`;
+
+      await page.goto(dataUrl, {
+        waitUntil: 'networkidle0', // Absolutely guarantees the browser is done painting
       });
-
-      await page.setContent(html, {
-        waitUntil: 'domcontentloaded',
-      });
-
-      await page.waitForFunction(() => {
-        const g = globalThis as typeof globalThis & {
-          document?: {
-            body?: {
-              innerText?: string;
-            };
-          };
-        };
-
-        const body = g.document?.body;
-        return Boolean(body && (body.innerText?.length ?? 0) > 0);
-      });
-
-      await page.emulateMediaType('screen');
 
       const pdf = await page.pdf({
         format: 'A4',
         printBackground: true,
         displayHeaderFooter: false,
-        preferCSSPageSize: false,
         margin: {
           top: '20px',
           right: '20px',

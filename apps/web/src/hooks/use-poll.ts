@@ -87,6 +87,7 @@ export interface LiveActivity {
     ratingScale?: number;
     maxWordsPerParticipant?: number;
     fields?: FeedbackField[];
+    timeLimitSec?: number; // <--- ADDED: Strict type support for your new timer
   };
 }
 
@@ -100,6 +101,7 @@ export interface FeedbackResponseFieldPayload {
 export interface UsePollReturn {
   activeActivity: LiveActivity | null;
   tallies: PollTallyResult | null;
+  pollEndsAt: number | null;
   hasSubmitted: boolean;
   quizQuestion: QuizQuestionState | null;
   hasAnsweredQuiz: boolean;
@@ -147,6 +149,7 @@ type SessionSnapshotPayload = {
     activityId?: string;
     words?: Array<{ text?: string; value?: number; weight?: number }>;
   } | null;
+  pollEndsAt?: number | null;
 };
 
 type WordCloudUpdatePayload = {
@@ -180,6 +183,7 @@ function normalizeQuizLeaderboard(
 export function usePoll(anonId: string | null): UsePollReturn {
   const [activeActivity, setActiveActivity] = useState<LiveActivity | null>(null);
   const [tallies, setTallies] = useState<PollTallyResult | null>(null);
+  const [pollEndsAt, setPollEndsAt] = useState<number | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [quizQuestion, setQuizQuestion] = useState<QuizQuestionState | null>(null);
   const [hasAnsweredQuiz, setHasAnsweredQuiz] = useState(false);
@@ -198,8 +202,9 @@ export function usePoll(anonId: string | null): UsePollReturn {
   }, [activeActivity?._id]);
 
   useEffect(() => {
-    const onActivityLaunched = (data: { activity: LiveActivity }) => {
+    const onActivityLaunched = (data: { activity: LiveActivity; endsAt?: number }) => {
       setActiveActivity(data.activity);
+      setPollEndsAt(data.endsAt ?? null);
       setTallies(null);
       setHasSubmitted(false);
       setQuizQuestion(null);
@@ -232,6 +237,7 @@ export function usePoll(anonId: string | null): UsePollReturn {
 
       if (activeActivityIdRef.current === data.activityId) {
         activeActivityIdRef.current = data.activityId;
+        setPollEndsAt(null);
       }
     };
 
@@ -309,6 +315,7 @@ export function usePoll(anonId: string | null): UsePollReturn {
     const onSessionSnapshot = (data: SessionSnapshotPayload) => {
       setActiveActivity(data.activeActivity);
       setTallies(data.currentTally);
+      setPollEndsAt(data.pollEndsAt ?? null);
       setQuizLeaderboard(normalizeQuizLeaderboard(data.currentQuizLeaderboard));
       setWordCloudWords(normalizeWordCloudEntries(data.currentWordCloud?.words));
 
@@ -497,6 +504,7 @@ export function usePoll(anonId: string | null): UsePollReturn {
   return {
     activeActivity,
     tallies,
+    pollEndsAt,
     hasSubmitted,
     quizQuestion,
     hasAnsweredQuiz,

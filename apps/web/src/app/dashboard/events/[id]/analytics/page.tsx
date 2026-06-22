@@ -320,7 +320,12 @@ function EngagementTimeline({
   }
 
   const chartData = data.map((d) => ({
-    time: d.minute.slice(11, 16),
+    time: new Date(d.minute).toLocaleTimeString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }),
     responses: d.responses,
   }));
 
@@ -439,7 +444,12 @@ export default function AnalyticsPage() {
               {event?.name ?? 'Event'} — Analytics
             </h1>
             <p className="text-sm text-muted-foreground">
-              Generated {new Date(report.generatedAt).toLocaleString()}
+              Generated{' '}
+              {new Date(report.generatedAt).toLocaleString('en-IN', {
+                timeZone: 'Asia/Kolkata',
+                dateStyle: 'medium',
+                timeStyle: 'medium',
+              })}
             </p>
           </div>
           <div className="flex gap-2">

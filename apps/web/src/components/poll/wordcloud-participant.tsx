@@ -13,6 +13,7 @@ type WordCloudParticipantProps = {
   isSubmitting?: boolean;
   submittedWords?: string[];
   liveWords?: WordCloudEntry[];
+  wordCloudEndsAt?: number | null; // <--- Add timer prop
   onSubmit: (payload: { activityId: string; words: string[] }) => void;
 };
 
@@ -22,19 +23,50 @@ export function WordCloudParticipant({
   isSubmitting = false,
   submittedWords = [],
   liveWords = [],
+  wordCloudEndsAt = null,
   onSubmit,
 }: WordCloudParticipantProps) {
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [timeLeftMs, setTimeLeftMs] = useState(0); // Timer state
 
   const prompt = activity.config.prompt ?? activity.title ?? 'Share your words';
   const maxWords = activity.config.maxWordsPerParticipant ?? 5;
-  const isClosed = activity.status === 'closed';
 
+  // Sync component state
   useEffect(() => {
     setValue('');
     setSubmitting(false);
   }, [activity._id]);
+
+  // Tick the timer
+  useEffect(() => {
+    if (!wordCloudEndsAt) {
+      setTimeLeftMs(0);
+      return;
+    }
+
+    const update = () => {
+      const diff = wordCloudEndsAt - Date.now();
+      setTimeLeftMs(Math.max(0, diff));
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [wordCloudEndsAt]);
+
+  const timeExpired = !!wordCloudEndsAt && timeLeftMs <= 0;
+  const isClosed = activity.status === 'closed' || timeExpired;
+
+  const timeLabel = useMemo(() => {
+    if (!wordCloudEndsAt) return null;
+    const totalSeconds = Math.ceil(timeLeftMs / 1000);
+    const seconds = Math.max(0, totalSeconds);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, [timeLeftMs, wordCloudEndsAt]);
 
   const parsedWords = useMemo(() => normalizeWordCloudInput(value), [value]);
   const limitedWords = useMemo(
@@ -43,6 +75,7 @@ export function WordCloudParticipant({
   );
 
   const tooManyWords = parsedWords.length > maxWords;
+  
   const canSubmit =
     !submitting &&
     !isSubmitting &&
@@ -61,6 +94,20 @@ export function WordCloudParticipant({
     });
   };
 
+  // Auto-submit logic when timer hits 1.5 seconds remaining
+  useEffect(() => {
+    if (
+      timeLeftMs > 0 &&
+      timeLeftMs <= 1500 &&
+      !hasSubmitted &&
+      !submitting &&
+      !isSubmitting &&
+      canSubmit
+    ) {
+      handleSubmit();
+    }
+  }, [timeLeftMs, hasSubmitted, submitting, isSubmitting, canSubmit]);
+
   if (hasSubmitted || isClosed) {
     return (
       <div className="space-y-4">
@@ -73,9 +120,9 @@ export function WordCloudParticipant({
         >
           <p
             className="mb-1 text-sm font-medium"
-            style={{ color: 'var(--color-primary)' }}
+            style={{ color: timeExpired && !hasSubmitted ? 'var(--color-error)' : 'var(--color-primary)' }}
           >
-            {isClosed ? 'Word cloud closed' : '✓ Words submitted'}
+            {hasSubmitted ? '✓ Words submitted' : timeExpired ? 'Time is up' : 'Word cloud closed'}
           </p>
           <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
             {prompt}
@@ -116,7 +163,7 @@ export function WordCloudParticipant({
               className="text-sm"
               style={{ color: 'var(--color-text-muted)' }}
             >
-              Your words were submitted.
+              {isClosed && !hasSubmitted ? "No words were submitted." : "Your words were submitted."}
             </p>
           )}
         </div>
@@ -150,19 +197,34 @@ export function WordCloudParticipant({
 
   return (
     <div className="space-y-5">
-      <div>
-        <p
-          className="text-lg font-semibold leading-snug"
-          style={{ color: 'var(--color-text)' }}
-        >
-          {prompt}
-        </p>
-        <p
-          className="mt-1 text-sm"
-          style={{ color: 'var(--color-text-muted)' }}
-        >
-          Enter up to {maxWords} unique word{maxWords === 1 ? '' : 's'}, separated by commas or new lines.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p
+            className="text-lg font-semibold leading-snug"
+            style={{ color: 'var(--color-text)' }}
+          >
+            {prompt}
+          </p>
+          <p
+            className="mt-1 text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            Enter up to {maxWords} unique word{maxWords === 1 ? '' : 's'}, separated by commas or new lines.
+          </p>
+        </div>
+
+        {wordCloudEndsAt && (
+          <div
+            className="shrink-0 rounded-md border px-3 py-2 text-sm font-semibold tabular-nums"
+            style={{
+              borderColor: timeExpired ? 'var(--color-error)' : 'var(--color-border)',
+              background: timeExpired ? 'var(--color-error-highlight)' : 'var(--color-surface-2)',
+              color: timeExpired ? 'var(--color-error)' : 'var(--color-text)',
+            }}
+          >
+            {timeLabel}
+          </div>
+        )}
       </div>
 
       <Textarea
@@ -226,8 +288,8 @@ export function WordCloudParticipant({
         disabled={!canSubmit}
         className="w-full"
         style={{
-          background: canSubmit ? 'var(--color-primary)' : undefined,
-          color: canSubmit ? '#fff' : undefined,
+          background: canSubmit ? '#000000' : undefined,
+          color: canSubmit ? '#FFFFFF' : undefined,
         }}
       >
         {submitting || isSubmitting ? 'Submitting…' : 'Submit words'}

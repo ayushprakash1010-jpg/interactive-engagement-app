@@ -58,6 +58,26 @@ const handler = withApiAuthRequired(async function handler(req: NextRequest) {
     return new NextResponse(null, { status: 204 });
   }
 
+  // Binary content types (PDF, CSV, octet-stream) must be forwarded as raw bytes.
+  // Using apiRes.text() on binary data corrupts it because Node's UTF-8 decoder
+  // replaces invalid byte sequences, producing a blank or broken file on the client.
+  const isBinary =
+    contentType.includes('application/pdf') ||
+    contentType.includes('application/octet-stream') ||
+    contentType.includes('text/csv');
+
+  if (isBinary) {
+    const buffer = await apiRes.arrayBuffer();
+    return new NextResponse(buffer, {
+      status: apiRes.status,
+      headers: {
+        'content-type': contentType,
+        'content-disposition':
+          apiRes.headers.get('content-disposition') ?? '',
+      },
+    });
+  }
+
   const payload = await apiRes.text();
 
   return new NextResponse(payload, {

@@ -14,6 +14,7 @@ export type FeedbackField = {
 export type FeedbackConfig = {
   prompt: string;
   fields: FeedbackField[];
+  timeLimitSec?: number; // <--- Added timer field
 };
 
 type FeedbackBuilderProps = {
@@ -177,6 +178,31 @@ export function FeedbackBuilder({
             ))}
           </div>
         )}
+      </div>
+
+      {/* NEW: Timer Input */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-900">
+          Time limit (seconds)
+        </label>
+        <input
+          type="number"
+          min="5"
+          max="600"
+          value={value.timeLimitSec ?? ""}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              timeLimitSec: e.target.value ? parseInt(e.target.value, 10) : undefined,
+            })
+          }
+          disabled={disabled}
+          placeholder="e.g., 60 (optional)"
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        <p className="text-xs text-slate-500">
+          Set to empty to leave the feedback form open until manually closed.
+        </p>
       </div>
     </div>
   );

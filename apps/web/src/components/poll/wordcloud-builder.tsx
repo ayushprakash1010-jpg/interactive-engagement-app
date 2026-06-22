@@ -37,6 +37,10 @@ export function WordCloudBuilder({
   const [maxWords, setMaxWords] = useState(
     initialConfig?.maxWordsPerParticipant ?? DEFAULT_WORDS,
   );
+  // Add timer state
+  const [timeLimitSec, setTimeLimitSec] = useState<number | ''>(
+    initialConfig?.timeLimitSec ?? ''
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = (): boolean => {
@@ -59,6 +63,7 @@ export function WordCloudBuilder({
     const config: WordCloudConfig = {
       prompt: prompt.trim(),
       maxWordsPerParticipant: maxWords,
+      ...(timeLimitSec !== '' ? { timeLimitSec } : {}), // Add timer to config
     };
 
     await onSave({
@@ -135,6 +140,25 @@ export function WordCloudBuilder({
             {errors.maxWords}
           </p>
         )}
+      </div>
+
+      {/* Timer Input Field */}
+      <div className="space-y-1.5">
+        <Label htmlFor={`${formId}-timer`}>Time limit (seconds)</Label>
+        <Input
+          id={`${formId}-timer`}
+          type="number"
+          min="5"
+          max="600"
+          placeholder="e.g. 60 (optional)"
+          value={timeLimitSec}
+          onChange={(e) =>
+            setTimeLimitSec(e.target.value ? parseInt(e.target.value, 10) : '')
+          }
+        />
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          Set to empty to leave the word cloud open until manually closed.
+        </p>
       </div>
 
       <div className="flex items-center justify-end gap-3 pt-2">

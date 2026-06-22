@@ -43,6 +43,7 @@ import {
   sanitizeQuizQuestionForBroadcast,
 } from '../activities/utils/quiz.util';
 
+
 type JoinPayload = {
   eventCode: string;
   anonId: string;
@@ -82,6 +83,7 @@ const pollBroadcastTimers = new Map<string, NodeJS.Timeout>();
 const wordCloudBroadcastTimers = new Map<string, NodeJS.Timeout>();
 const quizRuntimeByActivityId = new Map<string, QuizRuntimeState>();
 const quizAdvanceLocks = new Set<string>();
+const pollRuntimeByActivityId = new Map<string, { endsAt: number; timeout: NodeJS.Timeout }>();
 
 @WebSocketGateway({ cors: true })
 export class RealtimeGateway
@@ -303,7 +305,7 @@ export class RealtimeGateway
     if (!data) return;
     const { activityId } = data;
 
-    let activity: { eventId: { toString(): string }; _id: { toString(): string } };
+    let activity: any;
     try {
       activity = await this.activityService.findById(activityId);
     } catch {
@@ -315,35 +317,74 @@ export class RealtimeGateway
 
     const closed = await this.activityService.closeLiveActivity(eventId);
     if (closed) {
-      this.clearQuizRuntime(closed._id.toString());
+      const closedId = closed._id.toString();
+      this.clearQuizRuntime(closedId);
 
-      const pollTimer = pollBroadcastTimers.get(closed._id.toString());
+      const pRuntime = pollRuntimeByActivityId.get(closedId);
+      if (pRuntime?.timeout) clearTimeout(pRuntime.timeout);
+      pollRuntimeByActivityId.delete(closedId);
+
+      const pollTimer = pollBroadcastTimers.get(closedId);
       if (pollTimer) {
         clearTimeout(pollTimer);
-        pollBroadcastTimers.delete(closed._id.toString());
+        pollBroadcastTimers.delete(closedId);
       }
 
-      const wordCloudTimer = wordCloudBroadcastTimers.get(closed._id.toString());
+      const wordCloudTimer = wordCloudBroadcastTimers.get(closedId);
       if (wordCloudTimer) {
         clearTimeout(wordCloudTimer);
-        wordCloudBroadcastTimers.delete(closed._id.toString());
+        wordCloudBroadcastTimers.delete(closedId);
       }
 
       this.server
         .to(rooms.event(eventId))
         .emit(ServerEvents.ACTIVITY_CLOSED, {
-          activityId: closed._id.toString(),
+          activityId: closedId,
         });
     }
 
     const liveActivity = await this.activityService.setStatus(activityId, 'live');
     await this.eventsService.setActiveActivity(eventId, activityId);
 
+    let endsAt: number | undefined = undefined;
+    
+    // THE FIX: We read from the originally fetched `activity`, NOT `liveActivity`
+    // because setStatus often returns a partial document without the config!
+    const rawActivity = typeof activity.toJSON === 'function' ? activity.toJSON() : activity;
+    const config: any = rawActivity.config || {};
+    const sec = Number(config.timeLimitSec);
+
+    this.logger.debug(`Found config.timeLimitSec = ${config.timeLimitSec}, parsed sec = ${sec}`);
+
+    if ((rawActivity.type === 'poll' || rawActivity.type === 'feedback' || rawActivity.type === 'wordcloud') && !isNaN(sec) && sec > 0) {
+      endsAt = Date.now() + sec * 1000;
+      
+      const timeout = setTimeout(async () => {
+        pollRuntimeByActivityId.delete(activityId);
+        await this.activityService.setStatus(activityId, 'closed');
+        await this.eventsService.setActiveActivity(eventId, null);
+
+        const bTimer = pollBroadcastTimers.get(activityId);
+        if (bTimer) { clearTimeout(bTimer); pollBroadcastTimers.delete(activityId); }
+
+        this.server.to(rooms.event(eventId)).emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
+      }, sec * 1000);
+      
+      pollRuntimeByActivityId.set(activityId, { endsAt, timeout });
+    }
+
     this.server
       .to(rooms.event(eventId))
-      .emit(ServerEvents.ACTIVITY_LAUNCHED, { activity: liveActivity });
+      .emit(ServerEvents.ACTIVITY_LAUNCHED, { activity: liveActivity, endsAt });
 
-    this.logger.log(`activity:launched activityId=${activityId} eventId=${eventId}`);
+    this.logger.log(`activity:launched activityId=${activityId} eventId=${eventId} endsAt=${endsAt}`);
+
+    if (rawActivity.type === 'quiz') {
+      // Small delay so clients fully process ACTIVITY_LAUNCHED before Q1 arrives
+      setTimeout(() => {
+        void this.advanceQuizQuestion(activityId);
+      }, 300);
+    }
   }
 
   @SubscribeMessage(ClientEvents.ACTIVITY_CLOSE)
@@ -379,6 +420,10 @@ export class RealtimeGateway
       clearTimeout(wordCloudTimer);
       wordCloudBroadcastTimers.delete(activityId);
     }
+
+    const pRuntime = pollRuntimeByActivityId.get(activityId);
+    if (pRuntime?.timeout) clearTimeout(pRuntime.timeout);
+    pollRuntimeByActivityId.delete(activityId);
 
     this.clearQuizRuntime(activityId);
 
@@ -826,12 +871,17 @@ export class RealtimeGateway
     let currentQuizQuestion: Record<string, unknown> | null = null;
     let currentQuizLeaderboard: Array<{ name: string; points: number }> | null = null;
     let currentWordCloud: Array<{ text: string; weight: number }> | null = null;
+    let pollEndsAt: number | null = null;
 
     if (event.activeActivityId) {
       try {
         activeActivity = await this.activityService.findById(
           event.activeActivityId.toString(),
         );
+
+        // Timer tracking pulled OUT of the poll-specific block so Feedback can read it!
+        const runtime = pollRuntimeByActivityId.get(activeActivity._id.toString());
+        if (runtime) pollEndsAt = runtime.endsAt;
 
         if (activeActivity.type === 'poll') {
           currentTally = await this.responseService.computeTally(
@@ -846,16 +896,16 @@ export class RealtimeGateway
               activeActivity._id.toString(),
             );
 
-          const runtime = quizRuntimeByActivityId.get(activeActivity._id.toString());
-          if (runtime) {
+          const runtimeQuiz = quizRuntimeByActivityId.get(activeActivity._id.toString());
+          if (runtimeQuiz) {
             const config = activeActivity.config;
             if (isQuizConfig(config)) {
-              const question = getQuizQuestion(config, runtime.questionId);
+              const question = getQuizQuestion(config, runtimeQuiz.questionId);
               if (question) {
                 currentQuizQuestion = {
                   activityId: activeActivity._id.toString(),
                   ...sanitizeQuizQuestionForBroadcast(question),
-                  endsAt: runtime.endsAt,
+                  endsAt: runtimeQuiz.endsAt,
                 };
               }
             }
@@ -881,6 +931,7 @@ export class RealtimeGateway
       currentQuizQuestion,
       currentQuizLeaderboard,
       currentWordCloud,
+      pollEndsAt,
       approvedQuestions: await this.questionsService.findApprovedByEvent(eventId),
     };
   }

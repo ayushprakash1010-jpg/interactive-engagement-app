@@ -15,6 +15,7 @@ import type {
 interface Props {
   activity: LiveActivity;
   tallies: UsePollReturn['tallies'];
+  pollEndsAt?: number | null;
   hasSubmitted: boolean;
   onSubmit: UsePollReturn['submitResponse'];
   quizQuestion?: QuizQuestionState | null;
@@ -27,6 +28,7 @@ interface Props {
 export function PollParticipant({
   activity,
   tallies,
+  pollEndsAt = null,
   hasSubmitted,
   onSubmit,
   quizQuestion = null,
@@ -47,7 +49,9 @@ export function PollParticipant({
 
   const [selectedQuizOptionId, setSelectedQuizOptionId] = useState<string>('');
   const [quizSubmitting, setQuizSubmitting] = useState(false);
-  const [timeLeftMs, setTimeLeftMs] = useState(0);
+  
+  const [quizTimeLeftMs, setQuizTimeLeftMs] = useState(0);
+  const [pollTimeLeftMs, setPollTimeLeftMs] = useState(0);
 
   useEffect(() => {
     setSelectedIds([]);
@@ -61,28 +65,55 @@ export function PollParticipant({
     setQuizSubmitting(false);
   }, [quizQuestion?.questionId]);
 
+  // Quiz Timer
   useEffect(() => {
     if (activity.type !== 'quiz' || !quizQuestion?.endsAt) {
-      setTimeLeftMs(0);
+      setQuizTimeLeftMs(0);
       return;
     }
 
     const update = () => {
       const diff = new Date(quizQuestion.endsAt).getTime() - Date.now();
-      setTimeLeftMs(Math.max(0, diff));
+      setQuizTimeLeftMs(Math.max(0, diff));
     };
 
     update();
     const interval = window.setInterval(update, 1000);
-
     return () => window.clearInterval(interval);
   }, [activity.type, quizQuestion?.endsAt, quizQuestion?.questionId]);
 
-  const isClosed = activity.status === 'closed';
+  // Poll Timer
+  useEffect(() => {
+    if (activity.type !== 'poll' || !pollEndsAt) {
+      setPollTimeLeftMs(0);
+      return;
+    }
+
+    const update = () => {
+      const diff = pollEndsAt - Date.now();
+      setPollTimeLeftMs(Math.max(0, diff));
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [activity.type, pollEndsAt]);
+
+  const pollExpired = !!pollEndsAt && pollTimeLeftMs <= 0;
+  const isClosed = activity.status === 'closed' || pollExpired;
   const showResults = hasSubmitted || isClosed;
 
+  const canSubmit = (() => {
+    if (submitting || hasSubmitted || isClosed) return false;
+    if (pollType === 'single') return selectedIds.length === 1;
+    if (pollType === 'multiple') return selectedIds.length > 0;
+    if (pollType === 'rating') return ratingValue !== null;
+    if (pollType === 'open') return textValue.trim().length > 0;
+    return false;
+  })();
+
   const handleSubmit = () => {
-    if (submitting || hasSubmitted) return;
+    if (submitting || hasSubmitted || isClosed) return;
 
     setSubmitting(true);
 
@@ -97,16 +128,20 @@ export function PollParticipant({
     });
   };
 
-  const canSubmit = (() => {
-    if (submitting || hasSubmitted || isClosed) return false;
-    if (pollType === 'single') return selectedIds.length === 1;
-    if (pollType === 'multiple') return selectedIds.length > 0;
-    if (pollType === 'rating') return ratingValue !== null;
-    if (pollType === 'open') return textValue.trim().length > 0;
-    return false;
-  })();
+  // THE FIX: Auto-submit their answer 1.5 seconds before the timer runs out!
+  useEffect(() => {
+    if (
+      pollTimeLeftMs > 0 &&
+      pollTimeLeftMs <= 1500 &&
+      !hasSubmitted &&
+      !submitting &&
+      canSubmit
+    ) {
+      handleSubmit();
+    }
+  }, [pollTimeLeftMs, hasSubmitted, submitting, canSubmit]);
 
-  const quizExpired = timeLeftMs <= 0;
+  const quizExpired = quizTimeLeftMs <= 0;
   const showQuizLeaderboard =
     activity.type === 'quiz' &&
     (quizExpired || isClosed || quizLeaderboard.length > 0);
@@ -122,12 +157,21 @@ export function PollParticipant({
     !!onSubmitQuizAnswer;
 
   const quizTimeLabel = useMemo(() => {
-    const totalSeconds = Math.ceil(timeLeftMs / 1000);
+    const totalSeconds = Math.ceil(quizTimeLeftMs / 1000);
     const seconds = Math.max(0, totalSeconds);
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }, [timeLeftMs]);
+  }, [quizTimeLeftMs]);
+
+  const pollTimeLabel = useMemo(() => {
+    if (!pollEndsAt) return null;
+    const totalSeconds = Math.ceil(pollTimeLeftMs / 1000);
+    const seconds = Math.max(0, totalSeconds);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, [pollTimeLeftMs, pollEndsAt]);
 
   const handleQuizSubmit = () => {
     if (
@@ -280,10 +324,6 @@ export function PollParticipant({
           onClick={handleQuizSubmit}
           disabled={!canSubmitQuiz}
           className="w-full"
-          style={{
-            background: canSubmitQuiz ? 'var(--color-primary)' : undefined,
-            color: canSubmitQuiz ? '#fff' : undefined,
-          }}
         >
           {quizSubmitting || hasAnsweredQuiz ? 'Answer submitted' : 'Submit answer'}
         </Button>
@@ -354,9 +394,9 @@ export function PollParticipant({
         >
           <p
             className="mb-1 text-sm font-medium"
-            style={{ color: 'var(--color-primary)' }}
+            style={{ color: pollExpired && !hasSubmitted ? 'var(--color-error)' : 'var(--color-primary)' }}
           >
-            {isClosed ? 'Poll closed' : '✓ Response submitted'}
+            {hasSubmitted ? '✓ Response submitted' : pollExpired ? 'Time is up' : 'Poll closed'}
           </p>
           <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
             {config.question}
@@ -365,6 +405,13 @@ export function PollParticipant({
 
         {tallies ? (
           <PollResultsChart tallies={tallies} />
+        ) : isClosed ? (
+          <p
+            className="py-8 text-center text-sm"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            No responses recorded.
+          </p>
         ) : (
           <p
             className="py-8 text-center text-sm"
@@ -379,12 +426,33 @@ export function PollParticipant({
 
   return (
     <div className="space-y-5">
-      <p
-        className="text-lg font-semibold leading-snug"
-        style={{ color: 'var(--color-text)' }}
-      >
-        {config.question}
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p
+          className="text-lg font-semibold leading-snug"
+          style={{ color: 'var(--color-text)' }}
+        >
+          {config.question}
+        </p>
+        
+        {pollEndsAt && (
+          <div
+            className="shrink-0 rounded-md border px-3 py-2 text-sm font-semibold tabular-nums"
+            style={{
+              borderColor: pollExpired
+                ? 'var(--color-error)'
+                : 'var(--color-border)',
+              background: pollExpired
+                ? 'var(--color-error-highlight)'
+                : 'var(--color-surface-2)',
+              color: pollExpired
+                ? 'var(--color-error)'
+                : 'var(--color-text)',
+            }}
+          >
+            {pollTimeLabel}
+          </div>
+        )}
+      </div>
 
       {pollType === 'single' && (
         <fieldset className="space-y-2">
@@ -493,10 +561,6 @@ export function PollParticipant({
         onClick={handleSubmit}
         disabled={!canSubmit}
         className="w-full"
-        style={{
-          background: canSubmit ? 'var(--color-primary)' : undefined,
-          color: canSubmit ? '#fff' : undefined,
-        }}
       >
         {submitting ? 'Submitting…' : 'Submit'}
       </Button>

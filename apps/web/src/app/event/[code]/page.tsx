@@ -14,17 +14,7 @@ import { WordCloudParticipant } from '@/components/poll/wordcloud-participant';
 import { PollResultsChart } from '@/components/poll/poll-results-chart';
 import { QaTab } from '@/components/participant/qa-tab';
 import { FeedbackParticipant } from '@/components/poll/feedback-participant';
-
-function getAnonId(): string {
-  if (typeof window === 'undefined') return '';
-
-  let anonId = localStorage.getItem('iep_anon_id');
-  if (!anonId) {
-    anonId = crypto.randomUUID();
-    localStorage.setItem('iep_anon_id', anonId);
-  }
-  return anonId;
-}
+import { getAnonId } from '@/lib/anon-id';
 
 function getVotedQuestionIds(code: string): string[] {
   if (typeof window === 'undefined') return [];
@@ -79,6 +69,7 @@ export default function EventPage() {
   const {
     activeActivity,
     tallies,
+    pollEndsAt, 
     hasSubmitted,
     submitResponse,
     submitFeedbackResponse,
@@ -267,6 +258,7 @@ export default function EventPage() {
                 key={activeActivity._id}
                 activity={activeActivity}
                 tallies={tallies}
+                pollEndsAt={pollEndsAt} 
                 hasSubmitted={hasSubmitted}
                 onSubmit={submitResponse}
               />
@@ -352,6 +344,7 @@ export default function EventPage() {
               <WordCloudParticipant
                 key={activeActivity._id}
                 activity={activeActivity}
+                wordCloudEndsAt={pollEndsAt} // <--- THE TIMER PROP IS PASSED HERE!
                 hasSubmitted={hasSubmitted}
                 submittedWords={submittedWordCloudWords}
                 liveWords={wordCloudWords}
@@ -365,6 +358,7 @@ export default function EventPage() {
               <WordCloudParticipant
                 key={activeActivity._id}
                 activity={activeActivity}
+                wordCloudEndsAt={pollEndsAt} // <--- AND HERE!
                 hasSubmitted={hasSubmitted}
                 submittedWords={submittedWordCloudWords}
                 liveWords={wordCloudWords}
@@ -380,6 +374,7 @@ export default function EventPage() {
                 activityId={activeActivity._id}
                 title={activeActivity.title}
                 config={activeActivity.config as FeedbackParticipantConfig}
+                feedbackEndsAt={pollEndsAt}
                 submitted={hasSubmitted}
                 onSubmit={handleFeedbackSubmit}
               />
@@ -393,6 +388,7 @@ export default function EventPage() {
                 activityId={activeActivity._id}
                 title={activeActivity.title}
                 config={activeActivity.config as FeedbackParticipantConfig}
+                feedbackEndsAt={pollEndsAt}
                 submitted
                 onSubmit={handleFeedbackSubmit}
               />

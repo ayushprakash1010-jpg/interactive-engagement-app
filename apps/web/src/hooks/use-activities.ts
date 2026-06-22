@@ -10,6 +10,7 @@ export interface PollConfig {
   question: string;
   options?: { id: string; label: string }[];
   ratingScale?: number;
+  timeLimitSec?: number;
 }
 
 export interface QuizOption {
@@ -40,11 +41,13 @@ export interface FeedbackField {
 export interface FeedbackConfig {
   prompt: string;
   fields: FeedbackField[];
+  timeLimitSec?: number;
 }
 
 export interface WordCloudConfig {
   prompt: string;
   maxWordsPerParticipant?: number;
+  timeLimitSec?: number;
 }
 
 export type ActivityConfig =

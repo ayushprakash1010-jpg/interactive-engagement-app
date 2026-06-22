@@ -5,6 +5,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import type { QaQuestion } from '@/lib/use-event-realtime';
 
+
 type QaTabProps = {
   questions: QaQuestion[];
   votedQuestionIds: string[];
@@ -28,7 +29,11 @@ export function QaTab({
   onUpvoteQuestion,
 }: QaTabProps) {
   const [text, setText] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [displayName] = useState(() => {
+    if (typeof window === 'undefined') return '';
+
+    return localStorage.getItem('iep-display-name') ?? '';
+  });
 
   const sortedQuestions = useMemo(() => sortQuestions(questions), [questions]);
 
@@ -73,20 +78,7 @@ export function QaTab({
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="display-name" className="text-sm font-medium">
-              Display name (optional)
-            </label>
-            <input
-              id="display-name"
-              type="text"
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
-              placeholder="Anonymous"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-              maxLength={60}
-            />
-          </div>
+      
 
           <Button type="submit" disabled={!text.trim()}>
             Submit question

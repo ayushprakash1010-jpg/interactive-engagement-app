@@ -22,6 +22,7 @@ export const pollConfigSchema = z.object({
   question: z.string().min(1),
   options: z.array(pollOptionSchema).default([]),
   ratingScale: z.number().int().min(2).max(10).optional(),
+  timeLimitSec: z.number().int().min(5).max(600).optional(), 
 });
 export type PollConfig = z.infer<typeof pollConfigSchema>;
 
@@ -44,6 +45,7 @@ export type QuizConfig = z.infer<typeof quizConfigSchema>;
 export const wordcloudConfigSchema = z.object({
   prompt: z.string().min(1),
   maxWordsPerParticipant: z.number().int().min(1).max(20).default(3),
+  timeLimitSec: z.number().int().min(5).max(600).optional(),
 });
 export type WordcloudConfig = z.infer<typeof wordcloudConfigSchema>;
 
@@ -56,6 +58,7 @@ export const feedbackFieldSchema = z.object({
 export const feedbackConfigSchema = z.object({
   prompt: z.string().min(1),
   fields: z.array(feedbackFieldSchema).default([]),
+  timeLimitSec: z.number().int().min(5).max(600).optional(), // <--- Added Timer Support
 });
 export type FeedbackConfig = z.infer<typeof feedbackConfigSchema>;
 

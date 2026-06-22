@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type FeedbackFieldType = "rating" | "text";
 
@@ -28,6 +28,7 @@ type FeedbackParticipantProps = {
   activityId: string;
   title?: string;
   config: FeedbackConfig;
+  feedbackEndsAt?: number | null; // <--- NEW PROP
   onSubmit: (payload: SubmitPayload) => Promise<void> | void;
   disabled?: boolean;
   submitted?: boolean;
@@ -37,6 +38,7 @@ export function FeedbackParticipant({
   activityId,
   title,
   config,
+  feedbackEndsAt = null,
   onSubmit,
   disabled = false,
   submitted = false,
@@ -45,10 +47,40 @@ export function FeedbackParticipant({
   const [textValues, setTextValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [timeLeftMs, setTimeLeftMs] = useState(0);
 
   const fields = useMemo(() => config.fields ?? [], [config.fields]);
 
-  const validate = () => {
+  // Timer logic
+  useEffect(() => {
+    if (!feedbackEndsAt) {
+      setTimeLeftMs(0);
+      return;
+    }
+
+    const update = () => {
+      const diff = feedbackEndsAt - Date.now();
+      setTimeLeftMs(Math.max(0, diff));
+    };
+
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [feedbackEndsAt]);
+
+  const feedbackExpired = !!feedbackEndsAt && timeLeftMs <= 0;
+  const isLocked = disabled || submitted || isSubmitting || feedbackExpired;
+
+  const timeLabel = useMemo(() => {
+    if (!feedbackEndsAt) return null;
+    const totalSeconds = Math.ceil(timeLeftMs / 1000);
+    const seconds = Math.max(0, totalSeconds);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  }, [timeLeftMs, feedbackEndsAt]);
+
+  const validate = (showErrors = true) => {
     const nextErrors: Record<string, string> = {};
 
     for (const field of fields) {
@@ -67,13 +99,15 @@ export function FeedbackParticipant({
       }
     }
 
-    setErrors(nextErrors);
+    if (showErrors) setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
+  const isFormValid = useMemo(() => validate(false), [fields, ratingValues, textValues]);
+
   const handleSubmit = async () => {
-    if (submitted || disabled || isSubmitting) return;
-    if (!validate()) return;
+    if (submitted || isSubmitting) return;
+    if (!validate(true)) return;
 
     const responses = fields.map((field) => {
       if (field.type === "rating") {
@@ -100,13 +134,41 @@ export function FeedbackParticipant({
     }
   };
 
+  // Auto-submit logic when timer hits 1.5 seconds remaining
+  useEffect(() => {
+    if (
+      timeLeftMs > 0 &&
+      timeLeftMs <= 1500 &&
+      !submitted &&
+      !isSubmitting &&
+      isFormValid
+    ) {
+      handleSubmit();
+    }
+  }, [timeLeftMs, submitted, isSubmitting, isFormValid]);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-6 space-y-2">
-        {title ? (
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-        ) : null}
-        <p className="text-sm text-slate-600">{config.prompt}</p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="space-y-2">
+          {title ? (
+            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+          ) : null}
+          <p className="text-sm text-slate-600">{config.prompt}</p>
+        </div>
+
+        {feedbackEndsAt && (
+          <div
+            className="shrink-0 rounded-md border px-3 py-2 text-sm font-semibold tabular-nums"
+            style={{
+              borderColor: feedbackExpired ? "var(--color-error)" : "var(--color-border)",
+              background: feedbackExpired ? "var(--color-error-highlight)" : "var(--color-surface-2)",
+              color: feedbackExpired ? "var(--color-error)" : "var(--color-text)",
+            }}
+          >
+            {timeLabel}
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -125,7 +187,7 @@ export function FeedbackParticipant({
                     <button
                       key={value}
                       type="button"
-                      disabled={disabled || submitted || isSubmitting}
+                      disabled={isLocked}
                       onClick={() => {
                         setRatingValues((prev) => ({
                           ...prev,
@@ -142,9 +204,7 @@ export function FeedbackParticipant({
                         active
                           ? "border-slate-900 bg-slate-900 text-white"
                           : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
-                        disabled || submitted || isSubmitting
-                          ? "cursor-not-allowed opacity-60"
-                          : "",
+                        isLocked ? "cursor-not-allowed opacity-60" : "",
                       ].join(" ")}
                     >
                       {value}
@@ -167,7 +227,7 @@ export function FeedbackParticipant({
                     return next;
                   });
                 }}
-                disabled={disabled || submitted || isSubmitting}
+                disabled={isLocked}
                 rows={4}
                 placeholder="Type your response"
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
@@ -185,11 +245,13 @@ export function FeedbackParticipant({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={disabled || submitted || isSubmitting}
-          className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isLocked}
+          className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitted
             ? "Feedback submitted"
+            : feedbackExpired
+            ? "Time is up"
             : isSubmitting
             ? "Submitting..."
             : "Submit feedback"}

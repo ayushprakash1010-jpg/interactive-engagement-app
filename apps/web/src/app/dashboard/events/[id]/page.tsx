@@ -314,6 +314,7 @@ export default function EventDetailPage() {
       config: {
         prompt: trimmedPrompt,
         fields: cleanedFields,
+        timeLimitSec: feedbackDraft.timeLimitSec, 
       },
     } as CreateActivityPayload);
   };
@@ -714,48 +715,6 @@ export default function EventDetailPage() {
                 </div>
               ))}
 
-              {wordcloudActivities.map((activity) => (
-                <div key={activity._id} className="space-y-3">
-                  <WordCloudRunPanel activity={activity} />
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditBuilder(activity)}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={deleteActivity.isPending || activity.status === 'live'}
-                      onClick={() =>
-                        deleteActivity.mutate(activity._id, {
-                          onSuccess: () => {
-                            toast({ title: 'Word cloud deleted' });
-                          },
-                          onError: (err) => {
-                            toast({
-                              variant: 'destructive',
-                              title: 'Could not delete word cloud',
-                              description:
-                                err instanceof ApiError || err instanceof Error
-                                  ? err.message
-                                  : 'Unknown error',
-                            });
-                          },
-                        })
-                      }
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
               {quizActivities.map((activity) => (
                 <div key={activity._id} className="space-y-3">
                   <QuizRunPanel activity={activity} />
@@ -782,6 +741,48 @@ export default function EventDetailPage() {
                             toast({
                               variant: 'destructive',
                               title: 'Could not delete quiz',
+                              description:
+                                err instanceof ApiError || err instanceof Error
+                                  ? err.message
+                                  : 'Unknown error',
+                            });
+                          },
+                        })
+                      }
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              {wordcloudActivities.map((activity) => (
+                <div key={activity._id} className="space-y-3">
+                  <WordCloudRunPanel activity={activity} />
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditBuilder(activity)}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={deleteActivity.isPending || activity.status === 'live'}
+                      onClick={() =>
+                        deleteActivity.mutate(activity._id, {
+                          onSuccess: () => {
+                            toast({ title: 'Word cloud deleted' });
+                          },
+                          onError: (err) => {
+                            toast({
+                              variant: 'destructive',
+                              title: 'Could not delete word cloud',
                               description:
                                 err instanceof ApiError || err instanceof Error
                                   ? err.message

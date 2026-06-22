@@ -48,6 +48,7 @@ export function PollBuilder({
       : DEFAULT_OPTIONS.map((o) => ({ ...o })),
   );
   const [ratingScale, setRatingScale] = useState(initialConfig?.ratingScale ?? 5);
+  const [timeLimitSec, setTimeLimitSec] = useState<number>(initialConfig?.timeLimitSec ?? 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const addOption = () =>
@@ -76,6 +77,10 @@ export function PollBuilder({
       errs.ratingScale = 'Scale must be between 2 and 10';
     }
 
+    if (timeLimitSec !== 0 && (timeLimitSec < 5 || timeLimitSec > 600)) {
+      errs.timeLimitSec = 'Time limit must be between 5 and 600 seconds (or 0 for no limit)';
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -92,6 +97,7 @@ export function PollBuilder({
           ? options.filter((o) => o.label.trim())
           : [],
       ratingScale: pollType === 'rating' ? ratingScale : undefined,
+      timeLimitSec: timeLimitSec > 0 ? timeLimitSec : undefined,
     };
 
     await onSave({
@@ -252,6 +258,28 @@ export function PollBuilder({
           scrolling feed.
         </div>
       )}
+
+      <div className="space-y-1.5">
+        <Label htmlFor={`${formId}-time-limit`}>Time limit (seconds)</Label>
+        <Input
+          id={`${formId}-time-limit`}
+          type="number"
+          min="0"
+          max="600"
+          placeholder="0 for no limit"
+          value={timeLimitSec || ''}
+          onChange={(e) => setTimeLimitSec(Number(e.target.value) || 0)}
+          style={{ borderColor: errors.timeLimitSec ? 'var(--color-error)' : undefined }}
+        />
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          Set to 0 to leave the poll open until manually closed.
+        </p>
+        {errors.timeLimitSec && (
+          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
+            {errors.timeLimitSec}
+          </p>
+        )}
+      </div>
 
       <div className="flex items-center justify-end gap-3 pt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>
