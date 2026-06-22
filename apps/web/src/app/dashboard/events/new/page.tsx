@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { EventForm } from '@/components/event-form';
+import { Eyebrow } from '@/components/pulse';
 import { useCreateEvent } from '@/lib/use-events';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiError } from '@/lib/events-api';
@@ -21,10 +22,10 @@ export default function NewEventPage() {
   const createEvent = useCreateEvent();
 
   return (
-    <div className="mx-auto max-w-xl space-y-4">
+    <div className="mx-auto max-w-xl space-y-6">
       <Link
         href="/dashboard"
-        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center text-sm text-ink-muted transition-colors hover:text-foreground"
       >
         <ArrowLeft className="mr-1 h-4 w-4" />
         Back to events
@@ -32,9 +33,10 @@ export default function NewEventPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Create event</CardTitle>
+          <Eyebrow>New event</Eyebrow>
+          <CardTitle className="font-display text-xl">Create event</CardTitle>
           <CardDescription>
-            Give your event a name and choose how participants interact.
+            Give your event a name and choose how your audience interacts.
           </CardDescription>
         </CardHeader>
         <CardContent>

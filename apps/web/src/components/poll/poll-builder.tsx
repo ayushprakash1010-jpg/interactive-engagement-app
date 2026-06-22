@@ -116,12 +116,10 @@ export function PollBuilder({
           placeholder="e.g. Kick-off poll"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          style={{ borderColor: errors.title ? 'var(--color-error)' : undefined }}
+          className={errors.title ? 'border-destructive' : undefined}
         />
         {errors.title && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-            {errors.title}
-          </p>
+          <p className="text-xs text-destructive">{errors.title}</p>
         )}
       </div>
 
@@ -131,12 +129,7 @@ export function PollBuilder({
           id={`${formId}-poll-type`}
           value={pollType}
           onChange={(e) => setPollType(e.target.value as PollConfig['pollType'])}
-          className="flex h-10 w-full rounded-md border px-3 py-2 text-sm"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-            color: 'var(--color-text)',
-          }}
+          className="flex h-10 w-full rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-foreground"
         >
           {Object.entries(POLL_TYPE_LABELS).map(([value, label]) => (
             <option key={value} value={value}>
@@ -153,12 +146,10 @@ export function PollBuilder({
           placeholder="What would you like to ask?"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          style={{ borderColor: errors.question ? 'var(--color-error)' : undefined }}
+          className={errors.question ? 'border-destructive' : undefined}
         />
         {errors.question && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-            {errors.question}
-          </p>
+          <p className="text-xs text-destructive">{errors.question}</p>
         )}
       </div>
 
@@ -168,10 +159,7 @@ export function PollBuilder({
           <div className="space-y-2">
             {options.map((opt, index) => (
               <div key={opt.id} className="flex items-center gap-2">
-                <span
-                  className="text-sm w-6 text-center shrink-0"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
+                <span className="w-6 shrink-0 text-center text-sm text-ink-muted">
                   {index + 1}
                 </span>
                 <Input
@@ -185,8 +173,7 @@ export function PollBuilder({
                     type="button"
                     onClick={() => removeOption(opt.id)}
                     aria-label="Remove option"
-                    className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--color-surface-offset)]"
-                    style={{ color: 'var(--color-text-muted)' }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-sunken hover:text-foreground"
                   >
                     ✕
                   </button>
@@ -195,9 +182,7 @@ export function PollBuilder({
             ))}
           </div>
           {errors.options && (
-            <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-              {errors.options}
-            </p>
+            <p className="text-xs text-destructive">{errors.options}</p>
           )}
           {options.length < 8 && (
             <Button
@@ -225,36 +210,24 @@ export function PollBuilder({
               step={1}
               value={ratingScale}
               onChange={(e) => setRatingScale(Number(e.target.value))}
-              className="flex-1 accent-[var(--color-primary)]"
+              className="flex-1 accent-brand"
             />
-            <span
-              className="w-8 text-center font-semibold"
-              style={{ color: 'var(--color-primary)' }}
-            >
+            <span className="w-8 text-center font-semibold text-brand">
               {ratingScale}
             </span>
           </div>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            Participants will rate from 1 to {ratingScale}
+          <p className="text-xs text-ink-muted">
+            Your audience will rate from 1 to {ratingScale}
           </p>
           {errors.ratingScale && (
-            <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-              {errors.ratingScale}
-            </p>
+            <p className="text-xs text-destructive">{errors.ratingScale}</p>
           )}
         </div>
       )}
 
       {pollType === 'open' && (
-        <div
-          className="rounded-lg border px-4 py-3 text-sm"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-            color: 'var(--color-text-muted)',
-          }}
-        >
-          Participants will type a free-text response. Answers appear in a live
+        <div className="rounded-lg border border-border bg-surface-sunken px-4 py-3 text-sm text-ink-muted">
+          Your audience will type a free-text response. Answers appear in a live
           scrolling feed.
         </div>
       )}
@@ -269,15 +242,13 @@ export function PollBuilder({
           placeholder="0 for no limit"
           value={timeLimitSec || ''}
           onChange={(e) => setTimeLimitSec(Number(e.target.value) || 0)}
-          style={{ borderColor: errors.timeLimitSec ? 'var(--color-error)' : undefined }}
+          className={errors.timeLimitSec ? 'border-destructive' : undefined}
         />
-        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          Set to 0 to leave the poll open until manually closed.
+        <p className="text-xs text-ink-muted">
+          Set to 0 to leave the poll open until you close it.
         </p>
         {errors.timeLimitSec && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-            {errors.timeLimitSec}
-          </p>
+          <p className="text-xs text-destructive">{errors.timeLimitSec}</p>
         )}
       </div>
 
@@ -285,14 +256,7 @@ export function PollBuilder({
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button
-          type="submit"
-          disabled={isSaving}
-          style={{
-            background: '#0f172a',
-            color: '#fff',
-          }}
-        >
+        <Button type="submit" disabled={isSaving}>
           {isSaving ? 'Saving…' : isEditing ? 'Update poll' : 'Create poll'}
         </Button>
       </div>

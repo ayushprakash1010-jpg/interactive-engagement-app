@@ -1,0 +1,56 @@
+<!-- @dsCard group="Components" viewport="700x460" name="Activity" subtitle="JoinCode · PollResult · ActivityTile · LeaderboardRow · QuestionCard" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--surface-canvas);padding:22px;font-family:var(--font-sans)}
+.h{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:0 0 9px}
+.grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}
+.sec{margin-bottom:16px}</style></head>
+<body><div id="root"></div>
+<script type="text/babel">
+const NS = window.PulseDesignSystem_424f5e;
+const { JoinCode, PollResult, ActivityTile, LeaderboardRow, QuestionCard } = NS;
+const Ic = ({n,s=20})=>{const d=lucide.icons[n];return d?<span dangerouslySetInnerHTML={{__html:d.toSvg({width:s,height:s})}}/>:null;};
+function Demo(){
+  return (<div>
+    <div className="sec"><p className="h">Join code</p><JoinCode code="QZ7K2P" size="md" onCopy={()=>{}}/></div>
+    <div className="grid">
+      <div>
+        <div className="sec"><p className="h">Poll results</p>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            <PollResult label="Strongly agree" count={84} total={140} index={0} leading/>
+            <PollResult label="Agree" count={38} total={140} index={1}/>
+            <PollResult label="Neutral" count={12} total={140} index={2}/>
+            <PollResult label="Disagree" count={6} total={140} index={3}/>
+          </div>
+        </div>
+        <div className="sec"><p className="h">Leaderboard</p>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            <LeaderboardRow rank={1} name="Mara Lee" points={2840}/>
+            <LeaderboardRow rank={2} name="Alex Rivera" points={2710} you/>
+            <LeaderboardRow rank={3} name="Sam Cho" points={2480}/>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div className="sec"><p className="h">Activity tiles</p>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <ActivityTile type="poll" icon={<Ic n="bar-chart-3"/>} title="Poll"/>
+            <ActivityTile type="quiz" icon={<Ic n="trophy"/>} title="Quiz"/>
+            <ActivityTile type="wordcloud" icon={<Ic n="cloud"/>} title="Word cloud"/>
+            <ActivityTile type="ai" icon={<Ic n="sparkles"/>} title="AI draft"/>
+          </div>
+        </div>
+        <div className="sec"><p className="h">Q&amp;A card</p>
+          <QuestionCard text="Will the recording be shared afterwards?" author="Jordan P." votes={27} voted/>
+        </div>
+      </div>
+    </div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body></html>

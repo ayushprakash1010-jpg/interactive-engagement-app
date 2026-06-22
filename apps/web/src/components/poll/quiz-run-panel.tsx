@@ -3,6 +3,8 @@
 import { ClientEvents } from '@iep/types';
 import { Button } from '@/components/ui/button';
 import { socket } from '@/lib/socket';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { usePoll } from '@/hooks/use-poll';
 import type { Activity, QuizConfig } from '@/hooks/use-activities';
 
@@ -51,55 +53,30 @@ export function QuizRunPanel({ activity }: Props) {
 
   return (
     <div
-      className="space-y-4 rounded-xl border p-5"
-      style={{
-        borderColor: isThisActivityLive
-          ? 'var(--color-primary)'
-          : 'var(--color-border)',
-        background: isThisActivityLive
-          ? 'var(--color-primary-highlight)'
-          : 'var(--color-surface)',
-        transition: 'border-color 0.2s, background 0.2s',
-      }}
+      className={cn(
+        'space-y-4 rounded-lg border p-5 transition-colors duration-base ease-standard',
+        isThisActivityLive
+          ? 'border-brand bg-brand-subtle/40 shadow-sm'
+          : 'border-border bg-surface-card',
+      )}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span
-              className="text-sm font-medium"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
+            <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Quiz
             </span>
 
-            {isThisActivityLive && <LiveBadge />}
+            {isThisActivityLive && <Badge variant="live" dot>Live</Badge>}
 
-            {isThisActivityClosed && (
-              <span
-                className="rounded-full px-2 py-0.5 text-xs font-medium"
-                style={{
-                  background: 'var(--color-surface-offset)',
-                  color: 'var(--color-text-muted)',
-                }}
-              >
-                Closed
-              </span>
-            )}
+            {isThisActivityClosed && <Badge variant="neutral">Closed</Badge>}
           </div>
 
-          <p
-            className="mt-0.5 font-semibold"
-            style={{ color: 'var(--color-text)' }}
-          >
-            {activity.title}
-          </p>
+          <p className="mt-1 font-semibold text-foreground">{activity.title}</p>
 
-          <p
-            className="mt-1 text-sm"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
+          <p className="mt-1 text-sm text-ink-secondary">
             {questionCount} question{questionCount === 1 ? '' : 's'}
-            {firstQuestion ? ` • Starts with: ${firstQuestion.text}` : ''}
+            {firstQuestion ? ` · Starts with: ${firstQuestion.text}` : ''}
           </p>
         </div>
 
@@ -117,13 +94,9 @@ export function QuizRunPanel({ activity }: Props) {
 
               <Button
                 type="button"
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 onClick={close}
-                style={{
-                  borderColor: 'var(--color-error)',
-                  color: 'var(--color-error)',
-                }}
               >
                 Close quiz
               </Button>
@@ -139,11 +112,6 @@ export function QuizRunPanel({ activity }: Props) {
                   ? 'Another activity is live — close it first'
                   : undefined
               }
-              style={{
-                background: '#0f172a',
-                color: '#ffffff',
-                opacity: isAnotherActivityLive ? 0.5 : 1,
-              }}
             >
               {isThisActivityClosed ? 'Relaunch' : 'Launch'}
             </Button>
@@ -152,38 +120,26 @@ export function QuizRunPanel({ activity }: Props) {
       </div>
 
       {quizConfig && quizConfig.questions.length > 0 && (
-        <div
-          className="rounded-lg border px-3 py-3"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface-2)',
-          }}
-        >
-          <p
-            className="text-xs font-medium uppercase tracking-wide"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
+        <div className="rounded-md border border-border bg-surface-sunken px-3 py-3">
+          <p className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">
             Quiz details
           </p>
 
           <div className="mt-2 space-y-2">
             {quizConfig.questions.slice(0, 3).map((question, index) => (
               <div key={question.id} className="text-sm">
-                <p style={{ color: 'var(--color-text)' }}>
+                <p className="text-foreground">
                   {index + 1}. {question.text || 'Untitled question'}
                 </p>
-                <p style={{ color: 'var(--color-text-muted)' }}>
-                  {question.options.length} options • {question.points} points •{' '}
+                <p className="text-ink-muted">
+                  {question.options.length} options · {question.points} points ·{' '}
                   {question.timeLimitSec}s timer
                 </p>
               </div>
             ))}
 
             {quizConfig.questions.length > 3 && (
-              <p
-                className="text-sm"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
+              <p className="text-sm text-ink-muted">
                 +{quizConfig.questions.length - 3} more question
                 {quizConfig.questions.length - 3 === 1 ? '' : 's'}
               </p>
@@ -192,23 +148,5 @@ export function QuizRunPanel({ activity }: Props) {
         </div>
       )}
     </div>
-  );
-}
-
-function LiveBadge() {
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold"
-      style={{
-        background: 'var(--color-primary)',
-        color: '#fff',
-      }}
-    >
-      <span
-        className="h-1.5 w-1.5 animate-pulse rounded-full bg-white"
-        aria-hidden="true"
-      />
-      LIVE
-    </span>
   );
 }

@@ -1,55 +1,139 @@
+/* ============================================================
+ * Pulse Design System — app entry
+ * Token files live in src/styles/pulse (copied from the DS, no external refs).
+ * Import order matters: fonts → tokens, then Tailwind, then base element rules.
+ * (We import the token files individually rather than the aggregate styles.css
+ *  so base element rules land in @layer base AFTER Tailwind's preflight.)
+ * ============================================================ */
+@import '../styles/pulse/tokens/fonts.css';
+@import '../styles/pulse/tokens/colors.css';
+@import '../styles/pulse/tokens/typography.css';
+@import '../styles/pulse/tokens/spacing.css';
+@import '../styles/pulse/tokens/elevation.css';
+@import '../styles/pulse/tokens/motion.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------
+ * shadcn/ui compatibility bridge.
+ * The shadcn primitives consume Tailwind color tokens (bg-primary,
+ * text-muted-foreground, …). Those names are mapped to Pulse semantic
+ * tokens in tailwind.config.ts, so no HSL triplets are needed here.
+ * --radius is kept for any component still reading it directly.
+ * ---------------------------------------------------------- */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --radius: var(--radius-md);
   }
 }
 
+/* ------------------------------------------------------------
+ * Pulse base layer — element defaults bound to tokens.
+ * Mirrors tokens/base.css, placed in @layer base so it wins over
+ * Tailwind preflight on shared properties.
+ * ---------------------------------------------------------- */
 @layer base {
   * {
     @apply border-border;
   }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    color: var(--text-primary);
+    background: var(--surface-canvas);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+    color: var(--text-primary);
+    margin: 0;
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: var(--text-3xl);
+  }
+  h2 {
+    font-size: var(--text-2xl);
+  }
+  h3 {
+    font-size: var(--text-xl);
+  }
+  h4 {
+    font-size: var(--text-lg);
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+  }
+
+  ::selection {
+    background: var(--brand-subtle);
+    color: var(--brand-subtle-text);
+  }
+
+  :where(button, [role='button'], a, input, select, textarea):focus-visible {
+    outline: var(--ring-width) solid var(--ring-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* ------------------------------------------------------------
+ * Pulse helpers used across surfaces.
+ * ---------------------------------------------------------- */
+@layer components {
+  /* The on-air live dot. */
+  .pulse-dot {
+    position: relative;
+    display: inline-block;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: var(--radius-full);
+    background: var(--live);
+  }
+  .pulse-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-full);
+    background: var(--live);
+    animation: pulse-live 1.6s var(--ease-standard) infinite;
+  }
+
+  /* AI "thinking" shimmer surface. */
+  .pulse-shimmer {
+    background-image: linear-gradient(
+      100deg,
+      transparent 30%,
+      var(--ai-subtle) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: pulse-shimmer 1.6s var(--ease-standard) infinite;
   }
 }

@@ -4,7 +4,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import cloud from 'd3-cloud';
 import type { WordCloudWord } from '@/lib/wordcloud';
-import { getWordCloudColor, getWordCloudFontSize } from '@/lib/wordcloud';
+import { getWordCloudFontSize } from '@/lib/wordcloud';
+
+// Pulse categorical data palette, ordered toward the brighter tints that read
+// well on the dark projector stage (the cloud sits on --surface-sunken).
+const WORD_PALETTE = [
+  'var(--data-2)',
+  'var(--data-3)',
+  'var(--data-4)',
+  'var(--data-5)',
+  'var(--data-7)',
+  'var(--data-8)',
+];
 
 type LayoutWord = {
   text: string;
@@ -98,13 +109,13 @@ export function WordCloud({
         className={className}
         style={{
           minHeight: height,
-          border: '1px dashed var(--color-border)',
+          border: '1px dashed var(--border-default)',
           borderRadius: 16,
-          background: 'var(--color-surface)',
+          background: 'var(--surface-sunken)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: 'var(--color-text-muted)',
+          color: 'var(--text-muted)',
           padding: 24,
           textAlign: 'center',
         }}
@@ -120,9 +131,9 @@ export function WordCloud({
       className={className}
       style={{
         minHeight: height,
-        border: '1px solid var(--color-border)',
+        border: '1px solid var(--border-default)',
         borderRadius: 24,
-        background: 'var(--color-surface)',
+        background: 'var(--surface-sunken)',
         padding: 12,
       }}
     >
@@ -135,7 +146,7 @@ export function WordCloud({
               textAnchor="middle"
               fontSize={word.size}
               fontWeight={700}
-              fill={getWordCloudColor(index)}
+              fill={WORD_PALETTE[index % WORD_PALETTE.length]}
               style={{ userSelect: 'none' }}
             >
               {word.text}

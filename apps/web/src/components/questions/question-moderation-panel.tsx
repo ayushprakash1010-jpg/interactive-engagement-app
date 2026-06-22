@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Check, CheckCheck, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { QaQuestion } from '@/lib/use-event-realtime';
 
@@ -40,11 +41,11 @@ function sortAnswered(questions: QaQuestion[]) {
 
 function QuestionMeta({ question }: { question: QaQuestion }) {
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
       <span>{question.authorName?.trim() || 'Anonymous'}</span>
-      <span>•</span>
-      <span>
-        {question.voteCount} vote{question.voteCount === 1 ? '' : 's'}
+      <span aria-hidden>·</span>
+      <span className="font-mono tabular-nums">
+        ▲ {question.voteCount} vote{question.voteCount === 1 ? '' : 's'}
       </span>
     </div>
   );
@@ -52,7 +53,7 @@ function QuestionMeta({ question }: { question: QaQuestion }) {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+    <div className="rounded-lg border border-dashed border-border bg-surface-sunken p-6 text-sm text-ink-muted">
       {text}
     </div>
   );
@@ -75,7 +76,10 @@ export function QuestionModerationPanel({
     <div className="grid gap-6 xl:grid-cols-3">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Pending Questions</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Pending questions</CardTitle>
+            <Badge variant="warning">{pending.length}</Badge>
+          </div>
           <CardDescription>Newest questions first.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -83,7 +87,10 @@ export function QuestionModerationPanel({
             <EmptyState text="No pending questions." />
           ) : (
             pending.map((question) => (
-              <article key={question._id} className="rounded-lg border p-4">
+              <article
+                key={question._id}
+                className="rounded-lg border border-border bg-surface-card p-4"
+              >
                 <p className="text-sm font-medium leading-6">{question.text}</p>
                 <QuestionMeta question={question} />
 
@@ -115,7 +122,10 @@ export function QuestionModerationPanel({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Approved Questions</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Approved questions</CardTitle>
+            <Badge variant="success">{approved.length}</Badge>
+          </div>
           <CardDescription>Highest vote count first.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -123,7 +133,10 @@ export function QuestionModerationPanel({
             <EmptyState text="No approved questions yet." />
           ) : (
             approved.map((question) => (
-              <article key={question._id} className="rounded-lg border p-4">
+              <article
+                key={question._id}
+                className="rounded-lg border border-border bg-surface-card p-4"
+              >
                 <p className="text-sm font-medium leading-6">{question.text}</p>
                 <QuestionMeta question={question} />
 
@@ -156,7 +169,10 @@ export function QuestionModerationPanel({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Answered Questions</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base">Answered questions</CardTitle>
+            <Badge variant="neutral">{answered.length}</Badge>
+          </div>
           <CardDescription>Read-only question history.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -164,7 +180,10 @@ export function QuestionModerationPanel({
             <EmptyState text="No answered questions yet." />
           ) : (
             answered.map((question) => (
-              <article key={question._id} className="rounded-lg border p-4">
+              <article
+                key={question._id}
+                className="rounded-lg border border-border bg-surface-sunken p-4"
+              >
                 <p className="text-sm font-medium leading-6">{question.text}</p>
                 <QuestionMeta question={question} />
               </article>

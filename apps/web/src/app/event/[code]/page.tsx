@@ -15,6 +15,7 @@ import { PollResultsChart } from '@/components/poll/poll-results-chart';
 import { QaTab } from '@/components/participant/qa-tab';
 import { FeedbackParticipant } from '@/components/poll/feedback-participant';
 import { getAnonId } from '@/lib/anon-id';
+import { Eyebrow, JoinCode, LeaderboardRow, Logomark } from '@/components/pulse';
 
 function getVotedQuestionIds(code: string): string[] {
   if (typeof window === 'undefined') return [];
@@ -94,14 +95,19 @@ export default function EventPage() {
 
   if (!isMounted) {
     return (
-      <main className="flex min-h-screen flex-col p-6">
-        <header className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold tracking-tight">Event {code}</h1>
-          <ConnectionStatus />
-        </header>
+      <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-6">
+        <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
+          <header className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <Logomark size={28} />
+              <JoinCode code={code} size="sm" />
+            </div>
+            <ConnectionStatus />
+          </header>
 
-        <div className="mt-6 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          Loading event…
+          <div className="mt-6 rounded-md border border-dashed border-border bg-surface-card p-8 text-center text-sm text-ink-muted">
+            Loading session…
+          </div>
         </div>
       </main>
     );
@@ -109,12 +115,17 @@ export default function EventPage() {
 
   if (error) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <h1 className="text-2xl font-bold">Can&apos;t join this event</h1>
-        <p className="max-w-sm text-muted-foreground">{error}</p>
-        <Button asChild>
-          <Link href="/join">Try another code</Link>
-        </Button>
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-surface-canvas px-4 py-10 text-center">
+        <div className="mx-auto w-full max-w-container-sm">
+          <Logomark size={40} className="mx-auto mb-6" />
+          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+            Can&apos;t join this session
+          </h1>
+          <p className="mx-auto mt-2 max-w-sm text-ink-secondary">{error}</p>
+          <Button asChild size="lg" className="mt-6 w-full">
+            <Link href="/join">Try another code</Link>
+          </Button>
+        </div>
       </main>
     );
   }
@@ -209,51 +220,61 @@ export default function EventPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col p-6">
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight">Event {code}</h1>
-        <ConnectionStatus />
-      </header>
+    <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-6">
+      <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
+        <header className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <Logomark size={28} />
+            <JoinCode code={code} size="sm" />
+          </div>
+          <ConnectionStatus />
+        </header>
 
-      <div className="mt-6 rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-        {count} {count === 1 ? 'person' : 'people'} connected
-      </div>
+        <div className="mt-4 flex items-center gap-2 rounded-md border border-border bg-surface-card px-4 py-2.5 text-sm text-ink-secondary">
+          <span className="font-mono font-semibold tabular-nums text-foreground">
+            {count}
+          </span>
+          {count === 1 ? 'person' : 'people'} here right now
+        </div>
 
-      <div className="mt-6 inline-flex w-fit rounded-lg border bg-muted p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('activity')}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-            activeTab === 'activity'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground'
-          }`}
-        >
-          Activity
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('qa')}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-            activeTab === 'qa'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground'
-          }`}
-        >
-          Q&amp;A
-        </button>
-      </div>
+        <div className="mt-4 grid w-full grid-cols-2 rounded-md border border-border bg-surface-sunken p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('activity')}
+            className={`rounded-sm px-4 py-2 text-sm font-semibold transition-colors duration-fast ${
+              activeTab === 'activity'
+                ? 'bg-surface-card text-foreground shadow-xs'
+                : 'text-ink-muted hover:text-foreground'
+            }`}
+          >
+            Activity
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('qa')}
+            className={`rounded-sm px-4 py-2 text-sm font-semibold transition-colors duration-fast ${
+              activeTab === 'qa'
+                ? 'bg-surface-card text-foreground shadow-xs'
+                : 'text-ink-muted hover:text-foreground'
+            }`}
+          >
+            Q&amp;A
+          </button>
+        </div>
 
-      {activeTab === 'activity' && (
-        <>
+        {activeTab === 'activity' && (
+          <>
           {showWaitingState && (
-            <div className="mt-6 flex flex-1 items-center justify-center rounded-lg border border-dashed text-center text-muted-foreground">
-              <p>Waiting for the host to start an activity…</p>
+            <div className="mt-6 flex flex-1 flex-col items-center justify-center gap-3 rounded-md border border-dashed border-border bg-surface-card px-6 py-16 text-center">
+              <span className="pulse-dot h-2.5 w-2.5 rounded-full bg-brand" aria-hidden />
+              <p className="text-base text-ink-secondary">
+                Hang tight — the host will start an activity soon.
+              </p>
             </div>
           )}
 
           {showPollInput && activeActivity && (
-            <div className="mt-6 rounded-lg border bg-card p-6">
+            <div className="mt-6 rounded-md border border-border bg-surface-card p-5 shadow-xs">
               <PollParticipant
                 key={activeActivity._id}
                 activity={activeActivity}
@@ -266,14 +287,14 @@ export default function EventPage() {
           )}
 
           {showPollResults && activeActivity && (
-            <div className="mt-6 space-y-4 rounded-lg border bg-card p-6">
+            <div className="mt-6 space-y-4 rounded-md border border-border bg-surface-card p-5 shadow-xs">
               <div>
-                <p className="text-sm font-medium text-primary">
+                <Eyebrow>
                   {activeActivity.status === 'closed'
                     ? 'Poll closed'
-                    : 'Response submitted'}
-                </p>
-                <h2 className="mt-1 text-lg font-semibold">
+                    : 'Vote submitted'}
+                </Eyebrow>
+                <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
                   {(activeActivity.config as { question?: string })?.question}
                 </h2>
               </div>
@@ -281,7 +302,7 @@ export default function EventPage() {
               {tallies ? (
                 <PollResultsChart tallies={tallies} />
               ) : (
-                <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-ink-muted">
                   Waiting for results…
                 </div>
               )}
@@ -289,13 +310,13 @@ export default function EventPage() {
           )}
 
           {showQuizWaiting && (
-            <div className="mt-6 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+            <div className="mt-6 rounded-md border border-dashed border-border bg-surface-card p-8 text-center text-sm text-ink-muted">
               Waiting for the next quiz question…
             </div>
           )}
 
           {showQuizQuestion && quizQuestion && (
-            <div className="mt-6 rounded-lg border bg-card p-6">
+            <div className="mt-6 rounded-md border border-border bg-surface-card p-5 shadow-xs">
               <QuizParticipant
                 key={quizQuestion.questionId}
                 question={quizQuestion}
@@ -308,30 +329,27 @@ export default function EventPage() {
           )}
 
           {showQuizClosed && (
-            <div className="mt-6 rounded-lg border bg-card p-6">
-              <div className="mb-4 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            <div className="mt-6 rounded-md border border-border bg-surface-card p-5 shadow-xs">
+              <div className="mb-4 rounded-md border border-dashed border-border p-4 text-sm text-ink-muted">
                 The quiz has ended.
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-primary">Leaderboard</p>
+              <div className="space-y-3">
+                <Eyebrow>Leaderboard</Eyebrow>
 
                 {quizLeaderboard.length > 0 ? (
                   <div className="space-y-2">
                     {quizLeaderboard.map((entry, index) => (
-                      <div
+                      <LeaderboardRow
                         key={`${entry.name}-${index}`}
-                        className="flex items-center justify-between rounded-lg border px-3 py-2"
-                      >
-                        <span>
-                          {index + 1}. {entry.name}
-                        </span>
-                        <span className="font-semibold">{entry.points} pts</span>
-                      </div>
+                        rank={index + 1}
+                        name={entry.name}
+                        points={entry.points}
+                      />
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                  <div className="rounded-md border border-dashed border-border p-4 text-sm text-ink-muted">
                     Waiting for leaderboard…
                   </div>
                 )}
@@ -340,7 +358,7 @@ export default function EventPage() {
           )}
 
           {showWordCloudInput && activeActivity && (
-            <div className="mt-6 rounded-lg border bg-card p-6">
+            <div className="mt-6 rounded-md border border-border bg-surface-card p-5 shadow-xs">
               <WordCloudParticipant
                 key={activeActivity._id}
                 activity={activeActivity}
@@ -354,7 +372,7 @@ export default function EventPage() {
           )}
 
           {showWordCloudSubmitted && activeActivity && (
-            <div className="mt-6 rounded-lg border bg-card p-6">
+            <div className="mt-6 rounded-md border border-border bg-surface-card p-5 shadow-xs">
               <WordCloudParticipant
                 key={activeActivity._id}
                 activity={activeActivity}
@@ -368,7 +386,7 @@ export default function EventPage() {
           )}
 
           {showFeedbackInput && activeActivity && (
-            <div className="mt-6 rounded-lg border bg-card p-6">
+            <div className="mt-6">
               <FeedbackParticipant
                 key={activeActivity._id}
                 activityId={activeActivity._id}
@@ -382,7 +400,7 @@ export default function EventPage() {
           )}
 
           {showFeedbackSubmitted && activeActivity && (
-            <div className="mt-6 rounded-lg border bg-card p-6">
+            <div className="mt-6">
               <FeedbackParticipant
                 key={activeActivity._id}
                 activityId={activeActivity._id}
@@ -393,24 +411,25 @@ export default function EventPage() {
                 onSubmit={handleFeedbackSubmit}
               />
 
-              <div className="mt-4 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              <div className="mt-4 rounded-md border border-dashed border-border p-4 text-sm text-ink-muted">
                 {activeActivity.status === 'closed'
                   ? 'This feedback form is now closed.'
-                  : 'Your feedback has been submitted.'}
+                  : 'Thanks — your feedback has been submitted.'}
               </div>
             </div>
           )}
-        </>
-      )}
+          </>
+        )}
 
-      {activeTab === 'qa' && (
-        <QaTab
-          questions={sortedApprovedQuestions}
-          votedQuestionIds={votedQuestionIds}
-          onAskQuestion={handleAskQuestion}
-          onUpvoteQuestion={handleUpvoteQuestion}
-        />
-      )}
+        {activeTab === 'qa' && (
+          <QaTab
+            questions={sortedApprovedQuestions}
+            votedQuestionIds={votedQuestionIds}
+            onAskQuestion={handleAskQuestion}
+            onUpvoteQuestion={handleUpvoteQuestion}
+          />
+        )}
+      </div>
     </main>
   );
 }

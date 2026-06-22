@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Radio } from 'lucide-react';
+import { Wordmark } from '@/components/pulse';
 
 const FOOTER_COLUMNS = [
   {
@@ -30,31 +30,28 @@ const FOOTER_COLUMNS = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-t bg-muted/30">
-      <div className="container mx-auto max-w-6xl px-4 py-12">
+    <footer className="border-t border-border bg-surface-raised">
+      <div className="mx-auto max-w-container-xl px-6 py-12">
         <div className="grid gap-8 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div className="space-y-3">
-            <Link href="/" className="flex items-center gap-2 font-semibold">
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                <Radio className="h-4 w-4" />
-              </span>
-              <span className="tracking-tight">IEP</span>
+            <Link href="/" aria-label="Pulse home" className="inline-flex">
+              <Wordmark width={116} />
             </Link>
-            <p className="max-w-xs text-sm text-muted-foreground">
-              Real-time polls, Q&amp;A, quizzes, word clouds, and feedback for
-              meetings, webinars, and classrooms.
+            <p className="max-w-xs text-sm text-ink-muted">
+              Pulse turns any audience into a conversation — live polls, Q&amp;A, quizzes, word
+              clouds, and feedback for meetings, webinars, and classrooms.
             </p>
           </div>
 
           {FOOTER_COLUMNS.map((col) => (
             <div key={col.title}>
-              <h3 className="mb-3 text-sm font-semibold">{col.title}</h3>
+              <h3 className="mb-3 font-sans text-sm font-semibold text-foreground">{col.title}</h3>
               <ul className="space-y-2">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className="text-sm text-ink-muted transition-colors hover:text-foreground"
                     >
                       {link.label}
                     </Link>
@@ -65,11 +62,8 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t pt-6 text-sm text-muted-foreground sm:flex-row">
-          <p>
-            &copy; {new Date().getFullYear()} Interactive Engagement Platform.
-            All rights reserved.
-          </p>
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 text-sm text-ink-muted sm:flex-row">
+          <p>&copy; {new Date().getFullYear()} Pulse. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <Link href="/login" className="hover:text-foreground">
               Log in

@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Eyebrow } from '@/components/pulse';
+import { cn } from '@/lib/utils';
 import type { LiveActivity, WordCloudEntry } from '@/hooks/use-poll';
 import { WordCloud } from '@/components/wordcloud/wordcloud-cloud';
 import { limitWordCloudWords, normalizeWordCloudInput } from '@/lib/wordcloud';
@@ -75,7 +78,7 @@ export function WordCloudParticipant({
   );
 
   const tooManyWords = parsedWords.length > maxWords;
-  
+
   const canSubmit =
     !submitting &&
     !isSubmitting &&
@@ -111,76 +114,44 @@ export function WordCloudParticipant({
   if (hasSubmitted || isClosed) {
     return (
       <div className="space-y-4">
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-          }}
-        >
-          <p
-            className="mb-1 text-sm font-medium"
-            style={{ color: timeExpired && !hasSubmitted ? 'var(--color-error)' : 'var(--color-primary)' }}
-          >
-            {hasSubmitted ? '✓ Words submitted' : timeExpired ? 'Time is up' : 'Word cloud closed'}
-          </p>
-          <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
+        <div className="rounded-md border border-border bg-surface-raised p-4">
+          {hasSubmitted ? (
+            <Badge variant="success" className="mb-2">Words submitted</Badge>
+          ) : timeExpired ? (
+            <Badge variant="destructive" className="mb-2">Time is up</Badge>
+          ) : (
+            <Badge variant="neutral" className="mb-2">Word cloud closed</Badge>
+          )}
+          <p className="font-display font-semibold tracking-tight text-foreground">
             {prompt}
           </p>
         </div>
 
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-          }}
-        >
-          <p
-            className="mb-3 text-sm font-medium"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            Your submission
-          </p>
+        <div className="rounded-md border border-border bg-surface-raised p-4">
+          <Eyebrow className="mb-3">Your submission</Eyebrow>
 
           {submittedWords.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {submittedWords.map((word) => (
                 <span
                   key={word}
-                  className="rounded-full px-3 py-1 text-sm font-medium"
-                  style={{
-                    background: 'var(--color-primary-highlight)',
-                    color: 'var(--color-primary)',
-                  }}
+                  className="rounded-full bg-brand-subtle px-3 py-1 text-sm font-medium text-brand-subtle-text"
                 >
                   {word}
                 </span>
               ))}
             </div>
           ) : (
-            <p
-              className="text-sm"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              {isClosed && !hasSubmitted ? "No words were submitted." : "Your words were submitted."}
+            <p className="text-sm text-ink-muted">
+              {isClosed && !hasSubmitted
+                ? 'No words were submitted.'
+                : 'Your words were submitted.'}
             </p>
           )}
         </div>
 
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-          }}
-        >
-          <p
-            className="mb-3 text-sm font-medium"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
-            Live word cloud
-          </p>
+        <div className="rounded-md border border-border bg-surface-raised p-4">
+          <Eyebrow className="mb-3">Live word cloud</Eyebrow>
           <WordCloud
             words={liveWords}
             height={280}
@@ -199,28 +170,22 @@ export function WordCloudParticipant({
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p
-            className="text-lg font-semibold leading-snug"
-            style={{ color: 'var(--color-text)' }}
-          >
+          <p className="font-display text-lg font-semibold leading-snug tracking-tight text-foreground">
             {prompt}
           </p>
-          <p
-            className="mt-1 text-sm"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
+          <p className="mt-1 text-sm text-ink-secondary">
             Enter up to {maxWords} unique word{maxWords === 1 ? '' : 's'}, separated by commas or new lines.
           </p>
         </div>
 
-        {wordCloudEndsAt && (
+        {wordCloudEndsAt && timeLabel && (
           <div
-            className="shrink-0 rounded-md border px-3 py-2 text-sm font-semibold tabular-nums"
-            style={{
-              borderColor: timeExpired ? 'var(--color-error)' : 'var(--color-border)',
-              background: timeExpired ? 'var(--color-error-highlight)' : 'var(--color-surface-2)',
-              color: timeExpired ? 'var(--color-error)' : 'var(--color-text)',
-            }}
+            className={cn(
+              'shrink-0 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums',
+              timeExpired
+                ? 'bg-error-subtle text-destructive'
+                : 'bg-surface-sunken text-foreground',
+            )}
           >
             {timeLabel}
           </div>
@@ -233,30 +198,22 @@ export function WordCloudParticipant({
         onChange={(e) => setValue(e.target.value)}
         rows={5}
         maxLength={300}
-        style={{
-          borderColor: 'var(--color-border)',
-          background: 'var(--color-surface)',
-          color: 'var(--color-text)',
-        }}
       />
 
       <div
-        className="rounded-lg border p-4"
-        style={{
-          borderColor: tooManyWords ? 'var(--color-error)' : 'var(--color-border)',
-          background: tooManyWords
-            ? 'var(--color-error-highlight)'
-            : 'var(--color-surface)',
-        }}
+        className={cn(
+          'rounded-md border p-4',
+          tooManyWords
+            ? 'border-destructive bg-error-subtle'
+            : 'border-border bg-surface-raised',
+        )}
       >
         <div className="flex items-center justify-between gap-3">
           <p
-            className="text-sm font-medium"
-            style={{
-              color: tooManyWords
-                ? 'var(--color-error)'
-                : 'var(--color-text-muted)',
-            }}
+            className={cn(
+              'text-sm font-medium',
+              tooManyWords ? 'text-destructive' : 'text-ink-secondary',
+            )}
           >
             {tooManyWords
               ? `Too many words. Limit is ${maxWords}.`
@@ -269,11 +226,7 @@ export function WordCloudParticipant({
             {limitedWords.map((word) => (
               <span
                 key={word}
-                className="rounded-full px-3 py-1 text-sm font-medium"
-                style={{
-                  background: 'var(--color-primary-highlight)',
-                  color: 'var(--color-primary)',
-                }}
+                className="rounded-full bg-brand-subtle px-3 py-1 text-sm font-medium text-brand-subtle-text"
               >
                 {word}
               </span>
@@ -286,13 +239,10 @@ export function WordCloudParticipant({
         type="button"
         onClick={handleSubmit}
         disabled={!canSubmit}
+        size="lg"
         className="w-full"
-        style={{
-          background: canSubmit ? '#000000' : undefined,
-          color: canSubmit ? '#FFFFFF' : undefined,
-        }}
       >
-        {submitting || isSubmitting ? 'Submitting…' : 'Submit words'}
+        {submitting || isSubmitting ? 'Submitting…' : 'Submit your words'}
       </Button>
     </div>
   );

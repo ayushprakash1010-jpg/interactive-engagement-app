@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Eyebrow, LeaderboardRow } from '@/components/pulse';
+import { cn } from '@/lib/utils';
 import type {
   QuizLeaderboardEntry,
   QuizQuestionState,
@@ -66,39 +68,27 @@ export function QuizParticipant({
 
   return (
     <div className="space-y-5">
-      <div
-        className="rounded-lg border px-4 py-3"
-        style={{ borderColor: 'var(--color-border)' }}
-      >
+      <div className="rounded-md border border-border bg-surface-raised px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p
-              className="text-sm font-medium"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              {question.questionNumber
-                ? `Question ${question.questionNumber}`
-                : 'Quiz question'}
-            </p>
-          </div>
+          <Eyebrow>
+            {question.questionNumber
+              ? `Question ${question.questionNumber}`
+              : 'Quiz question'}
+          </Eyebrow>
 
           <div
-            className="rounded-full px-3 py-1 text-sm font-semibold"
-            style={{
-              background: isExpired
-                ? 'var(--color-error-highlight)'
-                : 'var(--color-primary-highlight)',
-              color: isExpired ? 'var(--color-error)' : 'var(--color-primary)',
-            }}
+            className={cn(
+              'rounded-full px-3 py-1 text-sm font-semibold tabular-nums',
+              isExpired
+                ? 'bg-error-subtle text-destructive'
+                : 'bg-brand-subtle text-brand-subtle-text',
+            )}
           >
             {timerLabel}
           </div>
         </div>
 
-        <p
-          className="mt-3 text-lg font-semibold leading-snug"
-          style={{ color: 'var(--color-text)' }}
-        >
+        <p className="mt-3 font-display text-lg font-semibold leading-snug tracking-tight text-foreground">
           {question.text}
         </p>
       </div>
@@ -108,10 +98,9 @@ export function QuizParticipant({
           const isSelected = selectedOptionId === option.id;
 
           return (
-            <Button
+            <button
               key={option.id}
               type="button"
-              variant="outline"
               disabled={isLocked}
               onClick={() =>
                 onAnswer({
@@ -121,119 +110,74 @@ export function QuizParticipant({
                   clientTimeMs: Date.now(),
                 })
               }
-              className="h-auto w-full justify-start whitespace-normal px-4 py-4 text-left"
-              style={{
-                borderColor: isSelected
-                  ? 'var(--color-primary)'
-                  : 'var(--color-border)',
-                background: isSelected
-                  ? 'var(--color-primary-highlight)'
-                  : 'var(--color-surface)',
-                color: 'var(--color-text)',
-              }}
+              aria-pressed={isSelected}
+              className={cn(
+                'flex min-h-[3.25rem] w-full items-center justify-between gap-3 rounded-md border px-4 py-4 text-left text-base font-medium text-foreground transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-80',
+                isSelected
+                  ? 'border-brand bg-brand-subtle'
+                  : 'border-border bg-surface-card hover:bg-muted',
+              )}
             >
-              <div className="flex w-full items-center justify-between gap-3">
-                <span>{option.label}</span>
-                {isSelected && (
-                  <span
-                    className="text-sm font-semibold"
-                    style={{ color: 'var(--color-primary)' }}
-                  >
-                    Selected
-                  </span>
-                )}
-              </div>
-            </Button>
+              <span>{option.label}</span>
+              {isSelected && (
+                <span className="text-sm font-semibold text-brand">Selected</span>
+              )}
+            </button>
           );
         })}
       </div>
 
       {hasSubmittedThisQuestion && !hasResultForThisQuestion && (
-        <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+        <div className="rounded-md border border-dashed border-border p-4 text-sm text-ink-muted">
           Answer submitted. Waiting for result…
         </div>
       )}
 
       {answerState?.questionId === question.questionId &&
         answerState?.isCorrect === true && (
-          <div
-            className="rounded-lg border px-4 py-3 text-sm font-medium"
-            style={{
-              borderColor: 'var(--color-success)',
-              background: 'var(--color-success-highlight)',
-              color: 'var(--color-success)',
-            }}
-          >
-            ✓ Correct
+          <div className="rounded-md border border-success bg-success-subtle px-4 py-3 text-sm font-semibold text-success">
+            Correct
             {typeof answerState.awardedPoints === 'number'
-              ? ` • +${answerState.awardedPoints} points`
+              ? ` · +${answerState.awardedPoints} points`
               : ''}
           </div>
         )}
 
       {answerState?.questionId === question.questionId &&
         answerState?.isCorrect === false && (
-          <div
-            className="rounded-lg border px-4 py-3 text-sm font-medium"
-            style={{
-              borderColor: 'var(--color-error)',
-              background: 'var(--color-error-highlight)',
-              color: 'var(--color-error)',
-            }}
-          >
-            ✕ Incorrect
+          <div className="rounded-md border border-destructive bg-error-subtle px-4 py-3 text-sm font-semibold text-destructive">
+            Incorrect
             {typeof answerState.awardedPoints === 'number'
-              ? ` • +${answerState.awardedPoints} points`
+              ? ` · +${answerState.awardedPoints} points`
               : ''}
           </div>
         )}
 
       {isExpired && !hasSubmittedThisQuestion && (
-        <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+        <div className="rounded-md border border-dashed border-border p-4 text-sm text-ink-muted">
           Time is up for this question.
         </div>
       )}
 
       {showLeaderboard && (
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-          }}
-        >
-          <p
-            className="mb-3 text-sm font-medium"
-            style={{ color: 'var(--color-primary)' }}
-          >
-            Leaderboard
-          </p>
+        <div className="rounded-md border border-border bg-surface-raised p-4">
+          <div className="mb-3">
+            <Eyebrow>Leaderboard</Eyebrow>
+          </div>
 
           {quizLeaderboard.length > 0 ? (
             <div className="space-y-2">
               {quizLeaderboard.map((entry, index) => (
-                <div
+                <LeaderboardRow
                   key={`${entry.name}-${index}`}
-                  className="flex items-center justify-between rounded-lg border px-3 py-2"
-                  style={{
-                    borderColor: 'var(--color-border)',
-                    background: 'var(--color-surface-2)',
-                  }}
-                >
-                  <span style={{ color: 'var(--color-text)' }}>
-                    {index + 1}. {entry.name}
-                  </span>
-                  <span
-                    className="font-semibold"
-                    style={{ color: 'var(--color-text)' }}
-                  >
-                    {entry.points} pts
-                  </span>
-                </div>
+                  rank={index + 1}
+                  name={entry.name}
+                  points={entry.points}
+                />
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+            <div className="rounded-md border border-dashed border-border p-4 text-sm text-ink-muted">
               Waiting for leaderboard…
             </div>
           )}

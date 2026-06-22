@@ -1,0 +1,17 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Semantic status" subtitle="Success, warning, error, info, live" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../styles.css">
+<style>body{margin:0;background:var(--surface-canvas);padding:20px;font-family:var(--font-sans)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.cell{border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-sm)}
+.top{height:48px}.bot{padding:7px 9px;background:var(--surface-card)}
+.bot b{display:block;font-size:11px;font-weight:600;color:var(--text-primary)}
+.bot span{font-family:var(--font-mono);font-size:9px;color:var(--text-muted)}</style></head>
+<body>
+<div class="grid">
+  <div class="cell"><div class="top" style="background:var(--success)"></div><div class="bot"><b>Success</b><span>#437a22</span></div></div>
+  <div class="cell"><div class="top" style="background:var(--warning)"></div><div class="bot"><b>Warning</b><span>#d19900</span></div></div>
+  <div class="cell"><div class="top" style="background:var(--error)"></div><div class="bot"><b>Error</b><span>#cf3b30</span></div></div>
+  <div class="cell"><div class="top" style="background:var(--info)"></div><div class="bot"><b>Info</b><span>#006494</span></div></div>
+  <div class="cell"><div class="top" style="background:var(--live)"></div><div class="bot"><b>Live</b><span>#6daa45</span></div></div>
+</div>
+</body></html>

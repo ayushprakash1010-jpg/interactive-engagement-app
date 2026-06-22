@@ -45,23 +45,43 @@ export type PollTallyResult =
 interface Props {
   tallies: PollTallyResult;
   projector?: boolean;
+  /**
+   * Render against a dark Pulse stage scope. Colors stay token-based, so the
+   * same component works in light run-panels and the dark projector stage.
+   */
+  inverse?: boolean;
 }
 
+// Pulse categorical data palette (matches --data-1..--data-8 tokens).
 const BAR_COLORS = [
-  '#01696f',
-  '#4f98a3',
-  '#6daa45',
-  '#d19900',
-  '#da7101',
-  '#006494',
-  '#7a39bb',
-  '#a12c7b',
+  'var(--data-1)',
+  'var(--data-2)',
+  'var(--data-3)',
+  'var(--data-4)',
+  'var(--data-5)',
+  'var(--data-6)',
+  'var(--data-7)',
+  'var(--data-8)',
 ];
 
-export function PollResultsChart({ tallies, projector = false }: Props) {
+export function PollResultsChart({
+  tallies,
+  projector = false,
+  inverse = false,
+}: Props) {
   const barHeight = projector ? 56 : 36;
   const fontSize = projector ? 16 : 13;
-  const labelColor = 'var(--color-text-muted, #6b7280)';
+  // Semantic tokens re-map automatically inside `.pulse-stage`.
+  const labelColor = 'var(--text-muted)';
+  const textColor = 'var(--text-primary)';
+  const gridColor = 'var(--border-default)';
+  const cursorFill = inverse ? 'rgba(255,255,255,0.06)' : 'var(--surface-offset)';
+  const tooltipStyle = {
+    background: 'var(--surface-card)',
+    border: '1px solid var(--border-default)',
+    borderRadius: 8,
+    color: 'var(--text-primary)',
+  } as const;
 
   if (tallies.pollType === 'single' || tallies.pollType === 'multiple') {
     const data = tallies.buckets.map((bucket) => ({
@@ -85,19 +105,19 @@ export function PollResultsChart({ tallies, projector = false }: Props) {
             layout="vertical"
             margin={{ top: 4, right: 48, left: 8, bottom: 4 }}
           >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={gridColor} />
             <XAxis
               type="number"
               domain={[0, maxVotes]}
               allowDecimals={false}
-              tick={{ fontSize }}
+              tick={{ fontSize, fill: labelColor }}
               tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="name"
               width={projector ? 180 : 120}
-              tick={{ fontSize, fill: 'var(--color-text, #1f2937)' }}
+              tick={{ fontSize, fill: textColor }}
               tickLine={false}
             />
             <Tooltip
@@ -105,7 +125,8 @@ export function PollResultsChart({ tallies, projector = false }: Props) {
                 const count = typeof value === 'number' ? value : Number(value ?? 0);
                 return [`${count} vote${count !== 1 ? 's' : ''}`, ''];
               }}
-              cursor={{ fill: 'var(--color-surface-offset, #f3f0ec)' }}
+              cursor={{ fill: cursorFill }}
+              contentStyle={tooltipStyle}
             />
             <Bar dataKey="votes" radius={[0, 4, 4, 0]} maxBarSize={barHeight}>
               {data.map((_, index) => (
@@ -134,7 +155,7 @@ export function PollResultsChart({ tallies, projector = false }: Props) {
             style={{
               fontSize: projector ? 48 : 32,
               lineHeight: 1,
-              color: 'var(--color-primary, #01696f)',
+              color: 'var(--data-1)',
             }}
           >
             {tallies.average.toFixed(1)}
@@ -147,15 +168,15 @@ export function PollResultsChart({ tallies, projector = false }: Props) {
 
         <ResponsiveContainer width="100%" height={projector ? 180 : 120}>
           <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
             <XAxis
               dataKey="name"
-              tick={{ fontSize, fill: 'var(--color-text, #1f2937)' }}
+              tick={{ fontSize, fill: textColor }}
               tickLine={false}
             />
             <YAxis
               allowDecimals={false}
-              tick={{ fontSize }}
+              tick={{ fontSize, fill: labelColor }}
               tickLine={false}
               width={28}
             />
@@ -164,11 +185,12 @@ export function PollResultsChart({ tallies, projector = false }: Props) {
                 const count = typeof value === 'number' ? value : Number(value ?? 0);
                 return [`${count}`, 'responses'];
               }}
-              cursor={{ fill: 'var(--color-surface-offset, #f3f0ec)' }}
+              cursor={{ fill: cursorFill }}
+              contentStyle={tooltipStyle}
             />
             <Bar
               dataKey="votes"
-              fill="#01696f"
+              fill="var(--data-1)"
               radius={[4, 4, 0, 0]}
               maxBarSize={barHeight}
             />
@@ -196,6 +218,7 @@ function OpenTextFeed({
   projector: boolean;
   fontSize: number;
 }) {
+  // Semantic tokens re-map automatically inside `.pulse-stage`.
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -206,7 +229,7 @@ function OpenTextFeed({
 
   return (
     <div className="w-full space-y-2">
-      <p style={{ color: 'var(--color-text-muted)', fontSize }}>
+      <p style={{ color: 'var(--text-muted)', fontSize }}>
         {tallies.totalResponses} response
         {tallies.totalResponses !== 1 ? 's' : ''}
       </p>
@@ -215,27 +238,27 @@ function OpenTextFeed({
         className="overflow-y-auto rounded-lg border"
         style={{
           maxHeight,
-          borderColor: 'var(--color-border, #d4d1ca)',
-          background: 'var(--color-surface, #f9f8f5)',
+          borderColor: 'var(--border-default)',
+          background: 'var(--surface-sunken)',
         }}
       >
         {tallies.texts.length === 0 ? (
           <p
             className="p-4 text-center"
-            style={{ color: 'var(--color-text-muted)', fontSize }}
+            style={{ color: 'var(--text-muted)', fontSize }}
           >
             Waiting for responses…
           </p>
         ) : (
           <ul
             className="divide-y"
-            style={{ borderColor: 'var(--color-divider, #dcd9d5)' }}
+            style={{ borderColor: 'var(--border-default)' }}
           >
             {tallies.texts.map((text, index) => (
               <li
                 key={index}
                 className="px-4 py-3 leading-relaxed"
-                style={{ fontSize, color: 'var(--color-text)' }}
+                style={{ fontSize, color: 'var(--text-primary)' }}
               >
                 {text}
               </li>

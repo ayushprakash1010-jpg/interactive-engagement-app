@@ -3,6 +3,8 @@
 import { useMemo, useState, type FormEvent } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Eyebrow } from '@/components/pulse';
 import type { QaQuestion } from '@/lib/use-event-realtime';
 
 
@@ -55,47 +57,48 @@ export function QaTab({
 
   return (
     <div className="mt-6 space-y-6">
-      <section className="rounded-lg border bg-card p-6">
+      <section className="rounded-md border border-border bg-surface-card p-5 shadow-xs">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold">Q&amp;A</h2>
-          <p className="text-sm text-muted-foreground">
-            Ask a question for the host or upvote approved questions from others.
+          <Eyebrow>Q&amp;A</Eyebrow>
+          <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
+            Ask a question
+          </h2>
+          <p className="mt-1 text-sm text-ink-secondary">
+            Ask the host anything, or upvote questions from others.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="question-text" className="text-sm font-medium">
-              Question
+            <label htmlFor="question-text" className="text-sm font-medium text-ink-secondary">
+              Your question
             </label>
             <textarea
               id="question-text"
               value={text}
               onChange={(event) => setText(event.target.value)}
               placeholder="Type your question here..."
-              className="min-h-[120px] w-full rounded-md border bg-background px-3 py-2 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-[120px] w-full rounded-sm border border-input bg-surface-card px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-ink-faint focus-visible:ring-2 focus-visible:ring-ring"
               maxLength={300}
             />
           </div>
 
-      
-
-          <Button type="submit" disabled={!text.trim()}>
-            Submit question
+          <Button type="submit" size="lg" className="w-full" disabled={!text.trim()}>
+            Ask a question
           </Button>
         </form>
       </section>
 
-      <section className="rounded-lg border bg-card p-6">
+      <section className="rounded-md border border-border bg-surface-card p-5 shadow-xs">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold">Approved questions</h2>
-          <p className="text-sm text-muted-foreground">
+          <Eyebrow>Approved questions</Eyebrow>
+          <p className="mt-1 text-sm text-ink-secondary">
             Sorted by votes, then most recent.
           </p>
         </div>
 
         {sortedQuestions.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+          <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-ink-muted">
             No approved questions yet.
           </div>
         ) : (
@@ -106,21 +109,23 @@ export function QaTab({
               return (
                 <article
                   key={question._id}
-                  className="flex items-start justify-between gap-4 rounded-lg border p-4"
+                  className="flex items-start justify-between gap-4 rounded-md border border-border bg-surface-raised p-4"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium leading-6">{question.text}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <p className="text-sm font-medium leading-6 text-foreground">
+                      {question.text}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                       <span>{question.authorName?.trim() || 'Anonymous'}</span>
-                      <span>•</span>
-                      <span>
+                      <Badge variant={question.voteCount > 0 ? 'brand' : 'neutral'}>
                         {question.voteCount} vote{question.voteCount === 1 ? '' : 's'}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
 
                   <Button
                     type="button"
+                    size="lg"
                     variant={hasVoted ? 'secondary' : 'outline'}
                     disabled={hasVoted}
                     onClick={() => onUpvoteQuestion(question._id)}

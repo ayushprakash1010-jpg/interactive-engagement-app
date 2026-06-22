@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
 type FeedbackFieldType = "rating" | "text";
 
 export type FeedbackField = {
@@ -148,23 +151,25 @@ export function FeedbackParticipant({
   }, [timeLeftMs, submitted, isSubmitting, isFormValid]);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-md border border-border bg-surface-card p-5 shadow-xs">
       <div className="mb-6 flex items-start justify-between gap-3">
-        <div className="space-y-2">
+        <div className="space-y-1">
           {title ? (
-            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+            <h2 className="font-display text-lg font-semibold tracking-tight text-foreground">
+              {title}
+            </h2>
           ) : null}
-          <p className="text-sm text-slate-600">{config.prompt}</p>
+          <p className="text-sm text-ink-secondary">{config.prompt}</p>
         </div>
 
-        {feedbackEndsAt && (
+        {feedbackEndsAt && timeLabel && (
           <div
-            className="shrink-0 rounded-md border px-3 py-2 text-sm font-semibold tabular-nums"
-            style={{
-              borderColor: feedbackExpired ? "var(--color-error)" : "var(--color-border)",
-              background: feedbackExpired ? "var(--color-error-highlight)" : "var(--color-surface-2)",
-              color: feedbackExpired ? "var(--color-error)" : "var(--color-text)",
-            }}
+            className={cn(
+              "shrink-0 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums",
+              feedbackExpired
+                ? "bg-error-subtle text-destructive"
+                : "bg-surface-sunken text-foreground",
+            )}
           >
             {timeLabel}
           </div>
@@ -174,7 +179,7 @@ export function FeedbackParticipant({
       <div className="space-y-6">
         {fields.map((field) => (
           <div key={field.id} className="space-y-3">
-            <label className="block text-sm font-medium text-slate-900">
+            <label className="block text-sm font-medium text-foreground">
               {field.label}
             </label>
 
@@ -199,13 +204,13 @@ export function FeedbackParticipant({
                           return next;
                         });
                       }}
-                      className={[
-                        "inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm font-semibold transition",
+                      className={cn(
+                        "inline-flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold tabular-nums transition-colors duration-fast",
                         active
-                          ? "border-slate-900 bg-slate-900 text-white"
-                          : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+                          ? "border-brand bg-brand text-brand-foreground"
+                          : "border-border bg-surface-card text-foreground hover:bg-muted",
                         isLocked ? "cursor-not-allowed opacity-60" : "",
-                      ].join(" ")}
+                      )}
                     >
                       {value}
                     </button>
@@ -230,32 +235,33 @@ export function FeedbackParticipant({
                 disabled={isLocked}
                 rows={4}
                 placeholder="Type your response"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-sm border border-input bg-surface-card px-3 py-2 text-sm text-foreground outline-none transition focus-visible:ring-2 focus-visible:ring-ring placeholder:text-ink-faint disabled:cursor-not-allowed disabled:opacity-60"
               />
             )}
 
             {errors[field.id] ? (
-              <p className="text-sm text-red-600">{errors[field.id]}</p>
+              <p className="text-sm text-destructive">{errors[field.id]}</p>
             ) : null}
           </div>
         ))}
       </div>
 
       <div className="mt-6">
-        <button
+        <Button
           type="button"
           onClick={handleSubmit}
           disabled={isLocked}
-          className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          size="lg"
+          className="w-full"
         >
           {submitted
             ? "Feedback submitted"
             : feedbackExpired
             ? "Time is up"
             : isSubmitting
-            ? "Submitting..."
+            ? "Submitting…"
             : "Submit feedback"}
-        </button>
+        </Button>
       </div>
     </div>
   );

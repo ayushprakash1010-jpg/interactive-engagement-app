@@ -82,12 +82,10 @@ export function WordCloudBuilder({
           placeholder="e.g. One word for today"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          style={{ borderColor: errors.title ? 'var(--color-error)' : undefined }}
+          className={errors.title ? 'border-destructive' : undefined}
         />
         {errors.title && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-            {errors.title}
-          </p>
+          <p className="text-xs text-destructive">{errors.title}</p>
         )}
       </div>
 
@@ -99,12 +97,10 @@ export function WordCloudBuilder({
           value={prompt}
           rows={3}
           onChange={(e) => setPrompt(e.target.value)}
-          style={{ borderColor: errors.prompt ? 'var(--color-error)' : undefined }}
+          className={errors.prompt ? 'border-destructive' : undefined}
         />
         {errors.prompt && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-            {errors.prompt}
-          </p>
+          <p className="text-xs text-destructive">{errors.prompt}</p>
         )}
       </div>
 
@@ -121,24 +117,19 @@ export function WordCloudBuilder({
             step={1}
             value={maxWords}
             onChange={(e) => setMaxWords(Number(e.target.value))}
-            className="flex-1 accent-[var(--color-primary)]"
+            className="flex-1 accent-brand"
           />
-          <span
-            className="w-8 text-center font-semibold"
-            style={{ color: 'var(--color-primary)' }}
-          >
+          <span className="w-8 text-center font-semibold text-brand">
             {maxWords}
           </span>
         </div>
-        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+        <p className="text-xs text-ink-muted">
           Each participant can submit up to {maxWords} unique word
-          {maxWords === 1 ? '' : 's'}. Repeated words across participants grow in
+          {maxWords === 1 ? '' : 's'}. Repeated words across your audience grow in
           size on the cloud.
         </p>
         {errors.maxWords && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-            {errors.maxWords}
-          </p>
+          <p className="text-xs text-destructive">{errors.maxWords}</p>
         )}
       </div>
 
@@ -156,8 +147,8 @@ export function WordCloudBuilder({
             setTimeLimitSec(e.target.value ? parseInt(e.target.value, 10) : '')
           }
         />
-        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-          Set to empty to leave the word cloud open until manually closed.
+        <p className="text-xs text-ink-muted">
+          Leave empty to keep the word cloud open until you close it.
         </p>
       </div>
 
@@ -165,14 +156,7 @@ export function WordCloudBuilder({
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button
-          type="submit"
-          disabled={isSaving}
-          style={{
-            background: '#0f172a',
-            color: '#fff',
-          }}
-        >
+        <Button type="submit" disabled={isSaving}>
           {isSaving
             ? 'Saving…'
             : isEditing

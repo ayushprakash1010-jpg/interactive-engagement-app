@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/card';
 import { useAnalytics, downloadReport } from '@/hooks/use-analytics';
 import { useEvent } from '@/lib/use-events';
+import { Eyebrow, Stat } from '@/components/pulse';
 
 const CHART_COLORS = [
   '#01696f',
@@ -60,15 +61,13 @@ function StatCard({
 }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {label}
-        </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold tabular-nums">{value}</div>
-        {sub && <p className="mt-1 text-xs text-muted-foreground">{sub}</p>}
+      <CardContent className="pt-6">
+        <Stat
+          label={label}
+          value={value}
+          sub={sub}
+          icon={<Icon className="h-4 w-4" />}
+        />
       </CardContent>
     </Card>
   );
@@ -199,7 +198,7 @@ function WordCloudDisplay({
               fontSize: `${scale}rem`,
               opacity: 0.5 + (w.weight / max) * 0.5,
             }}
-            className="font-semibold leading-tight text-primary"
+            className="font-display font-semibold leading-tight text-brand"
           >
             {w.text}
           </span>
@@ -277,7 +276,7 @@ function FeedbackSection({
                   return (
                     <div key={rating} className="text-center text-xs">
                       <div
-                        className="mx-auto w-8 rounded-sm bg-primary/70"
+                        className="mx-auto w-8 rounded-sm bg-data-3"
                         style={{ height: `${Math.max(4, ratio * 48)}px` }}
                       />
                       <span className="text-muted-foreground">{rating}</span>
@@ -439,11 +438,12 @@ export default function AnalyticsPage() {
       <div>
         <BackLink id={id} />
         <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {event?.name ?? 'Event'} — Analytics
+          <div className="space-y-1">
+            <Eyebrow>Session report</Eyebrow>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              {event?.name ?? 'Event'} analytics
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-ink-secondary">
               Generated{' '}
               {new Date(report.generatedAt).toLocaleString('en-IN', {
                 timeZone: 'Asia/Kolkata',
@@ -514,7 +514,7 @@ export default function AnalyticsPage() {
 
       {pollAnalytics.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Polls</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">Polls</h2>
           <div className="grid gap-6 md:grid-cols-2">
             {pollAnalytics.map((poll) => (
               <Card key={poll.activityId}>
@@ -538,7 +538,7 @@ export default function AnalyticsPage() {
 
       {quizAnalytics.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Quizzes</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">Quizzes</h2>
           <div className="grid gap-6 md:grid-cols-2">
             {quizAnalytics.map((quiz) => (
               <Card key={quiz.activityId}>
@@ -573,9 +573,9 @@ export default function AnalyticsPage() {
                               <span className="w-16 shrink-0 text-muted-foreground">
                                 Q{i + 1}
                               </span>
-                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-sunken">
                                 <div
-                                  className="h-full rounded-full bg-primary"
+                                  className="h-full rounded-full bg-data-4"
                                   style={{ width: `${pct}%` }}
                                 />
                               </div>
@@ -597,7 +597,7 @@ export default function AnalyticsPage() {
 
       {wordCloudAnalytics.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Word clouds</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">Word clouds</h2>
           <div className="grid gap-6 md:grid-cols-2">
             {wordCloudAnalytics.map((wc) => (
               <Card key={wc.activityId}>
@@ -624,7 +624,7 @@ export default function AnalyticsPage() {
 
       {feedbackAnalytics.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Feedback</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">Feedback</h2>
           <div className="grid gap-6 md:grid-cols-2">
             {feedbackAnalytics.map((fb) => (
               <Card key={fb.activityId}>
@@ -648,7 +648,7 @@ export default function AnalyticsPage() {
 
       {qaAnalytics.topQuestions.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">Top questions</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">Top questions</h2>
           <Card>
             <CardContent className="space-y-2 pt-4">
               {qaAnalytics.topQuestions.map((q, index) => (
@@ -677,7 +677,7 @@ function BackLink({ id }: { id: string }) {
   return (
     <Link
       href={`/dashboard/events/${id}`}
-      className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+      className="inline-flex items-center text-sm text-ink-muted transition-colors hover:text-foreground"
     >
       <ArrowLeft className="mr-1 h-4 w-4" />
       Back to event

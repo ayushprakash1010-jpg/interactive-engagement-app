@@ -1,0 +1,46 @@
+<!-- @dsCard group="Components" viewport="700x440" name="Core" subtitle="Button · Badge · Input · Switch · Card · Avatar · Stat" -->
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{margin:0;background:var(--surface-canvas);padding:22px;font-family:var(--font-sans)}
+.sec{margin-bottom:18px}.h{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:0 0 9px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}</style></head>
+<body><div id="root"></div>
+<script type="text/babel">
+const { Button, Badge, Input, Switch, Card, Avatar, Stat } = window.PulseDesignSystem_424f5e;
+function Demo(){
+  const [on,setOn]=React.useState(true);
+  return (<div>
+    <div className="sec"><p className="h">Button</p><div className="row">
+      <Button variant="primary">Create event</Button>
+      <Button variant="secondary">Cancel</Button>
+      <Button variant="ghost">Skip</Button>
+      <Button variant="danger">Delete</Button>
+      <Button variant="ai">Generate</Button>
+      <Button variant="primary" loading>Saving</Button>
+    </div></div>
+    <div className="sec"><p className="h">Badge</p><div className="row">
+      <Badge tone="live">Live</Badge><Badge tone="brand" dot>Poll</Badge>
+      <Badge tone="success">Approved</Badge><Badge tone="warning">Pending</Badge>
+      <Badge tone="error">Closed</Badge><Badge tone="ai">AI generated</Badge>
+      <Badge tone="neutral" size="sm">Draft</Badge>
+    </div></div>
+    <div className="sec"><p className="h">Input · Switch</p><div className="row" style={{alignItems:'flex-end'}}>
+      <div style={{width:220}}><Input label="Event name" placeholder="Q3 All Hands"/></div>
+      <div style={{width:150}}><Input code placeholder="ABC123" defaultValue="QZ7K2P"/></div>
+      <Switch checked={on} onChange={setOn} label="Anonymous Q&A"/>
+    </div></div>
+    <div className="sec"><p className="h">Card · Avatar · Stat</p><div className="row" style={{alignItems:'stretch'}}>
+      <Card interactive style={{width:200}}><div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <Avatar name="Alex Rivera"/><Avatar name="Mara Lee"/><Avatar anonymous/>
+      </div><p style={{margin:'10px 0 0',fontSize:13,color:'var(--text-muted)'}}>Interactive tile · hover me</p></Card>
+      <Card style={{width:160}}><Stat value="1,284" label="Participants" sub="+312 today"/></Card>
+      <Card tone="ai" style={{width:160}}><Stat value="92%" label="Participation" tone="ai"/></Card>
+    </div></div>
+  </div>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body></html>

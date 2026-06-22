@@ -2,7 +2,19 @@
 
 import { useMemo } from 'react';
 import { WordCloud } from '@/components/wordcloud/wordcloud-cloud';
+import { LiveDot } from '@/components/pulse';
 import type { WordCloudWord } from '@/lib/wordcloud';
+
+const RANK_COLORS = [
+  'bg-data-1',
+  'bg-data-2',
+  'bg-data-3',
+  'bg-data-4',
+  'bg-data-5',
+  'bg-data-6',
+  'bg-data-7',
+  'bg-data-8',
+];
 
 type WordCloudProjectorViewProps = {
   title?: string;
@@ -22,13 +34,14 @@ export function WordCloudProjectorView({
 
   return (
     <div className="grid w-full gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
-      <section className="rounded-3xl border bg-card p-10 shadow-sm">
+      <section className="rounded-3xl border border-border bg-surface-card p-10">
         <div className="space-y-4 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-brand">
+            <LiveDot />
             Live word cloud
           </p>
 
-          <h1 className="text-5xl font-bold tracking-tight leading-tight">
+          <h1 className="font-display text-5xl font-bold tracking-tight leading-tight text-foreground">
             {prompt || title || 'Audience responses'}
           </h1>
 
@@ -41,37 +54,39 @@ export function WordCloudProjectorView({
         </div>
       </section>
 
-      <aside className="rounded-3xl border bg-card p-8 shadow-sm">
+      <aside className="rounded-3xl border border-border bg-surface-card p-8">
         <div className="space-y-2 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand">
             Live stats
           </p>
-          <h2 className="text-3xl font-bold tracking-tight">Word activity</h2>
+          <h2 className="font-display text-3xl font-bold tracking-tight text-foreground">
+            Word activity
+          </h2>
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-          <div className="rounded-2xl border bg-background px-5 py-6 text-center shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Unique words</p>
+          <div className="rounded-2xl border border-border bg-surface-sunken px-5 py-6 text-center">
+            <p className="text-sm font-medium text-ink-muted">Unique words</p>
             <p className="mt-2 text-4xl font-bold tabular-nums text-foreground">
               {words.length}
             </p>
           </div>
 
-          <div className="rounded-2xl border bg-background px-5 py-6 text-center shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Total mentions</p>
-            <p className="mt-2 text-4xl font-bold tabular-nums text-primary">
+          <div className="rounded-2xl border border-border bg-surface-sunken px-5 py-6 text-center">
+            <p className="text-sm font-medium text-ink-muted">Total mentions</p>
+            <p className="mt-2 text-4xl font-bold tabular-nums text-brand">
               {totalMentions}
             </p>
           </div>
         </div>
 
         <div className="mt-6">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-brand">
             Top words
           </p>
 
           {words.length === 0 ? (
-            <div className="rounded-2xl border border-dashed p-8 text-center text-base text-muted-foreground">
+            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-base text-ink-muted">
               Top words will appear as participants respond.
             </div>
           ) : (
@@ -79,29 +94,11 @@ export function WordCloudProjectorView({
               {words.slice(0, 8).map((word, index) => (
                 <li
                   key={word.text}
-                  className="flex items-center justify-between gap-4 rounded-2xl border bg-background px-5 py-4 shadow-sm"
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface-sunken px-5 py-4"
                 >
                   <div className="flex min-w-0 items-center gap-4">
                     <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-bold"
-                      style={{
-                        background:
-                          index === 0
-                            ? 'var(--color-gold-highlight)'
-                            : index === 1
-                              ? 'var(--color-surface-offset)'
-                              : index === 2
-                                ? 'var(--color-orange-highlight)'
-                                : 'var(--color-primary-highlight)',
-                        color:
-                          index === 0
-                            ? 'var(--color-gold)'
-                            : index === 1
-                              ? 'var(--color-text)'
-                              : index === 2
-                                ? 'var(--color-orange)'
-                                : 'var(--color-primary)',
-                      }}
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-bold text-white ${RANK_COLORS[index % RANK_COLORS.length]}`}
                     >
                       {index + 1}
                     </div>
@@ -112,10 +109,10 @@ export function WordCloudProjectorView({
                   </div>
 
                   <div className="shrink-0 text-right">
-                    <p className="text-2xl font-bold tabular-nums text-primary">
+                    <p className="text-2xl font-bold tabular-nums text-brand">
                       {word.weight}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-ink-muted">
                       mention{word.weight === 1 ? '' : 's'}
                     </p>
                   </div>

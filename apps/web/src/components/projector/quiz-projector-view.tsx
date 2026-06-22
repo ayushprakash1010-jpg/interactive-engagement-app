@@ -1,7 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { LeaderboardRow, LiveDot } from '@/components/pulse';
+import { Badge } from '@/components/ui/badge';
 import type { QuizQuestionState, QuizLeaderboardEntry } from '@/hooks/use-poll';
+
+const OPTION_COLORS = [
+  'bg-data-1',
+  'bg-data-2',
+  'bg-data-3',
+  'bg-data-4',
+  'bg-data-5',
+  'bg-data-6',
+  'bg-data-7',
+  'bg-data-8',
+];
 
 type QuizProjectorViewProps = {
   question: QuizQuestionState | null;
@@ -42,29 +55,28 @@ export function QuizProjectorView({
 
   return (
     <div className="grid w-full gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
-      <section className="rounded-3xl border bg-card p-10 shadow-sm">
+      <section className="rounded-3xl border border-border bg-surface-card p-10">
         <div className="space-y-4 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
+          <p className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-brand">
+            <LiveDot live={!isExpired} />
             Live quiz
           </p>
 
           <div className="flex items-center justify-center">
-            <div
-              className="rounded-full px-5 py-2 text-base font-semibold"
-              style={{
-                background: isExpired
-                  ? 'var(--color-error-highlight)'
-                  : 'var(--color-primary-highlight)',
-                color: isExpired ? 'var(--color-error)' : 'var(--color-primary)',
-              }}
-            >
-              {timerLabel}
-            </div>
+            {isExpired ? (
+              <Badge variant="destructive" size="md" className="text-base">
+                {timerLabel}
+              </Badge>
+            ) : (
+              <Badge variant="brand" size="md" className="text-base">
+                {timerLabel}
+              </Badge>
+            )}
           </div>
 
           {question ? (
             <>
-              <h1 className="text-5xl font-bold tracking-tight leading-tight">
+              <h1 className="font-display text-5xl font-bold tracking-tight leading-tight text-foreground">
                 {question.text}
               </h1>
 
@@ -72,15 +84,11 @@ export function QuizProjectorView({
                 {question.options.map((option, index) => (
                   <article
                     key={option.id}
-                    className="rounded-2xl border bg-background px-6 py-5 text-left shadow-sm"
+                    className="rounded-2xl border border-border bg-surface-sunken px-6 py-5 text-left"
                   >
                     <div className="flex items-start gap-4">
                       <div
-                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold"
-                        style={{
-                          background: 'var(--color-primary-highlight)',
-                          color: 'var(--color-primary)',
-                        }}
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white ${OPTION_COLORS[index % OPTION_COLORS.length]}`}
                       >
                         {String.fromCharCode(65 + index)}
                       </div>
@@ -94,70 +102,37 @@ export function QuizProjectorView({
               </div>
             </>
           ) : (
-            <div className="rounded-2xl border border-dashed p-16 text-center text-xl text-muted-foreground">
+            <div className="rounded-2xl border border-dashed border-border p-16 text-center text-xl text-ink-muted">
               Waiting for the next quiz question…
             </div>
           )}
         </div>
       </section>
 
-      <aside className="rounded-3xl border bg-card p-8 shadow-sm">
+      <aside className="rounded-3xl border border-border bg-surface-card p-8">
         <div className="space-y-2 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">
+          <p className="text-sm font-semibold uppercase tracking-wider text-brand">
             Leaderboard
           </p>
-          <h2 className="text-3xl font-bold tracking-tight">Top scores</h2>
+          <h2 className="font-display text-3xl font-bold tracking-tight text-foreground">
+            Top scores
+          </h2>
         </div>
 
         {leaderboard.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed p-10 text-center text-lg text-muted-foreground">
+          <div className="mt-6 rounded-2xl border border-dashed border-border p-10 text-center text-lg text-ink-muted">
             Scores will appear after the first question closes.
           </div>
         ) : (
           <ol className="mt-6 space-y-3">
             {leaderboard.map((entry, index) => (
-              <li
-                key={`${entry.name}-${index}`}
-                className="flex items-center justify-between gap-4 rounded-2xl border bg-background px-5 py-4 shadow-sm"
-              >
-                <div className="flex min-w-0 items-center gap-4">
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-bold"
-                    style={{
-                      background:
-                        index === 0
-                          ? 'var(--color-gold-highlight)'
-                          : index === 1
-                            ? 'var(--color-surface-offset)'
-                            : index === 2
-                              ? 'var(--color-orange-highlight)'
-                              : 'var(--color-primary-highlight)',
-                      color:
-                        index === 0
-                          ? 'var(--color-gold)'
-                          : index === 1
-                            ? 'var(--color-text)'
-                            : index === 2
-                              ? 'var(--color-orange)'
-                              : 'var(--color-primary)',
-                    }}
-                  >
-                    {index + 1}
-                  </div>
-
-                  <p className="truncate text-xl font-semibold text-foreground">
-                    {entry.name}
-                  </p>
-                </div>
-
-                <div className="shrink-0 text-right">
-                  <p className="text-2xl font-bold tabular-nums text-primary">
-                    {entry.points}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    point{entry.points === 1 ? '' : 's'}
-                  </p>
-                </div>
+              <li key={`${entry.name}-${index}`}>
+                <LeaderboardRow
+                  rank={index + 1}
+                  name={entry.name}
+                  points={entry.points}
+                  inverse
+                />
               </li>
             ))}
           </ol>

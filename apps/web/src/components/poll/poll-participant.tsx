@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Eyebrow, LeaderboardRow } from '@/components/pulse';
+import { cn } from '@/lib/utils';
 import { PollResultsChart } from './poll-results-chart';
 import type {
   LiveActivity,
@@ -23,6 +26,21 @@ interface Props {
   quizAnswerState?: QuizAnswerState | null;
   quizLeaderboard?: QuizLeaderboardEntry[];
   onSubmitQuizAnswer?: UsePollReturn['submitQuizAnswer'];
+}
+
+function TimerPill({ label, expired }: { label: string; expired: boolean }) {
+  return (
+    <div
+      className={cn(
+        'shrink-0 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums',
+        expired
+          ? 'bg-error-subtle text-destructive'
+          : 'bg-surface-sunken text-foreground',
+      )}
+    >
+      {label}
+    </div>
+  );
 }
 
 export function PollParticipant({
@@ -49,7 +67,7 @@ export function PollParticipant({
 
   const [selectedQuizOptionId, setSelectedQuizOptionId] = useState<string>('');
   const [quizSubmitting, setQuizSubmitting] = useState(false);
-  
+
   const [quizTimeLeftMs, setQuizTimeLeftMs] = useState(0);
   const [pollTimeLeftMs, setPollTimeLeftMs] = useState(0);
 
@@ -201,66 +219,31 @@ export function PollParticipant({
 
     return (
       <div className="space-y-5">
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-          }}
-        >
-          <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="rounded-md border border-border bg-surface-raised p-4">
+          <div className="mb-2 flex items-start justify-between gap-3">
             <div className="space-y-1">
-              <p
-                className="text-sm font-medium"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
+              <Eyebrow>
                 {quizQuestion?.questionNumber
                   ? `Question ${quizQuestion.questionNumber}`
                   : 'Quiz question'}
-              </p>
-              <p
-                className="text-lg font-semibold leading-snug"
-                style={{ color: 'var(--color-text)' }}
-              >
+              </Eyebrow>
+              <p className="font-display text-lg font-semibold leading-snug tracking-tight text-foreground">
                 {questionText}
               </p>
             </div>
 
-            <div
-              className="rounded-md border px-3 py-2 text-sm font-semibold tabular-nums"
-              style={{
-                borderColor: quizExpired
-                  ? 'var(--color-error)'
-                  : 'var(--color-border)',
-                background: quizExpired
-                  ? 'var(--color-error-highlight)'
-                  : 'var(--color-surface-2)',
-                color: quizExpired
-                  ? 'var(--color-error)'
-                  : 'var(--color-text)',
-              }}
-            >
-              {quizTimeLabel}
-            </div>
+            <TimerPill label={quizTimeLabel} expired={quizExpired} />
           </div>
 
           {hasAnsweredQuiz && (
-            <p
-              className="text-sm font-medium"
-              style={{
-                color:
-                  quizAnswerState?.isCorrect === undefined
-                    ? 'var(--color-primary)'
-                    : quizAnswerState.isCorrect
-                      ? 'var(--color-success)'
-                      : 'var(--color-error)',
-              }}
-            >
-              {quizAnswerState?.isCorrect === undefined
-                ? 'Answer submitted'
-                : quizAnswerState.isCorrect
-                  ? 'Correct'
-                  : 'Incorrect'}
+            <p className="text-sm font-medium">
+              {quizAnswerState?.isCorrect === undefined ? (
+                <span className="text-brand">Answer submitted</span>
+              ) : quizAnswerState.isCorrect ? (
+                <span className="text-success">Correct</span>
+              ) : (
+                <span className="text-destructive">Incorrect</span>
+              )}
               {typeof quizAnswerState?.awardedPoints === 'number'
                 ? ` · +${quizAnswerState.awardedPoints} pts`
                 : ''}
@@ -268,12 +251,7 @@ export function PollParticipant({
           )}
 
           {!hasAnsweredQuiz && quizExpired && (
-            <p
-              className="text-sm font-medium"
-              style={{ color: 'var(--color-error)' }}
-            >
-              Time is up.
-            </p>
+            <p className="text-sm font-medium text-destructive">Time is up.</p>
           )}
         </div>
 
@@ -293,16 +271,12 @@ export function PollParticipant({
                     setSelectedQuizOptionId(opt.id);
                   }}
                   disabled={locked}
-                  className="w-full rounded-lg border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-80"
-                  style={{
-                    borderColor: isSelected
-                      ? 'var(--color-primary)'
-                      : 'var(--color-border)',
-                    background: isSelected
-                      ? 'var(--color-primary-highlight)'
-                      : 'var(--color-surface)',
-                    color: 'var(--color-text)',
-                  }}
+                  className={cn(
+                    'min-h-[3rem] w-full rounded-md border px-4 py-3 text-left text-base font-medium text-foreground transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-80',
+                    isSelected
+                      ? 'border-brand bg-brand-subtle'
+                      : 'border-border bg-surface-card hover:bg-muted',
+                  )}
                   aria-pressed={isSelected}
                 >
                   {opt.label}
@@ -311,10 +285,7 @@ export function PollParticipant({
             })}
           </div>
         ) : (
-          <p
-            className="py-6 text-center text-sm"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
+          <p className="py-6 text-center text-sm text-ink-muted">
             Waiting for answer options…
           </p>
         )}
@@ -323,58 +294,31 @@ export function PollParticipant({
           type="button"
           onClick={handleQuizSubmit}
           disabled={!canSubmitQuiz}
+          size="lg"
           className="w-full"
         >
           {quizSubmitting || hasAnsweredQuiz ? 'Answer submitted' : 'Submit answer'}
         </Button>
 
         {showQuizLeaderboard && (
-          <div
-            className="rounded-lg border p-4"
-            style={{
-              borderColor: 'var(--color-border)',
-              background: 'var(--color-surface)',
-            }}
-          >
+          <div className="rounded-md border border-border bg-surface-raised p-4">
             <div className="mb-3">
-              <p
-                className="text-sm font-medium"
-                style={{ color: 'var(--color-primary)' }}
-              >
-                Leaderboard
-              </p>
+              <Eyebrow>Leaderboard</Eyebrow>
             </div>
 
             {quizLeaderboard.length > 0 ? (
               <div className="space-y-2">
                 {quizLeaderboard.map((entry, index) => (
-                  <div
+                  <LeaderboardRow
                     key={`${entry.name}-${index}`}
-                    className="flex items-center justify-between rounded-md border px-3 py-2"
-                    style={{
-                      borderColor: 'var(--color-border)',
-                      background: 'var(--color-surface-2)',
-                    }}
-                  >
-                    <span style={{ color: 'var(--color-text)' }}>
-                      {index + 1}. {entry.name}
-                    </span>
-                    <span
-                      className="font-semibold"
-                      style={{ color: 'var(--color-text)' }}
-                    >
-                      {entry.points} pts
-                    </span>
-                  </div>
+                    rank={index + 1}
+                    name={entry.name}
+                    points={entry.points}
+                  />
                 ))}
               </div>
             ) : (
-              <p
-                className="text-sm"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                Waiting for leaderboard…
-              </p>
+              <p className="text-sm text-ink-muted">Waiting for leaderboard…</p>
             )}
           </div>
         )}
@@ -385,20 +329,15 @@ export function PollParticipant({
   if (showResults) {
     return (
       <div className="space-y-4">
-        <div
-          className="rounded-lg border p-4"
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-          }}
-        >
-          <p
-            className="mb-1 text-sm font-medium"
-            style={{ color: pollExpired && !hasSubmitted ? 'var(--color-error)' : 'var(--color-primary)' }}
-          >
-            {hasSubmitted ? '✓ Response submitted' : pollExpired ? 'Time is up' : 'Poll closed'}
-          </p>
-          <p className="font-semibold" style={{ color: 'var(--color-text)' }}>
+        <div className="rounded-md border border-border bg-surface-raised p-4">
+          {hasSubmitted ? (
+            <Badge variant="success" className="mb-2">Vote submitted</Badge>
+          ) : pollExpired ? (
+            <Badge variant="destructive" className="mb-2">Time is up</Badge>
+          ) : (
+            <Badge variant="neutral" className="mb-2">Poll closed</Badge>
+          )}
+          <p className="font-display font-semibold tracking-tight text-foreground">
             {config.question}
           </p>
         </div>
@@ -406,17 +345,11 @@ export function PollParticipant({
         {tallies ? (
           <PollResultsChart tallies={tallies} />
         ) : isClosed ? (
-          <p
-            className="py-8 text-center text-sm"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
+          <p className="py-8 text-center text-sm text-ink-muted">
             No responses recorded.
           </p>
         ) : (
-          <p
-            className="py-8 text-center text-sm"
-            style={{ color: 'var(--color-text-muted)' }}
-          >
+          <p className="py-8 text-center text-sm text-ink-muted">
             Waiting for results…
           </p>
         )}
@@ -426,94 +359,76 @@ export function PollParticipant({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <p
-          className="text-lg font-semibold leading-snug"
-          style={{ color: 'var(--color-text)' }}
-        >
+      <div className="flex items-start justify-between gap-3">
+        <p className="font-display text-lg font-semibold leading-snug tracking-tight text-foreground">
           {config.question}
         </p>
-        
-        {pollEndsAt && (
-          <div
-            className="shrink-0 rounded-md border px-3 py-2 text-sm font-semibold tabular-nums"
-            style={{
-              borderColor: pollExpired
-                ? 'var(--color-error)'
-                : 'var(--color-border)',
-              background: pollExpired
-                ? 'var(--color-error-highlight)'
-                : 'var(--color-surface-2)',
-              color: pollExpired
-                ? 'var(--color-error)'
-                : 'var(--color-text)',
-            }}
-          >
-            {pollTimeLabel}
-          </div>
+
+        {pollEndsAt && pollTimeLabel && (
+          <TimerPill label={pollTimeLabel} expired={pollExpired} />
         )}
       </div>
 
       {pollType === 'single' && (
         <fieldset className="space-y-2">
-          {options.map((opt) => (
-            <label
-              key={opt.id}
-              className="flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors"
-              style={{
-                borderColor: selectedIds.includes(opt.id)
-                  ? 'var(--color-primary)'
-                  : 'var(--color-border)',
-                background: selectedIds.includes(opt.id)
-                  ? 'var(--color-primary-highlight)'
-                  : 'var(--color-surface)',
-              }}
-            >
-              <input
-                type="radio"
-                name={`single-choice-${activity._id}`}
-                value={opt.id}
-                checked={selectedIds.includes(opt.id)}
-                onChange={() => setSelectedIds([opt.id])}
-                className="accent-[var(--color-primary)]"
-              />
-              <span style={{ color: 'var(--color-text)' }}>{opt.label}</span>
-            </label>
-          ))}
+          {options.map((opt) => {
+            const checked = selectedIds.includes(opt.id);
+            return (
+              <label
+                key={opt.id}
+                className={cn(
+                  'flex min-h-[3rem] cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors duration-fast',
+                  checked
+                    ? 'border-brand bg-brand-subtle'
+                    : 'border-border bg-surface-card hover:bg-muted',
+                )}
+              >
+                <input
+                  type="radio"
+                  name={`single-choice-${activity._id}`}
+                  value={opt.id}
+                  checked={checked}
+                  onChange={() => setSelectedIds([opt.id])}
+                  className="h-4 w-4 accent-brand"
+                />
+                <span className="text-base text-foreground">{opt.label}</span>
+              </label>
+            );
+          })}
         </fieldset>
       )}
 
       {pollType === 'multiple' && (
         <fieldset className="space-y-2">
-          {options.map((opt) => (
-            <label
-              key={opt.id}
-              className="flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors"
-              style={{
-                borderColor: selectedIds.includes(opt.id)
-                  ? 'var(--color-primary)'
-                  : 'var(--color-border)',
-                background: selectedIds.includes(opt.id)
-                  ? 'var(--color-primary-highlight)'
-                  : 'var(--color-surface)',
-              }}
-            >
-              <input
-                type="checkbox"
-                value={opt.id}
-                checked={selectedIds.includes(opt.id)}
-                onChange={(e) =>
-                  setSelectedIds((prev) =>
-                    e.target.checked
-                      ? [...prev, opt.id]
-                      : prev.filter((id) => id !== opt.id),
-                  )
-                }
-                className="accent-[var(--color-primary)]"
-              />
-              <span style={{ color: 'var(--color-text)' }}>{opt.label}</span>
-            </label>
-          ))}
+          {options.map((opt) => {
+            const checked = selectedIds.includes(opt.id);
+            return (
+              <label
+                key={opt.id}
+                className={cn(
+                  'flex min-h-[3rem] cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors duration-fast',
+                  checked
+                    ? 'border-brand bg-brand-subtle'
+                    : 'border-border bg-surface-card hover:bg-muted',
+                )}
+              >
+                <input
+                  type="checkbox"
+                  value={opt.id}
+                  checked={checked}
+                  onChange={(e) =>
+                    setSelectedIds((prev) =>
+                      e.target.checked
+                        ? [...prev, opt.id]
+                        : prev.filter((id) => id !== opt.id),
+                    )
+                  }
+                  className="h-4 w-4 accent-brand"
+                />
+                <span className="text-base text-foreground">{opt.label}</span>
+              </label>
+            );
+          })}
         </fieldset>
       )}
 
@@ -524,14 +439,12 @@ export function PollParticipant({
               key={n}
               type="button"
               onClick={() => setRatingValue(n)}
-              className="h-11 w-11 rounded-lg border text-sm font-semibold transition-colors"
-              style={{
-                borderColor:
-                  ratingValue === n ? 'var(--color-primary)' : 'var(--color-border)',
-                background:
-                  ratingValue === n ? 'var(--color-primary)' : 'var(--color-surface)',
-                color: ratingValue === n ? '#fff' : 'var(--color-text)',
-              }}
+              className={cn(
+                'h-12 w-12 rounded-md border text-base font-semibold tabular-nums transition-colors duration-fast',
+                ratingValue === n
+                  ? 'border-brand bg-brand text-brand-foreground'
+                  : 'border-border bg-surface-card text-foreground hover:bg-muted',
+              )}
               aria-label={`Rate ${n}`}
               aria-pressed={ratingValue === n}
             >
@@ -548,11 +461,6 @@ export function PollParticipant({
           onChange={(e) => setTextValue(e.target.value)}
           rows={4}
           maxLength={500}
-          style={{
-            borderColor: 'var(--color-border)',
-            background: 'var(--color-surface)',
-            color: 'var(--color-text)',
-          }}
         />
       )}
 
@@ -560,9 +468,10 @@ export function PollParticipant({
         type="button"
         onClick={handleSubmit}
         disabled={!canSubmit}
+        size="lg"
         className="w-full"
       >
-        {submitting ? 'Submitting…' : 'Submit'}
+        {submitting ? 'Submitting…' : 'Submit your vote'}
       </Button>
     </div>
   );

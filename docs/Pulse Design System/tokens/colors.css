@@ -1,0 +1,161 @@
+/* ============================================================
+ * Pulse — Color tokens
+ * Resolves the IEP codebase's two competing palettes into one
+ * canonical identity: TEAL primary + WARM SAND neutrals.
+ * (The live-activity components reached for `var(--color-primary,#01696f)`
+ *  and `var(--color-surface,#f9f8f5)` — that warm-teal system, never
+ *  formally declared, is promoted here to the real brand.)
+ * ============================================================ */
+
+:root {
+  /* ---- Brand: Teal ------------------------------------------------ */
+  --teal-50:  #e7f1f1;
+  --teal-100: #c6dedf;
+  --teal-200: #9cc6c8;
+  --teal-300: #6daab0;
+  --teal-400: #4f98a3;   /* chart teal-light */
+  --teal-500: #1a7d83;
+  --teal-600: #01696f;   /* PRIMARY — the de-facto brand teal */
+  --teal-700: #015358;
+  --teal-800: #013e42;
+  --teal-900: #04292c;
+
+  /* ---- Warm sand neutrals (paper + ink) -------------------------- */
+  --sand-50:  #faf9f6;   /* lightest surface */
+  --sand-100: #f5f3ee;   /* app canvas */
+  --sand-150: #f3f0ec;   /* surface-offset (chart hover) */
+  --sand-200: #eae6df;   /* raised / surface-2 */
+  --sand-300: #ddd8cf;   /* border */
+  --sand-400: #c8c2b6;   /* strong border / disabled */
+  --sand-500: #9a9488;   /* faint text */
+  --ink-700:  #6f6b62;   /* muted text */
+  --ink-800:  #45423b;   /* secondary text */
+  --ink-900:  #23211d;   /* primary text (warm charcoal) */
+  --white:    #ffffff;
+  --black:    #161410;
+
+  /* ---- AI accent: Iris ------------------------------------------- */
+  /* Drawn from the existing chart palette (#7a39bb), reserved for
+     AI-generated / AI-assisted surfaces so AI reads as one feature. */
+  --iris-50:  #f1ebfa;
+  --iris-100: #e2d3f5;
+  --iris-200: #c4a7ea;
+  --iris-400: #9b5fd4;
+  --iris-500: #7a39bb;   /* AI accent */
+  --iris-600: #682da3;
+  --iris-700: #4f2080;
+
+  /* ---- Semantic hues --------------------------------------------- */
+  --green-500: #6daa45;
+  --green-600: #437a22;  /* success */
+  --green-50:  #eaf3e1;
+  --gold-500:  #d19900;  /* warning */
+  --gold-50:   #f9efd2;
+  --red-500:   #cf3b30;  /* error / destructive */
+  --red-600:   #b22f25;
+  --red-50:    #fae6e3;
+  --blue-500:  #006494;  /* info */
+  --blue-50:   #e0eef4;
+
+  /* ---- Categorical data palette (poll bars, charts) -------------- */
+  --data-1: #01696f;
+  --data-2: #4f98a3;
+  --data-3: #6daa45;
+  --data-4: #d19900;
+  --data-5: #da7101;
+  --data-6: #006494;
+  --data-7: #7a39bb;
+  --data-8: #a12c7b;
+
+  /* ============================================================
+   * Semantic aliases — reference these in product code, not raw scales
+   * ============================================================ */
+
+  /* Surfaces */
+  --surface-canvas:     var(--sand-100);  /* page background */
+  --surface-card:       var(--white);     /* cards, sheets */
+  --surface-raised:     var(--sand-50);   /* nested panels */
+  --surface-sunken:     var(--sand-200);  /* wells, inputs-in-card */
+  --surface-offset:     var(--sand-150);  /* hover fills, table stripes */
+  --surface-inverse:    var(--teal-900);  /* projector / dark stage */
+
+  /* Text */
+  --text-primary:   var(--ink-900);
+  --text-secondary: var(--ink-800);
+  --text-muted:     var(--ink-700);
+  --text-faint:     var(--sand-500);
+  --text-on-brand:  var(--white);
+  --text-on-dark:   var(--sand-50);
+  --text-link:      var(--teal-600);
+
+  /* Borders & dividers */
+  --border-subtle:  var(--sand-200);
+  --border-default: var(--sand-300);
+  --border-strong:  var(--sand-400);
+  --divider:        var(--sand-200);
+  --ring-focus:     var(--teal-500);
+
+  /* Brand / primary actions */
+  --brand:             var(--teal-600);
+  --brand-hover:       var(--teal-700);
+  --brand-active:      var(--teal-800);
+  --brand-subtle:      var(--teal-50);    /* tinted fills, selected rows */
+  --brand-subtle-text: var(--teal-700);
+  --primary-highlight: var(--teal-50);    /* maps legacy --color-primary-highlight */
+
+  /* AI */
+  --ai:             var(--iris-500);
+  --ai-hover:       var(--iris-600);
+  --ai-subtle:      var(--iris-50);
+  --ai-subtle-text: var(--iris-700);
+  --ai-border:      var(--iris-200);
+  --ai-gradient:    linear-gradient(135deg, var(--iris-500) 0%, var(--teal-600) 100%);
+
+  /* Status */
+  --success:        var(--green-600);
+  --success-subtle: var(--green-50);
+  --warning:        var(--gold-500);
+  --warning-subtle: var(--gold-50);
+  --error:          var(--red-500);
+  --error-hover:    var(--red-600);
+  --error-subtle:   var(--red-50);
+  --info:           var(--blue-500);
+  --info-subtle:    var(--blue-50);
+  --live:           var(--green-500);     /* the live "on-air" dot */
+
+  /* ---- Legacy bridge: the undefined vars the IEP app referenced ---
+     Keep these so existing components resolve against real tokens. */
+  --color-primary:           var(--brand);
+  --color-primary-highlight: var(--primary-highlight);
+  --color-surface:           var(--surface-card);
+  --color-surface-2:         var(--surface-sunken);
+  --color-surface-offset:    var(--surface-offset);
+  --color-text:              var(--text-primary);
+  --color-text-muted:        var(--text-muted);
+  --color-border:            var(--border-default);
+  --color-divider:           var(--divider);
+  --color-success:           var(--success);
+  --color-error:             var(--error);
+  --color-error-highlight:   var(--error-subtle);
+}
+
+/* ============================================================
+ * Inverse / stage scope — projector + dark "on-air" surfaces.
+ * Apply `.pulse-stage` to a dark full-bleed region.
+ * ============================================================ */
+.pulse-stage {
+  --surface-canvas: var(--teal-900);
+  --surface-card:   #0a3437;
+  --surface-raised: #0e3b3f;
+  --surface-sunken: #07292c;
+  --surface-offset: #0e3b3f;
+  --text-primary:   var(--sand-50);
+  --text-secondary: #cfe0df;
+  --text-muted:     #8fb0af;
+  --border-subtle:  #1a4a4d;
+  --border-default: #1f5256;
+  --border-strong:  #2c6468;
+  --brand-subtle:   #0e3b3f;
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+}

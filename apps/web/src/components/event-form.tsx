@@ -96,13 +96,15 @@ export function EventForm({
         />
       </div>
 
-      <fieldset className="space-y-4">
-        <legend className="text-sm font-medium">Settings</legend>
+      <fieldset className="space-y-4 rounded-lg border border-border bg-surface-sunken p-4">
+        <legend className="px-1 text-2xs font-semibold uppercase tracking-wider text-brand">
+          Settings
+        </legend>
         {(Object.keys(SETTING_LABELS) as (keyof EventSettings)[]).map((key) => (
           <div key={key} className="flex items-start justify-between gap-4">
             <div className="space-y-0.5">
               <Label htmlFor={`setting-${key}`}>{SETTING_LABELS[key].label}</Label>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-ink-muted">
                 {SETTING_LABELS[key].hint}
               </p>
             </div>

@@ -228,32 +228,24 @@ export function QuizBuilder({
           placeholder="e.g. Product knowledge quiz"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          style={{ borderColor: errors.title ? 'var(--color-error)' : undefined }}
+          className={errors.title ? 'border-destructive' : undefined}
         />
         {errors.title && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-            {errors.title}
-          </p>
+          <p className="text-xs text-destructive">{errors.title}</p>
         )}
       </div>
 
-      <div
-        className="flex items-start gap-3 rounded-xl border p-4"
-        style={{
-          borderColor: 'var(--color-border)',
-          background: 'var(--color-surface)',
-        }}
-      >
+      <div className="flex items-start gap-3 rounded-lg border border-border bg-surface-sunken p-4">
         <input
           id={`${formId}-speed-bonus`}
           type="checkbox"
           checked={speedBonusEnabled}
           onChange={(e) => setSpeedBonusEnabled(e.target.checked)}
-          className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-primary)]"
+          className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
         />
         <div className="space-y-0.5">
           <Label htmlFor={`${formId}-speed-bonus`}>Speed bonus</Label>
-          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+          <p className="text-xs text-ink-muted">
             Award extra points for fast correct answers, scaled by the time
             remaining when they answer.
           </p>
@@ -269,9 +261,7 @@ export function QuizBuilder({
         </div>
 
         {errors.questions && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-            {errors.questions}
-          </p>
+          <p className="text-xs text-destructive">{errors.questions}</p>
         )}
 
         <div className="space-y-4">
@@ -281,21 +271,14 @@ export function QuizBuilder({
             return (
               <div
                 key={question.id}
-                className="space-y-4 rounded-xl border p-4"
-                style={{
-                  borderColor: 'var(--color-border)',
-                  background: 'var(--color-surface)',
-                }}
+                className="space-y-4 rounded-lg border border-border bg-surface-sunken p-4"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold">
+                    <h3 className="font-display text-sm font-semibold text-foreground">
                       Question {questionIndex + 1}
                     </h3>
-                    <p
-                      className="text-xs"
-                      style={{ color: 'var(--color-text-muted)' }}
-                    >
+                    <p className="text-xs text-ink-muted">
                       Add answers, choose the correct option, set points and timer.
                     </p>
                   </div>
@@ -320,14 +303,12 @@ export function QuizBuilder({
                     onChange={(e) =>
                       updateQuestion(question.id, { text: e.target.value })
                     }
-                    style={{
-                      borderColor: errors[`${key}-text`]
-                        ? 'var(--color-error)'
-                        : undefined,
-                    }}
+                    className={
+                      errors[`${key}-text`] ? 'border-destructive' : undefined
+                    }
                   />
                   {errors[`${key}-text`] && (
-                    <p className="text-xs" style={{ color: 'var(--color-error)' }}>
+                    <p className="text-xs text-destructive">
                       {errors[`${key}-text`]}
                     </p>
                   )}
@@ -349,14 +330,12 @@ export function QuizBuilder({
                           points: Number(e.target.value),
                         })
                       }
-                      style={{
-                        borderColor: errors[`${key}-points`]
-                          ? 'var(--color-error)'
-                          : undefined,
-                      }}
+                      className={
+                        errors[`${key}-points`] ? 'border-destructive' : undefined
+                      }
                     />
                     {errors[`${key}-points`] && (
-                      <p className="text-xs" style={{ color: 'var(--color-error)' }}>
+                      <p className="text-xs text-destructive">
                         {errors[`${key}-points`]}
                       </p>
                     )}
@@ -378,14 +357,12 @@ export function QuizBuilder({
                           timeLimitSec: Number(e.target.value),
                         })
                       }
-                      style={{
-                        borderColor: errors[`${key}-time`]
-                          ? 'var(--color-error)'
-                          : undefined,
-                      }}
+                      className={
+                        errors[`${key}-time`] ? 'border-destructive' : undefined
+                      }
                     />
                     {errors[`${key}-time`] && (
-                      <p className="text-xs" style={{ color: 'var(--color-error)' }}>
+                      <p className="text-xs text-destructive">
                         {errors[`${key}-time`]}
                       </p>
                     )}
@@ -406,7 +383,7 @@ export function QuizBuilder({
                               correctOptionId: option.id,
                             })
                           }
-                          className="shrink-0 accent-[var(--color-primary)]"
+                          className="shrink-0 accent-brand"
                           aria-label={`Mark option ${optionIndex + 1} as correct`}
                         />
                         <Input
@@ -422,8 +399,7 @@ export function QuizBuilder({
                             type="button"
                             onClick={() => removeOption(question.id, option.id)}
                             aria-label="Remove option"
-                            className="h-8 w-8 shrink-0 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--color-surface-offset)]"
-                            style={{ color: 'var(--color-text-muted)' }}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-card hover:text-foreground"
                           >
                             ✕
                           </button>
@@ -432,18 +408,18 @@ export function QuizBuilder({
                     ))}
                   </div>
 
-                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <p className="text-xs text-ink-muted">
                     Select the correct answer with the radio button.
                   </p>
 
                   {errors[`${key}-options`] && (
-                    <p className="text-xs" style={{ color: 'var(--color-error)' }}>
+                    <p className="text-xs text-destructive">
                       {errors[`${key}-options`]}
                     </p>
                   )}
 
                   {errors[`${key}-correct`] && (
-                    <p className="text-xs" style={{ color: 'var(--color-error)' }}>
+                    <p className="text-xs text-destructive">
                       {errors[`${key}-correct`]}
                     </p>
                   )}
@@ -466,18 +442,11 @@ export function QuizBuilder({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3 pt-2 sticky bottom-0 bg-background">
+      <div className="sticky bottom-0 flex items-center justify-end gap-3 bg-surface-card pt-2">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button
-          type="submit"
-          disabled={isSaving}
-          style={{
-            background: '#0f172a',
-            color: '#ffffff',
-          }}
-        >
+        <Button type="submit" disabled={isSaving}>
           {isSaving ? 'Saving…' : isEditing ? 'Update quiz' : 'Create quiz'}
         </Button>
       </div>
