@@ -231,4 +231,69 @@ ${data}
   return JSON.parse(cleaned);
 }
 
+async generateSession(prompt: string) {
+  const response = await this.ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: `
+You are an AI event planner for an interactive audience engagement platform.
+
+Create a complete event draft from the user request.
+
+User request:
+${prompt}
+
+Return ONLY valid JSON. Do not use markdown. Do not use code fences.
+
+The JSON must follow this exact structure:
+
+{
+  "event": {
+    "title": "string",
+    "description": "string"
+  },
+  "activities": [
+    {
+      "type": "poll",
+      "title": "string",
+      "description": "string",
+      "config": {
+        "pollType": "single",
+        "question": "string",
+        "options": [
+          { "id": "option-1", "label": "string" },
+          { "id": "option-2", "label": "string" },
+          { "id": "option-3", "label": "string" },
+          { "id": "option-4", "label": "string" }
+        ]
+      }
+    }
+  ]
+}
+
+Rules:
+- Generate between 2 and 4 activities.
+- Allowed activity types: poll, quiz, wordcloud, feedback.
+- Include at least one poll or quiz.
+- Poll must have exactly 4 options.
+- Quiz must contain 3 to 5 questions.
+- Every quiz question must have exactly 4 options.
+- Quiz must include correctOptionId, points, and timeLimitSec.
+- Wordcloud must include prompt and maxWordsPerParticipant.
+- Feedback must include prompt and fields.
+- Feedback fields can only be rating or text.
+- Use short professional activity titles and descriptions.
+- Generate ids such as option-1, question-1, rating-1, text-1.
+`,
+  });
+
+  const text = response.text ?? '';
+
+  const cleaned = text
+    .replace(/```json/g, '')
+    .replace(/```/g, '')
+    .trim();
+
+  return JSON.parse(cleaned);
+}
+
 }

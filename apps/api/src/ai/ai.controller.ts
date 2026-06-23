@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AiService } from './ai.service';
 
+
 @Controller('ai')
 export class AiController {
   constructor(private readonly aiService: AiService) {}
@@ -47,4 +48,11 @@ export class AiController {
   ) {
   return this.aiService.generateEventInsights(body.data);
   }
+
+  @Post('generate-session')
+async generateSession(
+  @Body('prompt') prompt: string,
+) {
+  return this.aiService.generateSession(prompt);
+}
 }
