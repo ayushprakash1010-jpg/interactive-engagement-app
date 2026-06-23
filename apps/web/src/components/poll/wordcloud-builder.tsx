@@ -42,6 +42,9 @@ export function WordCloudBuilder({
     initialConfig?.timeLimitSec ?? ''
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -73,6 +76,71 @@ export function WordCloudBuilder({
     });
   };
 
+  const handleGenerateWithAI = async () => {
+  const topic = aiTopic.trim();
+
+  if (!topic) return;
+
+  const maxAttempts = 3;
+
+  try {
+    setIsGenerating(true);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(
+          'http://localhost:4000/ai/generate-wordcloud',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ topic }),
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data.words) || data.words.length === 0) {
+          throw new Error('AI did not return word cloud suggestions');
+        }
+
+        setTitle(`${topic} Word Cloud`);
+
+        setPrompt(
+          `What words or short phrases come to mind when you think about ${topic}?`,
+        );
+
+        setMaxWords(Math.min(Math.max(data.words.length, 1), 10));
+
+        setAiTopic('');
+        setShowAiModal(false);
+
+        return;
+      } catch (error) {
+        console.warn(`AI word cloud attempt ${attempt} failed`, error);
+
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, attempt * 1200),
+        );
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    alert('AI word cloud generation failed after 3 attempts. Please try again.');
+  } finally {
+    setIsGenerating(false);
+  }
+};
+
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-1.5">
@@ -90,7 +158,19 @@ export function WordCloudBuilder({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor={`${formId}-prompt`}>Prompt</Label>
+  <div className="flex items-center justify-between gap-3">
+    <Label htmlFor={`${formId}-prompt`}>Prompt</Label>
+
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={() => setShowAiModal(true)}
+      disabled={isGenerating || isSaving}
+    >
+      {isGenerating ? 'Generating…' : '✨ Generate with AI'}
+    </Button>
+  </div>
         <Textarea
           id={`${formId}-prompt`}
           placeholder="What should participants describe in a word or two?"
@@ -164,6 +244,49 @@ export function WordCloudBuilder({
             : 'Create word cloud'}
         </Button>
       </div>
+
+      {showAiModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="w-full max-w-md rounded-xl bg-surface-card p-6 shadow-xl">
+      <h3 className="mb-2 font-display text-lg font-semibold text-foreground">
+        Generate Word Cloud with AI
+      </h3>
+
+      <p className="mb-4 text-sm text-ink-muted">
+        Enter a topic and AI will create a title and participant prompt.
+      </p>
+
+      <Input
+        placeholder="e.g. Cybersecurity Awareness"
+        value={aiTopic}
+        onChange={(e) => setAiTopic(e.target.value)}
+        disabled={isGenerating}
+      />
+
+      <div className="mt-5 flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isGenerating}
+          onClick={() => {
+            setShowAiModal(false);
+            setAiTopic('');
+          }}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          type="button"
+          disabled={!aiTopic.trim() || isGenerating}
+          onClick={handleGenerateWithAI}
+        >
+          {isGenerating ? 'Generating…' : 'Generate'}
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
     </form>
   );
 }

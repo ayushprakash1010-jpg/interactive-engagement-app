@@ -50,6 +50,9 @@ export function PollBuilder({
   const [ratingScale, setRatingScale] = useState(initialConfig?.ratingScale ?? 5);
   const [timeLimitSec, setTimeLimitSec] = useState<number>(initialConfig?.timeLimitSec ?? 0);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
 
   const addOption = () =>
     setOptions((prev) => [...prev, { id: uid(), label: '' }]);
@@ -84,6 +87,77 @@ export function PollBuilder({
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
+
+  const handleGenerateWithAI = async () => {
+  const topic = aiTopic.trim();
+
+  if (!topic) return;
+
+  try {
+    setIsGenerating(true);
+
+    let response: Response | null = null;
+
+    // Retry Gemini/API request up to 3 times
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      response = await fetch(
+        'http://localhost:4000/ai/generate-poll',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ topic }),
+        },
+      );
+
+      if (response.ok) break;
+
+      // Wait before trying again
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error('Failed to generate poll after retries');
+    }
+
+    const data = await response.json();
+
+    setPollType('single');
+    setQuestion(data.question ?? '');
+
+    const generatedOptions = Array.isArray(data.options)
+      ? data.options
+          .filter(
+            (label: unknown): label is string =>
+              typeof label === 'string' && label.trim().length > 0,
+          )
+          .map((label: string) => ({
+            id: uid(),
+            label: label.trim(),
+          }))
+      : [];
+
+    // Do not replace existing options with an invalid Gemini response
+    if (generatedOptions.length >= 2) {
+      setOptions(generatedOptions);
+    }
+
+    if (!title.trim()) {
+      setTitle(`${topic} Poll`);
+    }
+
+    setAiTopic('');
+    setShowAiModal(false);
+  } catch (error) {
+    console.error('Poll AI generation failed:', error);
+    alert('AI could not generate the poll right now. Please try again.');
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -140,7 +214,19 @@ export function PollBuilder({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor={`${formId}-question`}>Question</Label>
+        <div className="flex items-center justify-between">
+  <Label htmlFor={`${formId}-question`}>Question</Label>
+
+  <Button
+    type="button"
+    variant="outline"
+    size="sm"
+    onClick={() => setShowAiModal(true)}
+    disabled={isGenerating || isSaving}
+  >
+    {isGenerating ? 'Generating…' : '✨ Generate with AI'}
+  </Button>
+</div>
         <Input
           id={`${formId}-question`}
           placeholder="What would you like to ask?"
@@ -260,6 +346,46 @@ export function PollBuilder({
           {isSaving ? 'Saving…' : isEditing ? 'Update poll' : 'Create poll'}
         </Button>
       </div>
+      {showAiModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="w-full max-w-md rounded-xl bg-background p-6 shadow-xl">
+      <h3 className="mb-4 text-lg font-semibold">
+        Generate Poll with AI
+      </h3>
+
+      <Input
+        placeholder="Enter poll topic..."
+        value={aiTopic}
+        onChange={(e) => setAiTopic(e.target.value)}
+      />
+
+      <div className="mt-4 flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setShowAiModal(false);
+            setAiTopic('');
+          }}
+          disabled={isGenerating}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          type="button"
+          disabled={!aiTopic.trim() || isGenerating}
+          onClick={handleGenerateWithAI}
+        >
+          {isGenerating ? 'Generating…' : 'Generate'}
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
     </form>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 type FeedbackFieldType = "rating" | "text";
@@ -14,7 +14,7 @@ export type FeedbackField = {
 export type FeedbackConfig = {
   prompt: string;
   fields: FeedbackField[];
-  timeLimitSec?: number; // <--- Added timer field
+  timeLimitSec?: number;
 };
 
 type FeedbackBuilderProps = {
@@ -26,7 +26,10 @@ type FeedbackBuilderProps = {
 const createField = (type: FeedbackFieldType): FeedbackField => ({
   id: crypto.randomUUID(),
   type,
-  label: type === "rating" ? "How would you rate this session?" : "Share your feedback",
+  label:
+    type === "rating"
+      ? "How would you rate this session?"
+      : "Share your feedback",
 });
 
 export function FeedbackBuilder({
@@ -35,6 +38,10 @@ export function FeedbackBuilder({
   disabled = false,
 }: FeedbackBuilderProps) {
   const fields = useMemo(() => value.fields ?? [], [value.fields]);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
 
   const updatePrompt = (prompt: string) => {
     onChange({
@@ -54,7 +61,7 @@ export function FeedbackBuilder({
     onChange({
       ...value,
       fields: fields.map((field) =>
-        field.id === fieldId ? { ...field, ...patch } : field
+        field.id === fieldId ? { ...field, ...patch } : field,
       ),
     });
   };
@@ -66,12 +73,65 @@ export function FeedbackBuilder({
     });
   };
 
+  const handleGenerateWithAI = async () => {
+    const topic = aiTopic.trim();
+
+    if (!topic) return;
+
+    try {
+      setIsGenerating(true);
+
+      const response = await fetch(
+        "http://localhost:4000/ai/generate-feedback",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ topic }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to generate feedback");
+      }
+
+      const data = await response.json();
+
+      onChange({
+        ...value,
+        prompt: data.question ?? "",
+        fields: [
+          {
+            id: crypto.randomUUID(),
+            type: "rating",
+            label: "How would you rate this session?",
+          },
+          {
+            id: crypto.randomUUID(),
+            type: "text",
+            label: "Additional comments",
+          },
+        ],
+      });
+
+      setAiTopic("");
+      setShowAiModal(false);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to generate feedback");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">
           Feedback prompt
         </label>
+
         <textarea
           value={value.prompt}
           onChange={(e) => updatePrompt(e.target.value)}
@@ -80,6 +140,7 @@ export function FeedbackBuilder({
           placeholder="What would you like your audience to give feedback on?"
           className="w-full rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-subtle disabled:cursor-not-allowed disabled:opacity-60"
         />
+
         <p className="text-xs text-ink-muted">
           This prompt appears above the participant feedback form.
         </p>
@@ -88,13 +149,24 @@ export function FeedbackBuilder({
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="font-display text-sm font-semibold text-foreground">Fields</h3>
+            <h3 className="font-display text-sm font-semibold text-foreground">
+              Fields
+            </h3>
             <p className="text-xs text-ink-muted">
               Add rating and text inputs for your audience.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAiModal(true)}
+              disabled={disabled || isGenerating}
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-card px-3 py-2 text-sm font-medium text-ink-secondary transition hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isGenerating ? "Generating…" : "✨ Generate with AI"}
+            </button>
+
             <button
               type="button"
               onClick={() => addField("rating")}
@@ -153,6 +225,7 @@ export function FeedbackBuilder({
                   <label className="text-sm font-medium text-foreground">
                     Label
                   </label>
+
                   <input
                     type="text"
                     value={field.label}
@@ -184,6 +257,7 @@ export function FeedbackBuilder({
         <label className="text-sm font-medium text-foreground">
           Time limit (seconds)
         </label>
+
         <input
           type="number"
           min="5"
@@ -192,17 +266,62 @@ export function FeedbackBuilder({
           onChange={(e) =>
             onChange({
               ...value,
-              timeLimitSec: e.target.value ? parseInt(e.target.value, 10) : undefined,
+              timeLimitSec: e.target.value
+                ? parseInt(e.target.value, 10)
+                : undefined,
             })
           }
           disabled={disabled}
           placeholder="e.g. 60 (optional)"
           className="w-full rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-subtle disabled:cursor-not-allowed disabled:opacity-60"
         />
+
         <p className="text-xs text-ink-muted">
           Leave empty to keep the feedback form open until you close it.
         </p>
       </div>
+
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-surface-card p-6 shadow-xl">
+            <h3 className="mb-4 font-display text-lg font-semibold text-foreground">
+              Generate Feedback with AI
+            </h3>
+
+            <input
+              type="text"
+              placeholder="Enter feedback topic..."
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              disabled={isGenerating}
+              className="w-full rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand-subtle"
+            />
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAiModal(false);
+                  setAiTopic("");
+                }}
+                disabled={isGenerating}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-sunken disabled:opacity-60"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={!aiTopic.trim() || isGenerating}
+                onClick={handleGenerateWithAI}
+                className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isGenerating ? "Generating…" : "Generate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

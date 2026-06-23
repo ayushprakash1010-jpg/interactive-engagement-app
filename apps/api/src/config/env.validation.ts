@@ -13,6 +13,9 @@ export const envSchema = z.object({
   // Auth0 — consumed from Sprint 1 onward; optional in the Sprint 0 skeleton.
   AUTH0_ISSUER_BASE_URL: z.string().url().optional(),
   AUTH0_AUDIENCE: z.string().optional(),
+
+    // Google Gemini AI
+  GEMINI_API_KEY: z.string().min(1),
   // Rate limiting — wired in Sprint 7.
   RATE_LIMIT_WINDOW: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),

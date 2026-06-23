@@ -58,6 +58,10 @@ export function QuizBuilder({
     initialConfig?.speedBonusEnabled ?? false,
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
+const [showAiModal, setShowAiModal] = useState(false);
+const [aiTopic, setAiTopic] = useState('');
+const [questionCount, setQuestionCount] = useState(1);
 
   const updateQuestion = (questionId: string, patch: Partial<QuizQuestion>) => {
     setQuestions((prev) =>
@@ -180,6 +184,105 @@ export function QuizBuilder({
     return Object.keys(nextErrors).length === 0;
   };
 
+  const handleGenerateWithAI = async () => {
+  const topic = aiTopic.trim();
+
+  if (!topic) return;
+
+  try {
+    setIsGenerating(true);
+
+    let response: Response | null = null;
+    let lastError = '';
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        response = await fetch('http://localhost:4000/ai/generate-quiz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            topic,
+            count: questionCount,
+          }),
+        });
+
+        if (response.ok) {
+          break;
+        }
+
+        lastError = await response.text();
+      } catch (error) {
+        lastError =
+          error instanceof Error ? error.message : 'Network request failed';
+      }
+
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(lastError || 'Quiz generation failed after retries');
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data.questions) || data.questions.length === 0) {
+      throw new Error('AI returned no quiz questions');
+    }
+
+    const generatedQuestions: QuizQuestion[] = data.questions.map(
+      (question: {
+        question?: string;
+        options?: string[];
+        correctAnswer?: string;
+      }) => {
+        const generatedOptions =
+          Array.isArray(question.options) && question.options.length >= 2
+            ? question.options.map((label: string) => createOption(label))
+            : [
+                createOption('Option A'),
+                createOption('Option B'),
+                createOption('Option C'),
+                createOption('Option D'),
+              ];
+
+        const correctOption =
+          generatedOptions.find(
+            (option) =>
+              option.label.trim().toLowerCase() ===
+              (question.correctAnswer ?? '').trim().toLowerCase(),
+          ) ?? generatedOptions[0];
+
+        return {
+          id: uid(),
+          text: question.question?.trim() ?? '',
+          options: generatedOptions,
+          correctOptionId: correctOption?.id ?? '',
+          points: 100,
+          timeLimitSec: 20,
+        };
+      },
+    );
+
+    setQuestions(generatedQuestions);
+
+    if (!title.trim()) {
+      setTitle(`${topic} Quiz`);
+    }
+
+    setAiTopic('');
+    setShowAiModal(false);
+  } catch (error) {
+    console.error('Quiz AI generation error:', error);
+    alert('Failed to generate quiz after 3 attempts. Please try again.');
+  } finally {
+    setIsGenerating(false);
+  }
+};
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validate()) return;
@@ -254,11 +357,24 @@ export function QuizBuilder({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <Label>Quiz questions</Label>
-          <Button type="button" variant="outline" size="sm" onClick={addQuestion}>
-            + Add question
-          </Button>
-        </div>
+  <Label>Quiz questions</Label>
+
+  <div className="flex gap-2">
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={() => setShowAiModal(true)}
+      disabled={isGenerating}
+    >
+      {isGenerating ? 'Generating…' : '✨ Generate with AI'}
+    </Button>
+
+    <Button type="button" variant="outline" size="sm" onClick={addQuestion}>
+      + Add question
+    </Button>
+  </div>
+</div>
 
         {errors.questions && (
           <p className="text-xs text-destructive">{errors.questions}</p>
@@ -450,6 +566,57 @@ export function QuizBuilder({
           {isSaving ? 'Saving…' : isEditing ? 'Update quiz' : 'Create quiz'}
         </Button>
       </div>
+
+      {showAiModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="w-full max-w-md rounded-xl bg-background p-6 shadow-xl">
+      <h3 className="mb-4 text-lg font-semibold">
+        Generate Quiz with AI
+      </h3>
+
+      <Input
+        placeholder="Enter quiz topic..."
+        value={aiTopic}
+        onChange={(e) => setAiTopic(e.target.value)}
+      />
+
+      <div className="mt-4">
+        <Label>Number of Questions</Label>
+
+        <select
+          value={questionCount}
+          onChange={(e) => setQuestionCount(Number(e.target.value))}
+          className="mt-2 w-full rounded-lg border border-border bg-background p-2"
+        >
+          <option value={1}>1 Question</option>
+          <option value={5}>5 Questions</option>
+          <option value={10}>10 Questions</option>
+          <option value={15}>15 Questions</option>
+        </select>
+      </div>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowAiModal(false)}
+          disabled={isGenerating}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          type="button"
+          disabled={!aiTopic.trim() || isGenerating}
+          onClick={handleGenerateWithAI}
+        >
+          {isGenerating ? 'Generating…' : 'Generate'}
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
     </form>
   );
 }

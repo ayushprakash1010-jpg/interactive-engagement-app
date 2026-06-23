@@ -18,11 +18,13 @@ import { ResponseModule } from './responses/response.module';
 import { QuestionsModule } from './questions/questions.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AdminModule } from './admin/admin.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: '.env',
       cache: true,
       validate: validateEnv,
     }),
@@ -89,6 +91,7 @@ import { AdminModule } from './admin/admin.module';
     QuestionsModule,
     AnalyticsModule,
     AdminModule,
+    AiModule,
   ],
   providers: [
     {

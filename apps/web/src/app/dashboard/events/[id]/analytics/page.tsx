@@ -389,6 +389,12 @@ export default function AnalyticsPage() {
   const [downloading, setDownloading] = React.useState<'csv' | 'pdf' | null>(
     null,
   );
+  const [summary, setSummary] = React.useState('');
+const [isGeneratingSummary, setIsGeneratingSummary] = React.useState(false);
+
+const [insights, setInsights] = React.useState<string[]>([]);
+const [isGeneratingInsights, setIsGeneratingInsights] =
+  React.useState(false);
 
   const handleDownload = async (format: 'csv' | 'pdf') => {
     if (!id) return;
@@ -433,6 +439,90 @@ export default function AnalyticsPage() {
     engagementTimeline,
   } = report;
 
+  const handleGenerateSummary = async () => {
+  try {
+    setIsGeneratingSummary(true);
+
+    const summaryData = `
+Participants: ${headlineStats?.totalParticipants ?? 0}
+Responses: ${headlineStats?.totalResponses ?? 0}
+Participation Rate: ${formatPercentFromRatio(
+  headlineStats?.participationRate,
+)}
+Questions Asked: ${qaAnalytics?.totalQuestions ?? 0}
+Word Clouds: ${wordCloudAnalytics?.length ?? 0}
+Feedback Forms: ${feedbackAnalytics?.length ?? 0}
+Quizzes: ${quizAnalytics?.length ?? 0}
+Polls: ${pollAnalytics?.length ?? 0}
+`;
+
+    const response = await fetch(
+      'http://localhost:4000/ai/generate-session-summary',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: summaryData }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to generate summary');
+    }
+
+    const result = await response.json();
+    setSummary(result.summary ?? '');
+  } catch (error) {
+    console.error(error);
+    alert('Failed to generate AI summary');
+  } finally {
+    setIsGeneratingSummary(false);
+  }
+};
+
+const handleGenerateInsights = async () => {
+  try {
+    setIsGeneratingInsights(true);
+
+    const insightsData = `
+Participants: ${headlineStats?.totalParticipants ?? 0}
+Responses: ${headlineStats?.totalResponses ?? 0}
+Participation Rate: ${formatPercentFromRatio(
+  headlineStats?.participationRate,
+)}
+Questions Asked: ${qaAnalytics?.totalQuestions ?? 0}
+Word Clouds: ${wordCloudAnalytics?.length ?? 0}
+Feedback Forms: ${feedbackAnalytics?.length ?? 0}
+Quizzes: ${quizAnalytics?.length ?? 0}
+Polls: ${pollAnalytics?.length ?? 0}
+`;
+
+    const response = await fetch(
+      'http://localhost:4000/ai/generate-insights',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: insightsData }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to generate insights');
+    }
+
+    const result = await response.json();
+    setInsights(result.insights ?? []);
+  } catch (error) {
+    console.error(error);
+    alert('Failed to generate AI insights');
+  } finally {
+    setIsGeneratingInsights(false);
+  }
+};
+
   return (
     <div className="space-y-8">
       <div>
@@ -452,7 +542,25 @@ export default function AnalyticsPage() {
               })}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+
+            <Button
+  variant="outline"
+  size="sm"
+  disabled={isGeneratingSummary}
+  onClick={handleGenerateSummary}
+>
+  ✨ {isGeneratingSummary ? 'Generating…' : 'AI Summary'}
+</Button>
+
+<Button
+  variant="outline"
+  size="sm"
+  disabled={isGeneratingInsights}
+  onClick={handleGenerateInsights}
+>
+  ✨ {isGeneratingInsights ? 'Generating…' : 'AI Insights'}
+</Button>
             <Button
               variant="outline"
               size="sm"
@@ -474,6 +582,38 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </div>
+
+            {summary && (
+        <Card>
+          <CardHeader>
+            <CardTitle>✨ AI Session Summary</CardTitle>
+            <CardDescription>
+              Generated from event analytics
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap leading-7">{summary}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {insights.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>📊 AI Insights</CardTitle>
+            <CardDescription>
+              Generated from event analytics
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc space-y-2 pl-5">
+              {insights.map((insight, index) => (
+                <li key={index}>{insight}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
