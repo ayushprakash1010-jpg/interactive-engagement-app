@@ -325,19 +325,28 @@ export default function AIStudioPage() {
         );
 
         if (!activityResponse.ok) {
-          const errorData = await activityResponse.json().catch(() => null);
+  const errorData = await activityResponse.json().catch(() => null);
 
-          throw new Error(
-            Array.isArray(errorData?.message)
-              ? errorData.message.join(', ')
-              : errorData?.message ||
-                  `Failed to create "${activity.title}" activity.`,
-          );
-        }
+  console.error('AI activity creation failed:', {
+    activity,
+    status: activityResponse.status,
+    errorData,
+  });
+
+  const details = Array.isArray(errorData?.message)
+    ? errorData.message.join(', ')
+    : errorData?.message;
+
+  throw new Error(
+    `Could not create "${activity.title}" (${activity.type}). ${
+      details || `Server returned ${activityResponse.status}`
+    }`,
+  );
+}
       }
 
       // Step 3: Correct route based on app/event/[code]/page.tsx
-      router.push(`/event/${eventCode}`);
+      router.push('/dashboard/events');
     } catch (error) {
       console.error('Failed to create event from AI draft:', error);
 
