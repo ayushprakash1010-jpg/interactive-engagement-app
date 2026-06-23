@@ -346,7 +346,7 @@ export default function AIStudioPage() {
       }
 
       // Step 3: Correct route based on app/event/[code]/page.tsx
-      router.push('/dashboard/events');
+      router.push(`/dashboard/events/${eventId}`);
     } catch (error) {
       console.error('Failed to create event from AI draft:', error);
 
