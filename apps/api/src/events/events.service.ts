@@ -25,8 +25,6 @@ export class EventsService {
     private readonly configService: ConfigService,
   ) {}
 
-  // ── Create ────────────────────────────────────────────────────────────────
-
   async create(hostId: string, dto: CreateEvent): Promise<EventDocument> {
     const eventCode = await this.generateUniqueCode();
 
@@ -46,8 +44,6 @@ export class EventsService {
     return event;
   }
 
-  // ── List (host's own) ─────────────────────────────────────────────────────
-
   async findAllByHost(hostId: string): Promise<EventDocument[]> {
     return this.eventModel
       .find({ hostId: new Types.ObjectId(hostId) })
@@ -55,8 +51,6 @@ export class EventsService {
       .lean()
       .exec() as unknown as EventDocument[];
   }
-
-  // ── Get one ───────────────────────────────────────────────────────────────
 
   async findOne(id: string, hostId: string): Promise<EventDocument> {
     this.assertObjectId(id);
@@ -77,8 +71,6 @@ export class EventsService {
   async findByEventCode(code: string): Promise<EventDocument | null> {
     return this.eventModel.findOne({ eventCode: code.toUpperCase() }).exec();
   }
-
-  // ── Update ────────────────────────────────────────────────────────────────
 
   async update(
     id: string,
@@ -104,8 +96,6 @@ export class EventsService {
     return event;
   }
 
-  // ── Delete ────────────────────────────────────────────────────────────────
-
   async remove(id: string, hostId: string): Promise<void> {
     this.assertObjectId(id);
 
@@ -117,8 +107,6 @@ export class EventsService {
     this.assertOwnership(event, hostId);
     await event.deleteOne();
   }
-
-  // ── QR + join URL ─────────────────────────────────────────────────────────
 
   async getQr(
     id: string,
@@ -142,12 +130,6 @@ export class EventsService {
     return { eventCode: event.eventCode, joinUrl, qrDataUrl };
   }
 
-  // ── Sprint 3: Active activity ─────────────────────────────────────────────
-
-  /**
-   * Sets or clears the activeActivityId on an event.
-   * Called by the gateway when a host launches or closes an activity.
-   */
   async setActiveActivity(
     eventId: string,
     activityId: string | null,
@@ -166,15 +148,6 @@ export class EventsService {
       .exec();
   }
 
-  // ── Sprint 6: End session / finalize event ───────────────────────────────
-
-  /**
-   * Ends an event session.
-   * - sets status='ended'
-   * - sets endedAt=now
-   * - clears activeActivityId
-   * Throws NotFoundException if the event does not exist.
-   */
   async endEvent(eventId: string): Promise<EventDocument> {
     this.assertObjectId(eventId);
 
@@ -201,8 +174,6 @@ export class EventsService {
 
     return event;
   }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   private async generateUniqueCode(): Promise<string> {
     for (let attempt = 1; attempt <= MAX_CODE_RETRIES; attempt++) {

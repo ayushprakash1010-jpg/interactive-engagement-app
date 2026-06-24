@@ -1,28 +1,159 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
 import { GoogleGenAI } from '@google/genai';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.validation';
+import { ActivityDocument, ActivityEntity } from '../activities/activity.schema';
+import { ResponseDocument, ResponseEntity } from '../responses/response.schema';
+import { QuestionDocument, QuestionEntity } from '../questions/question.schema';
+import { EventDocument, EventEntity } from '../events/event.schema';
+import { EventsService } from '../events/events.service';
+
+export interface LiveSummaryTheme {
+  label: string;
+  count?: number;
+}
+
+export type SummarizeLiveAnswersResult =
+  | {
+      hasResponses: true;
+      summary: string;
+      themes: LiveSummaryTheme[];
+      responseCount: number;
+    }
+  | {
+      hasResponses: false;
+      message: string;
+      summary: null;
+      themes: [];
+      responseCount: 0;
+    };
 
 @Injectable()
 export class AiService {
   private readonly ai: GoogleGenAI;
+  private readonly logger = new Logger(AiService.name);
 
   constructor(
-  private readonly configService: ConfigService<Env, true>,
-) {
-  const apiKey = this.configService.get('GEMINI_API_KEY', {
-    infer: true,
-  });
+    private readonly configService: ConfigService<Env, true>,
+    private readonly eventsService: EventsService,
+    @InjectModel(ActivityEntity.name)
+    private readonly activityModel: Model<ActivityDocument>,
+    @InjectModel(ResponseEntity.name)
+    private readonly responseModel: Model<ResponseDocument>,
+    @InjectModel(QuestionEntity.name)
+    private readonly questionModel: Model<QuestionDocument>,
+    @InjectModel(EventEntity.name)
+    private readonly eventModel: Model<EventDocument>,
+  ) {
+    const apiKey = this.configService.get('GEMINI_API_KEY', {
+      infer: true,
+    });
 
-  this.ai = new GoogleGenAI({
-    apiKey,
-  });
-}
+    this.ai = new GoogleGenAI({
+      apiKey,
+    });
+  }
+
+  private cleanJsonResponse(text: string): string {
+    return text.replace(/```json/g, '').replace(/```/g, '').trim();
+  }
+
+  private getErrorMessage(err: unknown): string {
+    if (err instanceof Error) return err.message;
+    return String(err);
+  }
+
+  private isTemporaryAiFailure(message: string): boolean {
+    const normalized = message.toLowerCase();
+
+    return (
+      normalized.includes('503') ||
+      normalized.includes('unavailable') ||
+      normalized.includes('high demand') ||
+      normalized.includes('temporarily busy') ||
+      normalized.includes('resource_exhausted') ||
+      normalized.includes('quota') ||
+      normalized.includes('rate limit') ||
+      normalized.includes('rate_limit') ||
+      normalized.includes('429')
+    );
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async generateJson<T>(
+    contents: string,
+    featureName: string,
+    options?: { retries?: number },
+  ): Promise<T> {
+    const retries = options?.retries ?? 1;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= retries + 1; attempt++) {
+      try {
+        const response = await this.ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents,
+        });
+
+        const text = response.text ?? '';
+        const cleaned = this.cleanJsonResponse(text);
+
+        if (!cleaned) {
+          throw new Error(`${featureName} returned an empty response.`);
+        }
+
+        return JSON.parse(cleaned) as T;
+      } catch (err) {
+        lastError = err;
+        const message = this.getErrorMessage(err);
+
+        if (attempt <= retries && this.isTemporaryAiFailure(message)) {
+          const delayMs = attempt * 1200;
+          this.logger.warn(
+            `${featureName} temporary AI failure on attempt ${attempt}/${retries + 1}: ${message}. Retrying in ${delayMs}ms.`,
+          );
+          await this.sleep(delayMs);
+          continue;
+        }
+
+        if (this.isTemporaryAiFailure(message)) {
+          this.logger.warn(`${featureName} temporary AI failure: ${message}`);
+          throw new ServiceUnavailableException(
+            'The AI service is temporarily busy. Please wait a moment and try again.',
+          );
+        }
+
+        this.logger.error(`${featureName} failed: ${message}`, err as Error);
+        throw new InternalServerErrorException(
+          `Failed to ${featureName}. Please try again.`,
+        );
+      }
+    }
+
+    const fallbackMessage = this.getErrorMessage(lastError);
+    this.logger.error(
+      `${featureName} failed after retries: ${fallbackMessage}`,
+      lastError as Error,
+    );
+    throw new InternalServerErrorException(
+      `Failed to ${featureName}. Please try again.`,
+    );
+  }
 
   async generatePoll(topic: string) {
-    const response = await this.ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `
+    return this.generateJson(
+      `
 Generate ONE professional poll.
 
 Rules:
@@ -47,25 +178,13 @@ Return ONLY valid JSON:
   "options": ["", "", "", ""]
 }
 `,
-    });
-
-    const text = response.text ?? '';
-
-    const cleaned = text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
-
-    return JSON.parse(cleaned);
+      'generate poll',
+    );
   }
 
-  async generateQuiz(
-    topic: string,
-    count = 1,
-  ) {
-  const response = await this.ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `
+  async generateQuiz(topic: string, count = 1) {
+    return this.generateJson(
+      `
 Generate ${count} professional multiple choice quiz questions.
 
 Rules:
@@ -89,22 +208,13 @@ Topic: ${topic}
   ]
 }
 `,
-  });
+      'generate quiz',
+    );
+  }
 
-  const text = response.text ?? '';
-
-  const cleaned = text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
-
-  return JSON.parse(cleaned);
- }
-
- async generateFeedback(topic: string) {
-  const response = await this.ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `
+  async generateFeedback(topic: string) {
+    return this.generateJson(
+      `
 Generate ONE professional feedback question.
 
 Rules:
@@ -118,28 +228,19 @@ Topic: ${topic}
   "question": ""
 }
 `,
-  });
+      'generate feedback',
+    );
+  }
 
-  const text = response.text ?? '';
+  async generateWordCloud(topic: string) {
+    return this.generateJson(
+      `
+Generate 20 relevant keywords for a word cloud.
 
-  const cleaned = text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
-
-  return JSON.parse(cleaned);
- }
-
- async generateWordCloud(topic: string) {
-  const response = await this.ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `
-    Generate 20 relevant keywords for a word cloud.
-
-    Rules:
-    - Return ONLY valid JSON
-    - Single words or short phrases
-    - Maximum 20 items
+Rules:
+- Return ONLY valid JSON
+- Single words or short phrases
+- Maximum 20 items
 
 Topic: ${topic}
 
@@ -151,22 +252,13 @@ Topic: ${topic}
   ]
 }
 `,
-  });
+      'generate word cloud',
+    );
+  }
 
-  const text = response.text ?? '';
-
-  const cleaned = text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
-
-  return JSON.parse(cleaned);
-}
-
-    async generateSessionSummary(data: string) {
-  const response = await this.ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `
+  async generateSessionSummary(data: string) {
+    return this.generateJson(
+      `
 You are an event analyst.
 
 Create a concise professional session summary.
@@ -181,22 +273,14 @@ Return ONLY valid JSON:
   "summary": ""
 }
 `,
-  });
+      'generate session summary',
+      { retries: 1 },
+    );
+  }
 
-  const text = response.text ?? '';
-
-  const cleaned = text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
-
-  return JSON.parse(cleaned);
- }
-
- async generateEventInsights(data: string) {
-  const response = await this.ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `
+  async generateEventInsights(data: string) {
+    return this.generateJson(
+      `
 You are an event analytics expert.
 
 Analyze the event data and generate 3 to 5 key insights.
@@ -219,22 +303,14 @@ ${data}
   ]
 }
 `,
-  });
+      'generate event insights',
+      { retries: 1 },
+    );
+  }
 
-  const text = response.text ?? '';
-
-  const cleaned = text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
-
-  return JSON.parse(cleaned);
-}
-
-async generateSession(prompt: string) {
-  const response = await this.ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `
+  async generateSession(prompt: string) {
+    return this.generateJson(
+      `
 You are an AI event planner for an interactive audience engagement platform.
 
 Create a complete event draft from the user request.
@@ -284,16 +360,175 @@ Rules:
 - Use short professional activity titles and descriptions.
 - Generate ids such as option-1, question-1, rating-1, text-1.
 `,
-  });
+      'generate session',
+      { retries: 2 },
+    );
+  }
 
-  const text = response.text ?? '';
+  async summarizeLiveAnswers(
+    eventId: string,
+    hostId: string,
+  ): Promise<SummarizeLiveAnswersResult> {
+    if (!Types.ObjectId.isValid(eventId)) {
+      throw new NotFoundException(`Event ${eventId} not found`);
+    }
 
-  const cleaned = text
-    .replace(/```json/g, '')
-    .replace(/```/g, '')
-    .trim();
+    await this.eventsService.findOne(eventId, hostId);
 
-  return JSON.parse(cleaned);
-}
+    const eventObjectId = new Types.ObjectId(eventId);
 
+    const [qaQuestions, textActivities] = await Promise.all([
+      this.questionModel
+        .find({
+          eventId: eventObjectId,
+          status: { $in: ['approved', 'answered'] },
+        })
+        .select('text')
+        .lean()
+        .exec(),
+
+      this.activityModel
+        .find({
+          eventId: eventObjectId,
+          type: { $in: ['wordcloud', 'feedback', 'poll'] },
+        })
+        .lean()
+        .exec(),
+    ]);
+
+    const snippets: string[] = [];
+
+    for (const q of qaQuestions) {
+      const txt = (q as any).text?.trim();
+      if (txt && txt.length >= 3) snippets.push(`Q: ${txt}`);
+    }
+
+    for (const activity of textActivities) {
+      const actConfig = (activity as any).config as Record<string, unknown>;
+      const responses = await this.responseModel
+        .find({ eventId: eventObjectId, activityId: activity._id })
+        .lean()
+        .exec();
+
+      if ((activity as any).type === 'wordcloud') {
+        const words: string[] = [];
+        for (const r of responses) {
+          const rWords = (r as any).words;
+          if (Array.isArray(rWords)) {
+            words.push(
+              ...rWords.filter(
+                (w: unknown) => typeof w === 'string' && w.trim().length > 0,
+              ),
+            );
+          }
+        }
+        if (words.length > 0) {
+          snippets.push(`Word cloud responses: ${words.slice(0, 80).join(', ')}`);
+        }
+      } else if ((activity as any).type === 'feedback') {
+        const fields: Array<{ id: string; type: string; label: string }> =
+          Array.isArray(actConfig?.fields) ? (actConfig.fields as any[]) : [];
+        const textFieldIds = new Set(
+          fields.filter((f) => f.type === 'text').map((f) => f.id),
+        );
+        for (const r of responses) {
+          const answers = (r as any).feedbackAnswers;
+          if (!Array.isArray(answers)) continue;
+          for (const ans of answers) {
+            if (
+              textFieldIds.has(ans.fieldId) &&
+              typeof ans.textValue === 'string'
+            ) {
+              const val = ans.textValue.trim();
+              if (val.length >= 3) snippets.push(`Feedback: ${val}`);
+            }
+          }
+        }
+      } else if (
+        (activity as any).type === 'poll' &&
+        actConfig?.pollType === 'open'
+      ) {
+        for (const r of responses) {
+          const val = ((r as any).textValue ?? '').trim();
+          if (val.length >= 3) snippets.push(`Poll response: ${val}`);
+        }
+      }
+    }
+
+    const seen = new Set<string>();
+    const unique: string[] = [];
+    for (const s of snippets) {
+      const key = s.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(s);
+      }
+    }
+
+    if (unique.length === 0) {
+      return {
+        hasResponses: false,
+        message: 'There are no audience responses to summarize yet.',
+        summary: null,
+        themes: [],
+        responseCount: 0,
+      };
+    }
+
+    let payload = '';
+    let count = 0;
+    for (const line of unique) {
+      if ((payload + line).length > 8000) break;
+      payload += `- ${line}\n`;
+      count++;
+    }
+
+    const geminiPrompt = `You are an event analyst summarizing real audience responses for a host.
+
+Audience responses (${count} items):
+${payload}
+
+Rules:
+- Write a short, professional 2-4 sentence summary the host can read aloud.
+- Identify 3 to 5 clear themes from the actual responses.
+- Do NOT invent facts not present in the responses.
+- Return ONLY valid JSON with no markdown or code fences.
+
+Return this exact shape:
+{
+  "summary": "string",
+  "themes": [
+    { "label": "string", "count": 0 }
+  ]
+}`;
+
+    try {
+      const parsed = await this.generateJson<{
+        summary: string;
+        themes: LiveSummaryTheme[];
+      }>(geminiPrompt, `summarize live answers for event ${eventId}`, {
+        retries: 2,
+      });
+
+      return {
+        hasResponses: true,
+        summary: parsed.summary ?? '',
+        themes: Array.isArray(parsed.themes) ? parsed.themes : [],
+        responseCount: count,
+      };
+    } catch (err) {
+      if (
+        err instanceof ServiceUnavailableException ||
+        err instanceof InternalServerErrorException
+      ) {
+        throw err;
+      }
+
+      const message = this.getErrorMessage(err);
+      this.logger.error(`Gemini error for event ${eventId}: ${message}`, err as Error);
+      throw new InternalServerErrorException(
+        'Failed to generate the summary. Please try again.',
+      );
+    }
+  }
 }

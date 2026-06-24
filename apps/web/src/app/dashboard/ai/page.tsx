@@ -10,6 +10,7 @@ import {
   Cloud,
   HelpCircle,
   Star,
+  ChevronDown,
 } from 'lucide-react';
 import {
   Card,
@@ -42,7 +43,20 @@ type GeneratedEvent = {
   description: string;
 };
 
-const API_URL = 'http://localhost:4000';
+type LiveSummaryResult =
+  | {
+      hasResponses: true;
+      summary: string;
+      themes: Array<{ label: string; count?: number }>;
+      responseCount: number;
+    }
+  | {
+      hasResponses: false;
+      message: string;
+      summary: null;
+      themes: [];
+      responseCount: 0;
+    };
 
 const ICON_BY_TYPE: Record<ActivityType, React.ReactNode> = {
   poll: <BarChart3 className="h-5 w-5" />,
@@ -59,12 +73,6 @@ const SUGGESTIONS = [
   'A retro that gathers wins, blockers, and a mood rating',
 ];
 
-const SUMMARY_THEMES: SummaryTheme[] = [
-  { label: 'Clearer roadmap and priorities', count: 38 },
-  { label: 'More time for live Q&A', count: 24 },
-  { label: 'Loved the trivia round', count: 19 },
-];
-
 function normaliseActivity(
   raw: {
     type: string;
@@ -76,8 +84,6 @@ function normaliseActivity(
 ): DraftActivity {
   let config = raw.config ?? {};
 
-  // Backend AI may return quiz question as "question".
-  // The app activity schema requires it as "text".
   if (raw.type === 'quiz' && Array.isArray(config.questions)) {
     config = {
       ...config,
@@ -121,9 +127,7 @@ export default function AIStudioPage() {
 
   const [prompt, setPrompt] = React.useState('');
   const [generating, setGenerating] = React.useState(false);
-  const [generateError, setGenerateError] = React.useState<string | null>(
-    null,
-  );
+  const [generateError, setGenerateError] = React.useState<string | null>(null);
 
   const [generatedEvent, setGeneratedEvent] =
     React.useState<GeneratedEvent | null>(null);
@@ -132,20 +136,53 @@ export default function AIStudioPage() {
   const [accepted, setAccepted] = React.useState<DraftActivity[]>([]);
 
   const [isCreatingEvent, setIsCreatingEvent] = React.useState(false);
-  const [createEventError, setCreateEventError] = React.useState<
-    string | null
-  >(null);
+  const [createEventError, setCreateEventError] = React.useState<string | null>(null);
 
+  const [events, setEvents] = React.useState<
+    Array<{ id: string; name: string; eventCode?: string }>
+  >([]);
+  const [eventsLoading, setEventsLoading] = React.useState(false);
+  const [selectedEventId, setSelectedEventId] = React.useState('');
   const [summarizing, setSummarizing] = React.useState(false);
-  const [showSummary, setShowSummary] = React.useState(false);
+  const [summaryResult, setSummaryResult] = React.useState<LiveSummaryResult | null>(null);
+  const [summaryError, setSummaryError] = React.useState<string | null>(null);
 
   const timers = React.useRef<ReturnType<typeof setTimeout>[]>([]);
 
   React.useEffect(() => {
     const pending = timers.current;
-
     return () => {
       pending.forEach(clearTimeout);
+    };
+  }, []);
+
+  // Fetch host's own events via the authenticated proxy
+  React.useEffect(() => {
+    let cancelled = false;
+    setEventsLoading(true);
+
+    fetch('/api/proxy/events')
+      .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+      .then((data) => {
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data : (data?.data ?? []);
+        setEvents(
+          list.map((e: Record<string, unknown>) => ({
+            id: (e._id ?? e.id) as string,
+            name: (e.name ?? e.title ?? 'Untitled') as string,
+            eventCode: e.eventCode as string | undefined,
+          })),
+        );
+      })
+      .catch(() => {
+        /* silently ignore — selector just stays empty */
+      })
+      .finally(() => {
+        if (!cancelled) setEventsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -163,23 +200,51 @@ export default function AIStudioPage() {
     setDrafts([]);
     setAccepted([]);
     setGeneratedEvent(null);
-    setShowSummary(false);
+    setSummaryResult(null);
 
     try {
-      const res = await fetch(`${API_URL}/ai/generate-session`, {
+      // Use the Next.js proxy so the Auth0 Bearer token is forwarded automatically
+      const res = await fetch('/api/proxy/ai/generate-session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: cleanPrompt }),
       });
 
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        throw new Error(
-          text || `Failed to generate session. Server returned ${res.status}.`,
-        );
-      }
+        let message = `Failed to generate session. Server returned ${res.status}.`;
+
+        try {
+          const parsed = JSON.parse(text) as {
+            message?: string | string[];
+            error?: string;
+            statusCode?: number;
+          };
+
+          const parsedMessage = Array.isArray(parsed?.message)
+            ? parsed.message.join(', ')
+            : parsed?.message;
+
+          if (parsedMessage) {
+            message = parsedMessage;
+          } else if (parsed?.error) {
+            message = parsed.error;
+          }
+
+          if (
+            res.status === 503 ||
+            String(message).toLowerCase().includes('temporarily busy') ||
+            String(message).toLowerCase().includes('high demand')
+          ) {
+            message =
+              'The AI service is temporarily busy. Please wait a moment and try again.';
+            }
+          } catch {
+            if (text) message = text;
+          }
+
+          throw new Error(message);
+        }
 
       const data = (await res.json()) as {
         event?: { title?: string; description?: string };
@@ -211,7 +276,6 @@ export default function AIStudioPage() {
       );
     } catch (error) {
       console.error('AI session generation failed:', error);
-
       setGenerateError(
         error instanceof Error
           ? error.message
@@ -228,7 +292,6 @@ export default function AIStudioPage() {
         ? previous
         : [...previous, draft],
     );
-
     setDrafts((previous) =>
       previous.filter((activity) => activity.id !== draft.id),
     );
@@ -252,11 +315,9 @@ export default function AIStudioPage() {
       setIsCreatingEvent(true);
       setCreateEventError(null);
 
-      const authHeaders = {
-        'Content-Type': 'application/json',
-      };
+      const authHeaders = { 'Content-Type': 'application/json' };
 
-      // Step 1: Create event
+      // Step 1: Create the event
       const eventResponse = await fetch('/api/proxy/events', {
         method: 'POST',
         headers: authHeaders,
@@ -274,8 +335,7 @@ export default function AIStudioPage() {
       });
 
       if (!eventResponse.ok) {
-        const errorData = await eventResponse.json().catch(() => null);
-
+        const errorData = await eventResponse.json().catch(() => null) as { message?: string | string[] } | null;
         throw new Error(
           Array.isArray(errorData?.message)
             ? errorData.message.join(', ')
@@ -325,31 +385,26 @@ export default function AIStudioPage() {
         );
 
         if (!activityResponse.ok) {
-  const errorData = await activityResponse.json().catch(() => null);
-
-  console.error('AI activity creation failed:', {
-    activity,
-    status: activityResponse.status,
-    errorData,
-  });
-
-  const details = Array.isArray(errorData?.message)
-    ? errorData.message.join(', ')
-    : errorData?.message;
-
-  throw new Error(
-    `Could not create "${activity.title}" (${activity.type}). ${
-      details || `Server returned ${activityResponse.status}`
-    }`,
-  );
-}
+          const errorData = await activityResponse.json().catch(() => null) as { message?: string | string[] } | null;
+          console.error('AI activity creation failed:', {
+            activity,
+            status: activityResponse.status,
+            errorData,
+          });
+          const details = Array.isArray(errorData?.message)
+            ? errorData.message.join(', ')
+            : errorData?.message;
+          throw new Error(
+            `Could not create "${activity.title}" (${activity.type}). ${
+              details || `Server returned ${activityResponse.status}`
+            }`,
+          );
+        }
       }
 
-      // Step 3: Correct route based on app/event/[code]/page.tsx
       router.push(`/dashboard/events/${eventId}`);
     } catch (error) {
       console.error('Failed to create event from AI draft:', error);
-
       setCreateEventError(
         error instanceof Error
           ? error.message
@@ -360,16 +415,53 @@ export default function AIStudioPage() {
     }
   };
 
-  const handleSummarize = () => {
-    setSummarizing(true);
-    setShowSummary(true);
+  const handleSummarize = async () => {
+    if (!selectedEventId) {
+      setSummaryError('Please select an event first.');
+      return;
+    }
 
-    timers.current.push(
-      setTimeout(() => {
-        setSummarizing(false);
-      }, 1600),
-    );
+    setSummarizing(true);
+    setSummaryError(null);
+    setSummaryResult(null);
+
+    try {
+      const res = await fetch(
+        `/api/proxy/ai/events/${selectedEventId}/summarize-live-answers`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' } },
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null) as { message?: string } | null;
+        const status = res.status;
+        throw new Error(
+          status === 403
+            ? 'You do not own this event.'
+            : status === 401
+              ? 'Session expired — please log in again.'
+              : errorData?.message ?? `Server returned ${status}.`,
+        );
+      }
+
+      const result = (await res.json()) as LiveSummaryResult;
+      setSummaryResult(result);
+    } catch (error) {
+      setSummaryError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to generate summary. Please try again.',
+      );
+    } finally {
+      setSummarizing(false);
+    }
   };
+
+  const summaryThemes: SummaryTheme[] =
+    summaryResult?.hasResponses
+      ? summaryResult.themes.map((t) => ({ label: t.label, count: t.count }))
+      : [];
+
+  const selectedEvent = events.find((e) => e.id === selectedEventId);
 
   return (
     <div className="space-y-8">
@@ -474,9 +566,7 @@ export default function AIStudioPage() {
                     : 'h-[15px] w-[15px]'
                 }
               />
-              {isCreatingEvent
-                ? 'Creating event…'
-                : 'Create event from draft'}
+              {isCreatingEvent ? 'Creating event…' : 'Create event from draft'}
             </button>
           )}
         </div>
@@ -535,38 +625,92 @@ export default function AIStudioPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSummarize}
-            disabled={summarizing}
-            className="inline-flex h-10 items-center gap-2 rounded-sm bg-ai px-[1.125rem] text-sm font-semibold text-white transition-colors hover:bg-ai-hover disabled:cursor-not-allowed disabled:bg-ai-border"
-          >
-            <Sparkles
-              className={
-                summarizing
-                  ? 'h-[15px] w-[15px] animate-spin'
-                  : 'h-[15px] w-[15px]'
-              }
-            />
-            {summarizing ? 'Summarizing…' : 'Summarize answers'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <select
+                value={selectedEventId}
+                onChange={(e) => {
+                  setSelectedEventId(e.target.value);
+                  setSummaryResult(null);
+                  setSummaryError(null);
+                }}
+                disabled={eventsLoading || summarizing}
+                className="h-10 appearance-none rounded-sm border border-border bg-background pl-3 pr-8 text-sm text-foreground outline-none ring-offset-background transition-colors focus:ring-2 focus:ring-ai focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">
+                  {eventsLoading
+                    ? 'Loading events…'
+                    : events.length === 0
+                      ? 'No events yet'
+                      : 'Select an event'}
+                </option>
+                {events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name}
+                    {event.eventCode ? ` · ${event.eventCode}` : ''}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSummarize}
+              disabled={summarizing || !selectedEventId}
+              className="inline-flex h-10 items-center gap-2 rounded-sm bg-ai px-[1.125rem] text-sm font-semibold text-white transition-colors hover:bg-ai-hover disabled:cursor-not-allowed disabled:bg-ai-border"
+            >
+              <Sparkles
+                className={
+                  summarizing
+                    ? 'h-[15px] w-[15px] animate-spin'
+                    : 'h-[15px] w-[15px]'
+                }
+              />
+              {summarizing ? 'Analyzing responses…' : 'Summarize answers'}
+            </button>
+          </div>
         </div>
 
-        {showSummary ? (
+        {summaryError && (
+          <p className="flex items-center gap-1.5 text-sm text-destructive">
+            <span aria-hidden="true">⚠</span>
+            {summaryError}
+          </p>
+        )}
+
+        {summaryResult !== null ? (
+          summaryResult.hasResponses ? (
+            <AISummaryCard
+              title="What your audience is saying"
+              body={summarizing ? undefined : summaryResult.summary}
+              themes={summarizing ? [] : summaryThemes}
+              shimmer={summarizing}
+              footnote={
+                summarizing
+                  ? undefined
+                  : `Summarized from ${summaryResult.responseCount} real response${summaryResult.responseCount === 1 ? '' : 's'}${selectedEvent ? ` · ${selectedEvent.name}` : ''}`
+              }
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  No audience responses yet
+                </CardTitle>
+                <CardDescription>
+                  {summaryResult.message}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )
+        ) : summarizing ? (
           <AISummaryCard
             title="What your audience is saying"
-            body={
-              summarizing
-                ? undefined
-                : 'Most of your audience left energized and want a clearer view of what comes next. The trivia round landed well, and several people asked for more live Q&A time.'
-            }
-            themes={summarizing ? [] : SUMMARY_THEMES}
-            shimmer={summarizing}
-            footnote={
-              summarizing
-                ? undefined
-                : 'Summarized from 142 responses · demo data'
-            }
+            body={undefined}
+            themes={[]}
+            shimmer={true}
+            footnote={undefined}
           />
         ) : (
           <Card>

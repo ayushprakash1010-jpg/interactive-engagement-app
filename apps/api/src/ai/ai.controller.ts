@@ -1,6 +1,7 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
 import { AiService } from './ai.service';
-
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('ai')
 export class AiController {
@@ -19,11 +20,8 @@ export class AiController {
       count?: number;
     },
   ) {
-    return this.aiService.generateQuiz(
-      body.topic,
-      body.count ?? 1,
-  );
-}
+    return this.aiService.generateQuiz(body.topic, body.count ?? 1);
+  }
 
   @Post('generate-feedback')
   async generateFeedback(@Body() body: { topic: string }) {
@@ -36,23 +34,28 @@ export class AiController {
   }
 
   @Post('generate-session-summary')
-    async generateSessionSummary(
-    @Body() body: { data: string },
-    ) {
-     return this.aiService.generateSessionSummary(body.data);
-    }
+  async generateSessionSummary(@Body() body: { data: string }) {
+    return this.aiService.generateSessionSummary(body.data);
+  }
 
-    @Post('generate-insights')
-    async generateInsights(
-      @Body() body: { data: string },
-  ) {
-  return this.aiService.generateEventInsights(body.data);
+  @Post('generate-insights')
+  async generateInsights(@Body() body: { data: string }) {
+    return this.aiService.generateEventInsights(body.data);
   }
 
   @Post('generate-session')
-async generateSession(
-  @Body('prompt') prompt: string,
-) {
-  return this.aiService.generateSession(prompt);
-}
+  async generateSession(@Body('prompt') prompt: string) {
+    return this.aiService.generateSession(prompt);
+  }
+
+  @Post('events/:eventId/summarize-live-answers')
+  @UseGuards(JwtAuthGuard)
+  async summarizeLiveAnswers(
+    @Param('eventId') eventId: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as { id?: string; _id?: string };
+    const userId = user.id ?? user._id ?? '';
+    return this.aiService.summarizeLiveAnswers(eventId, userId);
+  }
 }
