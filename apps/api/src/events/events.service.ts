@@ -87,8 +87,23 @@ export class EventsService {
     this.assertOwnership(event, hostId);
 
     if (dto.settings) {
-      event.settings = { ...event.settings, ...dto.settings } as any;
+      // FIX: Use Object.assign() to mutate the existing Mongoose EmbeddedDocument
+      // in-place rather than replacing it with a plain spread object.
+      //
+      // The old code was:
+      //   event.settings = { ...event.settings, ...dto.settings } as any;
+      //
+      // Spreading a Mongoose EmbeddedDocument and reassigning it as a plain object
+      // is unreliable — Mongoose may not detect the change and save() would silently
+      // skip persisting the settings field entirely.
+      //
+      // Object.assign mutates the existing subdocument directly, triggering Mongoose's
+      // per-field setters. markModified then guarantees the path is flushed on save()
+      // regardless of Mongoose version behaviour.
+      Object.assign(event.settings, dto.settings);
+      event.markModified('settings');
     }
+
     if (dto.name !== undefined) event.name = dto.name;
     if (dto.description !== undefined) event.description = dto.description;
 

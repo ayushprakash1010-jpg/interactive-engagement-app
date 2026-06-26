@@ -21,6 +21,10 @@ type SessionSnapshot = {
   currentTally: unknown | null;
   currentQuizQuestion?: unknown | null;
   approvedQuestions: QaQuestion[];
+  pendingQuestions?: QaQuestion[];
+  // FIX: forwarded from event settings so the participant page knows whether
+  // to show "Anonymous" labels and suppress the name field in the QA form.
+  allowAnonymousQA?: boolean;
 };
 
 export type EventRealtime = {
@@ -29,6 +33,8 @@ export type EventRealtime = {
   snapshot: SessionSnapshot | null;
   approvedQuestions: QaQuestion[];
   allQuestions: QaQuestion[];
+  // Exposed so the participant page can pass it to QaTab.
+  allowAnonymousQA: boolean;
   isEndingSession: boolean;
   sessionEnded: boolean;
   sessionEndError: string | null;
@@ -99,6 +105,9 @@ export function useEventRealtime(
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [sessionEndError, setSessionEndError] = useState<string | null>(null);
+  // Default true: when we don't yet know the setting, treat Q&A as anonymous
+  // so names are never accidentally shown before the snapshot arrives.
+  const [allowAnonymousQA, setAllowAnonymousQA] = useState(true);
 
   const eventId = options?.eventId;
 
@@ -127,9 +136,18 @@ export function useEventRealtime(
 
     const onSnapshot = (payload: SessionSnapshot) => {
       setSnapshot(payload);
-      setAllQuestions((current) =>
-        mergeQuestions(current, payload.approvedQuestions ?? []),
-      );
+
+      // FIX: Read allowAnonymousQA from the snapshot and update state.
+      // Defaults to true so any missing/undefined value keeps names hidden.
+      if (typeof payload.allowAnonymousQA === 'boolean') {
+        setAllowAnonymousQA(payload.allowAnonymousQA);
+      }
+
+      const allFromSnapshot = [
+        ...(payload.approvedQuestions ?? []),
+        ...(payload.pendingQuestions ?? []),
+      ];
+      setAllQuestions((current) => mergeQuestions(current, allFromSnapshot));
     };
 
     const onQaNew = (payload: { question: QaQuestion }) => {
@@ -195,7 +213,7 @@ export function useEventRealtime(
         setAllQuestions((current) => mergeQuestions(current, questions ?? []));
       })
       .catch(() => {
-        // Non-fatal: the host still receives live questions over the socket.
+        // Non-fatal: host still receives live questions over socket.
       });
 
     return () => {
@@ -218,7 +236,9 @@ export function useEventRealtime(
       eventCode: eventCode.toUpperCase(),
       anonId: getAnonId(),
       text: payload.text,
-      displayName: payload.displayName,
+      // When allowAnonymousQA is true the server will strip the name anyway,
+      // but also don't send it from the client as a best-effort measure.
+      displayName: allowAnonymousQA ? undefined : payload.displayName,
     });
   };
 
@@ -271,6 +291,7 @@ export function useEventRealtime(
     snapshot,
     approvedQuestions,
     allQuestions,
+    allowAnonymousQA,
     isEndingSession,
     sessionEnded,
     sessionEndError,

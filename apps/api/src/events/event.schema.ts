@@ -7,7 +7,14 @@ export type EventDocument = HydratedDocument<EventEntity>;
 /**
  * Embedded settings sub-document.
  * Not a separate collection — stored inline inside each event.
+ *
+ * FIX: Added @Schema({ _id: false }) so that:
+ *  1. @nestjs/mongoose's SchemaFactory can collect @Prop() metadata correctly.
+ *  2. Mongoose does not inject an unwanted _id into the settings subdoc.
+ *     (Without this, only the _id was being saved; all three boolean fields
+ *      were silently dropped, making requireModeration always read as undefined → false.)
  */
+@Schema({ _id: false })
 class EventSettingsSubdoc {
   @Prop({ default: true })
   allowAnonymousQA!: boolean;
@@ -69,10 +76,10 @@ export class EventEntity {
   activeActivityId!: Types.ObjectId | null;
 
   @Prop({ type: Date, default: null })
-startedAt!: Date | null;
+  startedAt!: Date | null;
 
-@Prop({ type: Date, default: null })
-endedAt!: Date | null;
+  @Prop({ type: Date, default: null })
+  endedAt!: Date | null;
 }
 
 export const EventEntitySchema = SchemaFactory.createForClass(EventEntity);

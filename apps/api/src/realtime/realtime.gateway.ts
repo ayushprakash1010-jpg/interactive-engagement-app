@@ -114,11 +114,6 @@ export class RealtimeGateway
     this.logger.log('RealtimeGateway initialized');
   }
 
-  /**
-   * Validate an inbound socket payload against a Zod schema. On failure, logs
-   * the issue server-side, emits a friendly error to the client, and returns
-   * null so the handler can bail out early.
-   */
   private parsePayload<T>(
     schema: ZodSchema<T>,
     payload: unknown,
@@ -147,10 +142,6 @@ export class RealtimeGateway
     return client.handshake?.address;
   }
 
-  /**
-   * Enforce a Redis-backed rate limit for a participant action. Emits a
-   * friendly error and returns false when the limit is exceeded.
-   */
   private async enforceRateLimit(
     action: string,
     anonId: string,
@@ -170,11 +161,6 @@ export class RealtimeGateway
     return true;
   }
 
-  /**
-   * Graceful shutdown (Sprint 7 reliability): stop in-flight broadcast timers,
-   * disconnect connected sockets, and close the Socket.IO server so the
-   * process can exit cleanly on SIGTERM without dropping work mid-flush.
-   */
   async onApplicationShutdown(signal?: string): Promise<void> {
     this.logger.log(`Draining sockets on shutdown (signal=${signal ?? 'n/a'})`);
 
@@ -258,7 +244,7 @@ export class RealtimeGateway
     await this.incrementConnection(eventId, anonId);
     await this.broadcastCount(eventId);
 
-    const snapshot = await this.buildSnapshot(event);
+    const snapshot = await this.buildSnapshot(event, 'participant');
     client.emit(ServerEvents.SESSION_SNAPSHOT, snapshot);
 
     this.logger.log(
@@ -290,7 +276,8 @@ export class RealtimeGateway
       count: await this.getCount(eventId),
     });
 
-    const snapshot = await this.buildSnapshot(event);
+    // Observers get full snapshot including pending questions.
+    const snapshot = await this.buildSnapshot(event, 'observer');
     client.emit(ServerEvents.SESSION_SNAPSHOT, snapshot);
 
     this.logger.log(`Observer joined event=${event.eventCode}`);
@@ -347,9 +334,7 @@ export class RealtimeGateway
     await this.eventsService.setActiveActivity(eventId, activityId);
 
     let endsAt: number | undefined = undefined;
-    
-    // THE FIX: We read from the originally fetched `activity`, NOT `liveActivity`
-    // because setStatus often returns a partial document without the config!
+
     const rawActivity = typeof activity.toJSON === 'function' ? activity.toJSON() : activity;
     const config: any = rawActivity.config || {};
     const sec = Number(config.timeLimitSec);
@@ -358,7 +343,7 @@ export class RealtimeGateway
 
     if ((rawActivity.type === 'poll' || rawActivity.type === 'feedback' || rawActivity.type === 'wordcloud') && !isNaN(sec) && sec > 0) {
       endsAt = Date.now() + sec * 1000;
-      
+
       const timeout = setTimeout(async () => {
         pollRuntimeByActivityId.delete(activityId);
         await this.activityService.setStatus(activityId, 'closed');
@@ -369,7 +354,7 @@ export class RealtimeGateway
 
         this.server.to(rooms.event(eventId)).emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
       }, sec * 1000);
-      
+
       pollRuntimeByActivityId.set(activityId, { endsAt, timeout });
     }
 
@@ -380,7 +365,6 @@ export class RealtimeGateway
     this.logger.log(`activity:launched activityId=${activityId} eventId=${eventId} endsAt=${endsAt}`);
 
     if (rawActivity.type === 'quiz') {
-      // Small delay so clients fully process ACTIVITY_LAUNCHED before Q1 arrives
       setTimeout(() => {
         void this.advanceQuizQuestion(activityId);
       }, 300);
@@ -709,11 +693,18 @@ export class RealtimeGateway
     const requireModeration = Boolean(event.settings?.requireModeration);
     const status = requireModeration ? 'pending' : 'approved';
 
+    // FIX: When allowAnonymousQA is true, participants should appear as Anonymous.
+    // Strip the authorName server-side so it can never leak through even if the
+    // client sends a displayName. When allowAnonymousQA is false, use whatever
+    // name the participant provided.
+    const allowAnonymousQA = Boolean(event.settings?.allowAnonymousQA);
+    const authorName = allowAnonymousQA ? null : (displayName?.trim() || null);
+
     const question = await this.questionsService.create({
       eventId,
       text: text.trim(),
       authorAnonId: anonId,
-      authorName: displayName?.trim() || null,
+      authorName,
       status,
     });
 
@@ -730,7 +721,7 @@ export class RealtimeGateway
     }
 
     this.logger.log(
-      `qa:ask eventId=${eventId} questionId=${question._id.toString()} status=${status}`,
+      `qa:ask eventId=${eventId} questionId=${question._id.toString()} status=${status} anonymous=${allowAnonymousQA}`,
     );
   }
 
@@ -795,7 +786,10 @@ export class RealtimeGateway
           .emit(ServerEvents.QA_NEW, { question });
       }
 
+      // Emit to both host and event rooms so pending-question status changes
+      // (dismiss, answered) always reach the host dashboard.
       this.server
+        .to(rooms.host(eventId))
         .to(rooms.event(eventId))
         .emit(ServerEvents.QA_UPDATED, { question });
 
@@ -861,10 +855,23 @@ export class RealtimeGateway
     return event;
   }
 
-  private async buildSnapshot(event: {
-    activeActivityId: unknown;
-    _id: unknown;
-  }) {
+  /**
+   * Builds the session snapshot sent to a connecting socket.
+   *
+   * mode controls question visibility:
+   *  - 'participant' → approved questions only
+   *  - 'observer'   → approved + pending (host dashboard survives reconnect)
+   *
+   * allowAnonymousQA is forwarded so clients know whether to show author names.
+   */
+  private async buildSnapshot(
+    event: {
+      activeActivityId: unknown;
+      _id: unknown;
+      settings?: { allowAnonymousQA?: boolean; requireModeration?: boolean; participantNames?: boolean } | null;
+    },
+    mode: 'participant' | 'observer' = 'participant',
+  ) {
     const eventId = (event as { _id: { toString(): string } })._id.toString();
     let activeActivity: ActivityDocument | null = null;
     let currentTally: PollTally | null = null;
@@ -879,7 +886,6 @@ export class RealtimeGateway
           event.activeActivityId.toString(),
         );
 
-        // Timer tracking pulled OUT of the poll-specific block so Feedback can read it!
         const runtime = pollRuntimeByActivityId.get(activeActivity._id.toString());
         if (runtime) pollEndsAt = runtime.endsAt;
 
@@ -922,6 +928,19 @@ export class RealtimeGateway
       }
     }
 
+    const approvedQuestions =
+      await this.questionsService.findApprovedByEvent(eventId);
+
+    let pendingQuestions: Awaited<ReturnType<typeof this.questionsService.findByEvent>> = [];
+    if (mode === 'observer') {
+      const all = await this.questionsService.findByEvent(eventId);
+      pendingQuestions = all.filter((q) => q.status === 'pending');
+    }
+
+    // FIX: Forward allowAnonymousQA so participant clients know whether to
+    // display author names. Default true so unknown states are safe (anonymous).
+    const allowAnonymousQA = event.settings?.allowAnonymousQA ?? true;
+
     return {
       activeActivityId: event.activeActivityId
         ? event.activeActivityId.toString()
@@ -932,7 +951,9 @@ export class RealtimeGateway
       currentQuizLeaderboard,
       currentWordCloud,
       pollEndsAt,
-      approvedQuestions: await this.questionsService.findApprovedByEvent(eventId),
+      approvedQuestions,
+      pendingQuestions,
+      allowAnonymousQA,
     };
   }
 

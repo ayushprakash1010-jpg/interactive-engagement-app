@@ -11,6 +11,10 @@ import type { QaQuestion } from '@/lib/use-event-realtime';
 type QaTabProps = {
   questions: QaQuestion[];
   votedQuestionIds: string[];
+  // FIX: allowAnonymousQA controls whether author names are shown.
+  // When true: all questions render as "Anonymous" and the name field is suppressed.
+  // When false: the participant's saved display name is sent and shown.
+  allowAnonymousQA: boolean;
   onAskQuestion: (payload: { text: string; displayName?: string }) => void;
   onUpvoteQuestion: (questionId: string) => void;
 };
@@ -27,13 +31,13 @@ function sortQuestions(questions: QaQuestion[]) {
 export function QaTab({
   questions,
   votedQuestionIds,
+  allowAnonymousQA,
   onAskQuestion,
   onUpvoteQuestion,
 }: QaTabProps) {
   const [text, setText] = useState('');
   const [displayName] = useState(() => {
     if (typeof window === 'undefined') return '';
-
     return localStorage.getItem('iep-display-name') ?? '';
   });
 
@@ -43,13 +47,13 @@ export function QaTab({
     event.preventDefault();
 
     const trimmedText = text.trim();
-    const trimmedDisplayName = displayName.trim();
-
     if (!trimmedText) return;
 
     onAskQuestion({
       text: trimmedText,
-      displayName: trimmedDisplayName || undefined,
+      // When anonymous QA is on, don't send a name at all.
+      // The server also enforces this, but suppressing it client-side is cleaner.
+      displayName: allowAnonymousQA ? undefined : (displayName.trim() || undefined),
     });
 
     setText('');
@@ -82,6 +86,15 @@ export function QaTab({
               maxLength={300}
             />
           </div>
+
+          {/* FIX: Show a clear notice when anonymous mode is active so participants
+              understand their name won't be attached to their question. */}
+          {allowAnonymousQA && (
+            <p className="text-xs text-ink-muted">
+              🕶 This event has anonymous Q&amp;A enabled. Your question will appear as{' '}
+              <span className="font-semibold text-ink-secondary">Anonymous</span>.
+            </p>
+          )}
 
           <Button type="submit" size="lg" className="w-full" disabled={!text.trim()}>
             Ask a question
@@ -116,7 +129,14 @@ export function QaTab({
                       {question.text}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                      <span>{question.authorName?.trim() || 'Anonymous'}</span>
+                      {/* FIX: When allowAnonymousQA is true always show "Anonymous"
+                          regardless of what authorName contains. This is a defence-in-depth
+                          guard on top of the server already stripping the name. */}
+                      <span>
+                        {allowAnonymousQA
+                          ? 'Anonymous'
+                          : (question.authorName?.trim() || 'Anonymous')}
+                      </span>
                       <Badge variant={question.voteCount > 0 ? 'brand' : 'neutral'}>
                         {question.voteCount} vote{question.voteCount === 1 ? '' : 's'}
                       </Badge>
