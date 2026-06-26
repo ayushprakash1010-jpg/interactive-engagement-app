@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  ArrowLeft,
   Check,
   Copy,
   Pencil,
@@ -18,28 +17,34 @@ import {
   Star,
   Cloud,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Eyebrow, JoinCode, LiveDot, ActivityTile } from '@/components/pulse';
+import { JoinCode, LiveDot, ActivityTile } from '@/components/pulse';
 import { cn } from '@/lib/utils';
 import { QuizRunPanel } from '@/components/poll/quiz-run-panel';
 import { FeedbackRunPanel } from '@/components/poll/feedback-run-panel';
 import { WordCloudRunPanel } from '@/components/poll/wordcloud-run-panel';
 import {
+  ActionGroup,
+  BackLink,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+  EmptyState,
+  LoadingSkeleton,
+  MetricCard,
+  PageHeader,
+  SectionHeader,
+  StatusBadge,
+  SurfacePanel,
+} from '@/components/ui';
 import { EventForm } from '@/components/event-form';
-import { EventStatusBadge } from '@/components/event-status-badge';
 import { ConnectionStatus } from '@/components/connection-status';
 import { useToast } from '@/components/ui/use-toast';
 import { useEventRealtime } from '@/lib/use-event-realtime';
@@ -382,13 +387,23 @@ export default function EventDetailPage() {
   };
 
   if (isLoading) {
-    return <div className="h-64 animate-pulse rounded-lg border border-border bg-surface-sunken" />;
+    return (
+      <div className="space-y-6">
+        <LoadingSkeleton variant="text" className="h-5 w-36" />
+        <LoadingSkeleton variant="card" className="h-36" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <LoadingSkeleton variant="card" className="h-28" />
+          <LoadingSkeleton variant="card" className="h-28" />
+          <LoadingSkeleton variant="card" className="h-28" />
+        </div>
+      </div>
+    );
   }
 
   if (isError || !event) {
     return (
       <div className="space-y-4">
-        <BackLink />
+        <BackLink href="/dashboard">Back to events</BackLink>
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle className="text-base text-destructive">
@@ -430,22 +445,15 @@ export default function EventDetailPage() {
       : undefined;
 
   return (
-    <div className="space-y-6">
-      <BackLink />
-
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-              {event.name}
-            </h1>
-            <EventStatusBadge status={event.status} />
-          </div>
-          {event.description && (
-            <p className="text-sm text-ink-secondary">{event.description}</p>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <div className="space-y-7">
+      <PageHeader
+        leading={<BackLink href="/dashboard">Back to events</BackLink>}
+        eyebrow="Event workspace"
+        title={event.name}
+        description={event.description}
+        badge={<StatusBadge status={event.status} className="capitalize" />}
+        actions={
+          <ActionGroup>
           <Button
             variant="secondary"
             size="sm"
@@ -475,18 +483,52 @@ export default function EventDetailPage() {
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
           </Button>
-        </div>
-      </div>
+          </ActionGroup>
+        }
+      />
 
-      <div className="flex items-center gap-4 border-b border-border">
+      <SurfacePanel tone="raised" className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            Join code
+          </p>
+          <JoinCode code={event.eventCode} size="sm" className="mt-2" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            Status
+          </p>
+          <div className="mt-2">
+            <StatusBadge status={event.status} className="capitalize" />
+          </div>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            Activities
+          </p>
+          <p className="mt-2 font-display text-2xl font-bold tabular-nums text-foreground">
+            {activities.length}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            Live participants
+          </p>
+          <p className="mt-2 font-display text-2xl font-bold tabular-nums text-foreground">
+            {liveCount}
+          </p>
+        </div>
+      </SurfacePanel>
+
+      <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-surface-card p-1 shadow-xs">
         <button
           type="button"
           onClick={() => setActiveTab('overview')}
           className={cn(
-            '-mb-px border-b-2 px-1 py-2.5 text-sm font-medium transition-colors',
+            'rounded-md px-3 py-2 text-sm font-medium transition-colors',
             activeTab === 'overview'
-              ? 'border-brand text-foreground'
-              : 'border-transparent text-ink-muted hover:text-foreground',
+              ? 'bg-brand-subtle text-brand-subtle-text'
+              : 'text-ink-muted hover:bg-surface-sunken hover:text-foreground',
           )}
         >
           Overview
@@ -495,10 +537,10 @@ export default function EventDetailPage() {
           type="button"
           onClick={() => setActiveTab('polls')}
           className={cn(
-            '-mb-px border-b-2 px-1 py-2.5 text-sm font-medium transition-colors',
+            'rounded-md px-3 py-2 text-sm font-medium transition-colors',
             activeTab === 'polls'
-              ? 'border-brand text-foreground'
-              : 'border-transparent text-ink-muted hover:text-foreground',
+              ? 'bg-brand-subtle text-brand-subtle-text'
+              : 'text-ink-muted hover:bg-surface-sunken hover:text-foreground',
           )}
         >
           Activities ({pollActivities.length + quizActivities.length + feedbackActivities.length + wordcloudActivities.length})
@@ -507,10 +549,10 @@ export default function EventDetailPage() {
           type="button"
           onClick={() => setActiveTab('qa')}
           className={cn(
-            '-mb-px border-b-2 px-1 py-2.5 text-sm font-medium transition-colors',
+            'rounded-md px-3 py-2 text-sm font-medium transition-colors',
             activeTab === 'qa'
-              ? 'border-brand text-foreground'
-              : 'border-transparent text-ink-muted hover:text-foreground',
+              ? 'bg-brand-subtle text-brand-subtle-text'
+              : 'text-ink-muted hover:bg-surface-sunken hover:text-foreground',
           )}
         >
           Q&amp;A ({pendingQuestions.length + approvedQuestions.length + answeredQuestions.length})
@@ -518,55 +560,32 @@ export default function EventDetailPage() {
       </div>
 
       {activeTab === 'overview' && (
-        <>
+        <div className="space-y-6">
           {event.status === 'ended' ? (
-            <Card className="border-brand/30 bg-brand-subtle/40">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div className="flex items-center gap-2">
-                  <div>
-                    <Eyebrow>Session complete</Eyebrow>
-                    <CardTitle className="text-base">Analytics available</CardTitle>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-ink-secondary mb-4">
-                  Your session has ended. View the full analytics report including polls, quizzes, word clouds, feedback, and Q&A.
-                </p>
-                <Link href={`/dashboard/events/${id}/analytics`}>
-                  <Button>
-                    <BarChart2 className="mr-2 h-4 w-4" />
-                    View Analytics Report
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            <SurfacePanel tone="brand">
+              <SectionHeader
+                eyebrow="Session complete"
+                title="Analytics available"
+                description="Your session has ended. View the full analytics report including polls, quizzes, word clouds, feedback, and Q&A."
+                actions={
+                  <Link href={`/dashboard/events/${id}/analytics`}>
+                    <Button>
+                      <BarChart2 className="mr-2 h-4 w-4" />
+                      View Analytics Report
+                    </Button>
+                  </Link>
+                }
+              />
+            </SurfacePanel>
           ) : (
-            <Card className="border-brand/30 bg-brand-subtle/40">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <div className="flex items-center gap-2">
-                  <LiveDot />
-                  <div>
-                    <Eyebrow>Live now</Eyebrow>
-                    <CardTitle className="text-base">Live participants</CardTitle>
-                  </div>
-                </div>
-                <ConnectionStatus />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-5xl font-bold leading-none tracking-tight tabular-nums text-brand">
-                    {liveCount}
-                  </span>
-                  <span className="text-sm text-ink-secondary">
-                    {liveCount === 1 ? 'person connected' : 'people connected'}
-                  </span>
-                </div>
-                <p className="mt-2 text-xs text-ink-muted">
-                  Updates in real time as your audience joins and leaves.
-                </p>
-              </CardContent>
-            </Card>
+            <MetricCard
+              className="border-brand/30 bg-brand-subtle/40"
+              label="Live participants"
+              value={liveCount}
+              description={`${liveCount === 1 ? 'person connected' : 'people connected'} - updates in real time`}
+              icon={<LiveDot />}
+              trend={<ConnectionStatus />}
+            />
           )}
 
           <div className="grid gap-6 md:grid-cols-2">
@@ -618,48 +637,52 @@ export default function EventDetailPage() {
                     className="rounded-md border border-border"
                   />
                 ) : (
-                  <div className="h-[220px] w-[220px] animate-pulse rounded-md border border-border bg-surface-sunken" />
+                  <LoadingSkeleton className="h-[220px] w-[220px] rounded-md border border-border" />
                 )}
               </CardContent>
             </Card>
           </div>
-        </>
+        </div>
       )}
 
       {activeTab === 'polls' && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" onClick={() => openCreateBuilder('poll')}>
-              <Plus className="mr-2 h-4 w-4" />
-              New poll
-            </Button>
-            <Button variant="outline" onClick={() => openCreateBuilder('feedback')}>
-              <Plus className="mr-2 h-4 w-4" />
-              New feedback
-            </Button>
-            <Button variant="outline" onClick={() => openCreateBuilder('wordcloud')}>
-              <Plus className="mr-2 h-4 w-4" />
-              New word cloud
-            </Button>
-            <Button onClick={() => openCreateBuilder('quiz')}>
-              <Plus className="mr-2 h-4 w-4" />
-              New quiz
-            </Button>
-          </div>
+        <div className="space-y-5">
+          <SectionHeader
+            title="Activities"
+            description="Create and run polls, quizzes, feedback forms, and word clouds for this event."
+            actions={
+              <ActionGroup>
+                <Button variant="outline" onClick={() => openCreateBuilder('poll')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New poll
+                </Button>
+                <Button variant="outline" onClick={() => openCreateBuilder('feedback')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New feedback
+                </Button>
+                <Button variant="outline" onClick={() => openCreateBuilder('wordcloud')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New word cloud
+                </Button>
+                <Button onClick={() => openCreateBuilder('quiz')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  New quiz
+                </Button>
+              </ActionGroup>
+            }
+          />
 
           {activitiesLoading ? (
-            <div className="h-40 animate-pulse rounded-lg border border-border bg-surface-sunken" />
+            <LoadingSkeleton variant="card" className="h-40" />
           ) : pollActivities.length === 0 &&
             quizActivities.length === 0 &&
             feedbackActivities.length === 0 &&
             wordcloudActivities.length === 0 ? (
             <div className="space-y-4">
-              <div className="space-y-1">
-                <Eyebrow>Add your first activity</Eyebrow>
-                <p className="text-sm text-ink-secondary">
-                  Pick an activity type to run live with your audience.
-                </p>
-              </div>
+              <EmptyState
+                title="Add your first activity"
+                description="Pick an activity type to run live with your audience."
+              />
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <ActivityTile
                   type="poll"
@@ -697,7 +720,7 @@ export default function EventDetailPage() {
                 <div key={activity._id} className="space-y-3">
                   <PollRunPanel activity={activity} />
 
-                  <div className="flex justify-end gap-2">
+                  <ActionGroup>
                     <Button
                       variant="outline"
                       size="sm"
@@ -731,7 +754,7 @@ export default function EventDetailPage() {
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </Button>
-                  </div>
+                  </ActionGroup>
                 </div>
               ))}
 
@@ -739,7 +762,7 @@ export default function EventDetailPage() {
                 <div key={activity._id} className="space-y-3">
                   <FeedbackRunPanel activity={activity} />
 
-                  <div className="flex justify-end gap-2">
+                  <ActionGroup>
                     <Button
                       variant="outline"
                       size="sm"
@@ -773,7 +796,7 @@ export default function EventDetailPage() {
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </Button>
-                  </div>
+                  </ActionGroup>
                 </div>
               ))}
 
@@ -781,7 +804,7 @@ export default function EventDetailPage() {
                 <div key={activity._id} className="space-y-3">
                   <QuizRunPanel activity={activity} eventId={id} />
 
-                  <div className="flex justify-end gap-2">
+                  <ActionGroup>
                     <Button
                       variant="outline"
                       size="sm"
@@ -815,7 +838,7 @@ export default function EventDetailPage() {
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </Button>
-                  </div>
+                  </ActionGroup>
                 </div>
               ))}
 
@@ -823,7 +846,7 @@ export default function EventDetailPage() {
                 <div key={activity._id} className="space-y-3">
                   <WordCloudRunPanel activity={activity} />
 
-                  <div className="flex justify-end gap-2">
+                  <ActionGroup>
                     <Button
                       variant="outline"
                       size="sm"
@@ -857,7 +880,7 @@ export default function EventDetailPage() {
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </Button>
-                  </div>
+                  </ActionGroup>
                 </div>
               ))}
             </div>
@@ -1007,7 +1030,7 @@ export default function EventDetailPage() {
                   disabled={createActivity.isPending || updateActivity.isPending}
                 />
 
-                <div className="flex justify-end gap-2">
+                <ActionGroup>
                   <Button
                     type="button"
                     variant="outline"
@@ -1026,7 +1049,7 @@ export default function EventDetailPage() {
                       ? 'Save changes'
                       : 'Create feedback'}
                   </Button>
-                </div>
+                </ActionGroup>
               </div>
             ) : (
               <PollBuilder
@@ -1049,7 +1072,7 @@ export default function EventDetailPage() {
               This permanently deletes “{event.name}”. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2">
+          <ActionGroup>
             <Button variant="outline" onClick={() => setDeleteOpen(false)}>
               Cancel
             </Button>
@@ -1077,21 +1100,9 @@ export default function EventDetailPage() {
             >
               {deleteEvent.isPending ? 'Deleting…' : 'Delete'}
             </Button>
-          </div>
+          </ActionGroup>
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function BackLink() {
-  return (
-    <Link
-      href="/dashboard"
-      className="inline-flex items-center text-sm text-ink-muted transition-colors hover:text-foreground"
-    >
-      <ArrowLeft className="mr-1 h-4 w-4" />
-      Back to events
-    </Link>
   );
 }

@@ -24,13 +24,26 @@ export default function DashboardLayout({
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
-  if (pathname === '/dashboard') {
+  const eventDetailMatch = pathname.match(/^\/dashboard\/events\/([^/]+)$/);
+
+  if (pathname === '/dashboard' || eventDetailMatch) {
+    const eventId = eventDetailMatch?.[1];
+
     return (
       <DashboardShell
-        breadcrumbs={[
-          { label: 'Workspace', href: '/dashboard' },
-          { label: 'Events' },
-        ]}
+        analyticsHref={eventId ? `/dashboard/events/${eventId}/analytics` : undefined}
+        breadcrumbs={
+          eventId
+            ? [
+                { label: 'Workspace', href: '/dashboard' },
+                { label: 'Events', href: '/dashboard' },
+                { label: 'Event detail' },
+              ]
+            : [
+                { label: 'Workspace', href: '/dashboard' },
+                { label: 'Events' },
+              ]
+        }
         topActions={
           <>
             {user?.name && (
