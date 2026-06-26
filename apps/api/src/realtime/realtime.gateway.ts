@@ -477,7 +477,7 @@ export class RealtimeGateway
           ratingValue,
         });
 
-        await this.analyticsService.invalidateCache(eventId);
+        await this.analyticsService.invalidateCacheIfLive(eventId);
 
         client.emit(ServerEvents.ACTIVITY_RESPONDED, { activityId });
         this.schedulePollResultsBroadcast(activityId, eventId, activity);
@@ -492,7 +492,7 @@ export class RealtimeGateway
           feedbackAnswers,
         });
 
-        await this.analyticsService.invalidateCache(eventId);
+        await this.analyticsService.invalidateCacheIfLive(eventId);
 
         client.emit(ServerEvents.ACTIVITY_RESPONDED, { activityId });
         return;
@@ -555,7 +555,7 @@ export class RealtimeGateway
         words,
       });
 
-      await this.analyticsService.invalidateCache(eventId);
+      await this.analyticsService.invalidateCacheIfLive(eventId);
     } catch (err: unknown) {
       const message =
         isRecord(err) && typeof err.message === 'string'
@@ -647,7 +647,7 @@ export class RealtimeGateway
         speedBonusEnabled,
       });
 
-      await this.analyticsService.invalidateCache(eventId);
+      await this.analyticsService.invalidateCacheIfLive(eventId);
 
       client.emit(ServerEvents.ACTIVITY_RESPONDED, {
         activityId,
@@ -708,7 +708,7 @@ export class RealtimeGateway
       status,
     });
 
-    await this.analyticsService.invalidateCache(eventId);
+    await this.analyticsService.invalidateCacheIfLive(eventId);
 
     if (requireModeration) {
       this.server
@@ -742,7 +742,7 @@ export class RealtimeGateway
       const question = await this.questionsService.addVote(questionId, anonId);
       const eventId = question.eventId.toString();
 
-      await this.analyticsService.invalidateCache(eventId);
+      await this.analyticsService.invalidateCacheIfLive(eventId);
 
       this.server
         .to(rooms.event(eventId))
@@ -778,7 +778,7 @@ export class RealtimeGateway
       const question = await this.questionsService.updateStatus(questionId, status);
       const eventId = question.eventId.toString();
 
-      await this.analyticsService.invalidateCache(eventId);
+      await this.analyticsService.invalidateCacheIfLive(eventId);
 
       if (status === 'approved') {
         this.server

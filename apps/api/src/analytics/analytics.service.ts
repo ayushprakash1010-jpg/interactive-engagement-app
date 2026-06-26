@@ -77,21 +77,60 @@ export class AnalyticsService {
 
     const analytics = await this.generateReport(eventId);
 
-    await this.redisService.client.set(
-      cacheKey,
-      JSON.stringify(analytics),
-      'EX',
-      AnalyticsService.CACHE_TTL_SECONDS,
-    );
+    // Ended events: cache permanently (no TTL) so the report is always
+    // available on re-open days or weeks later.
+    // Live/draft events: cache for 1 hour so live data stays reasonably fresh.
+    const eventStatus = (event as EventWithTimestamps & { status?: string }).status;
+    if (eventStatus === 'ended') {
+      await this.cacheFinalReport(eventId, analytics);
+    } else {
+      await this.redisService.client.set(
+        cacheKey,
+        JSON.stringify(analytics),
+        'EX',
+        AnalyticsService.CACHE_TTL_SECONDS,
+      );
+    }
 
     return analytics;
   }
 
+  /**
+   * Deletes the analytics cache only if the event is still live.
+   * Use this from socket event handlers so that in-flight participant
+   * responses arriving after SESSION_END do not wipe the final report.
+   */
+  async invalidateCacheIfLive(eventId: string): Promise<void> {
+    if (!Types.ObjectId.isValid(eventId)) return;
+
+    const event = await this.eventModel
+      .findById(eventId, { status: 1 })
+      .lean()
+      .exec();
+
+    // If the event is ended (or not found), do not touch the cache.
+    if (!event || (event as any).status === 'ended') {
+      return;
+    }
+
+    await this.redisService.client.del(this.cacheKey(eventId));
+  }
+
+  /**
+   * @deprecated Use invalidateCacheIfLive() from socket handlers.
+   * Kept for internal use only where the caller is certain the event is live.
+   */
   async invalidateCache(eventId: string): Promise<void> {
     await this.redisService.client.del(this.cacheKey(eventId));
   }
 
+  /**
+   * Stores the final analytics report in Redis with no TTL.
+   * Called when a session ends. The report must survive indefinitely
+   * because ended event data never changes.
+   */
   async cacheFinalReport(eventId: string, report: unknown): Promise<void> {
+    // Intentionally no EX/PX — permanent storage for ended events.
     await this.redisService.client.set(
       this.cacheKey(eventId),
       JSON.stringify(report),

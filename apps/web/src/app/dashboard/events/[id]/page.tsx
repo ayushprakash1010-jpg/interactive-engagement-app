@@ -13,6 +13,7 @@ import {
   Plus,
   Square,
   BarChart3,
+  BarChart2,
   ListChecks,
   Star,
   Cloud,
@@ -454,6 +455,14 @@ export default function EventDetailPage() {
             <Square className="mr-2 h-4 w-4" />
             {isEndingSession ? 'Ending…' : event.status === 'ended' ? 'Session ended' : 'End session'}
           </Button>
+          {event.status === 'ended' && (
+            <Link href={`/dashboard/events/${id}/analytics`}>
+              <Button variant="default" size="sm">
+                <BarChart2 className="mr-2 h-4 w-4" />
+                View Analytics
+              </Button>
+            </Link>
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Edit
@@ -510,31 +519,55 @@ export default function EventDetailPage() {
 
       {activeTab === 'overview' && (
         <>
-          <Card className="border-brand/30 bg-brand-subtle/40">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div className="flex items-center gap-2">
-                {event.status !== 'ended' && <LiveDot />}
-                <div>
-                  <Eyebrow>Live now</Eyebrow>
-                  <CardTitle className="text-base">Live participants</CardTitle>
+          {event.status === 'ended' ? (
+            <Card className="border-brand/30 bg-brand-subtle/40">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div className="flex items-center gap-2">
+                  <div>
+                    <Eyebrow>Session complete</Eyebrow>
+                    <CardTitle className="text-base">Analytics available</CardTitle>
+                  </div>
                 </div>
-              </div>
-              <ConnectionStatus />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline gap-2">
-                <span className="font-display text-5xl font-bold leading-none tracking-tight tabular-nums text-brand">
-                  {liveCount}
-                </span>
-                <span className="text-sm text-ink-secondary">
-                  {liveCount === 1 ? 'person connected' : 'people connected'}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-ink-muted">
-                Updates in real time as your audience joins and leaves.
-              </p>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-ink-secondary mb-4">
+                  Your session has ended. View the full analytics report including polls, quizzes, word clouds, feedback, and Q&A.
+                </p>
+                <Link href={`/dashboard/events/${id}/analytics`}>
+                  <Button>
+                    <BarChart2 className="mr-2 h-4 w-4" />
+                    View Analytics Report
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-brand/30 bg-brand-subtle/40">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div className="flex items-center gap-2">
+                  <LiveDot />
+                  <div>
+                    <Eyebrow>Live now</Eyebrow>
+                    <CardTitle className="text-base">Live participants</CardTitle>
+                  </div>
+                </div>
+                <ConnectionStatus />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-5xl font-bold leading-none tracking-tight tabular-nums text-brand">
+                    {liveCount}
+                  </span>
+                  <span className="text-sm text-ink-secondary">
+                    {liveCount === 1 ? 'person connected' : 'people connected'}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-ink-muted">
+                  Updates in real time as your audience joins and leaves.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
