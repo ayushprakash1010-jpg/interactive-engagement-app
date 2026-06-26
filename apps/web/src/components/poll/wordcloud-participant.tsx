@@ -174,7 +174,7 @@ export function WordCloudParticipant({
             emptyMessage={
               isClosed
                 ? "No word cloud responses were received."
-                : "Waiting for responses..."
+                : "Waiting for responses…"
             }
           />
         </SurfacePanel>
@@ -260,7 +260,7 @@ export function WordCloudParticipant({
         size="lg"
         className="w-full"
       >
-        {submitting || isSubmitting ? "Submitting..." : "Submit your words"}
+        {submitting || isSubmitting ? "Submitting…" : "Submit your words"}
       </Button>
     </div>
   );

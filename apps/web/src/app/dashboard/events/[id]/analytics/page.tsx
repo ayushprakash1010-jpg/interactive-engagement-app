@@ -1,10 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
-  ArrowLeft,
   Download,
   Users,
   MessageSquare,
@@ -40,7 +38,6 @@ import {
 } from '@/components/ui';
 import { useAnalytics, downloadReport } from '@/hooks/use-analytics';
 import { useEvent } from '@/lib/use-events';
-import { Eyebrow } from '@/components/pulse';
 
 const CHART_COLORS = [
   '#01696f',
@@ -524,8 +521,8 @@ Polls: ${pollAnalytics?.length ?? 0}
               disabled={isGeneratingSummary}
               onClick={handleGenerateSummary}
             >
-              <Sparkles className="mr-2 h-4 w-4 text-ai" />
-              {isGeneratingSummary ? 'Generating...' : 'AI Summary'}
+              <Sparkles className="h-4 w-4 text-ai" />
+              {isGeneratingSummary ? 'Generating…' : 'AI Summary'}
             </Button>
             <Button
               variant="outline"
@@ -533,8 +530,8 @@ Polls: ${pollAnalytics?.length ?? 0}
               disabled={isGeneratingInsights}
               onClick={handleGenerateInsights}
             >
-              <Sparkles className="mr-2 h-4 w-4 text-ai" />
-              {isGeneratingInsights ? 'Generating...' : 'AI Insights'}
+              <Sparkles className="h-4 w-4 text-ai" />
+              {isGeneratingInsights ? 'Generating…' : 'AI Insights'}
             </Button>
             <Button
               variant="outline"
@@ -542,7 +539,7 @@ Polls: ${pollAnalytics?.length ?? 0}
               disabled={downloading === 'csv'}
               onClick={() => handleDownload('csv')}
             >
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="h-4 w-4" />
               {downloading === 'csv' ? 'Exporting...' : 'CSV'}
             </Button>
             <Button
@@ -551,75 +548,20 @@ Polls: ${pollAnalytics?.length ?? 0}
               disabled={downloading === 'pdf'}
               onClick={() => handleDownload('pdf')}
             >
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="h-4 w-4" />
               {downloading === 'pdf' ? 'Exporting...' : 'PDF'}
             </Button>
           </ActionGroup>
         }
       />
 
-      <div className="hidden">
-        <BackLink id={id} />
-        <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <Eyebrow>Session report</Eyebrow>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-              {event?.name ?? 'Event'} analytics
-            </h1>
-            <p className="text-sm text-ink-secondary">
-              Generated{' '}
-              {new Date(report.generatedAt).toLocaleString('en-IN', {
-                timeZone: 'Asia/Kolkata',
-                dateStyle: 'medium',
-                timeStyle: 'medium',
-              })}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-
-            <Button
-  variant="outline"
-  size="sm"
-  disabled={isGeneratingSummary}
-  onClick={handleGenerateSummary}
->
-  ✨ {isGeneratingSummary ? 'Generating…' : 'AI Summary'}
-</Button>
-
-<Button
-  variant="outline"
-  size="sm"
-  disabled={isGeneratingInsights}
-  onClick={handleGenerateInsights}
->
-  ✨ {isGeneratingInsights ? 'Generating…' : 'AI Insights'}
-</Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={downloading === 'csv'}
-              onClick={() => handleDownload('csv')}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {downloading === 'csv' ? 'Exporting…' : 'CSV'}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={downloading === 'pdf'}
-              onClick={() => handleDownload('pdf')}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {downloading === 'pdf' ? 'Exporting…' : 'PDF'}
-            </Button>
-          </div>
-        </div>
-      </div>
-
             {summary && (
         <Card>
           <CardHeader>
-            <CardTitle>✨ AI Session Summary</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-ai" />
+              AI Session Summary
+            </CardTitle>
             <CardDescription>
               Generated from event analytics
             </CardDescription>
@@ -633,7 +575,10 @@ Polls: ${pollAnalytics?.length ?? 0}
       {insights.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>📊 AI Insights</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart2 className="h-5 w-5 text-ai" />
+              AI Insights
+            </CardTitle>
             <CardDescription>
               Generated from event analytics
             </CardDescription>
@@ -831,7 +776,7 @@ Polls: ${pollAnalytics?.length ?? 0}
                 >
                   <p className="flex-1">{q.text}</p>
                   <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-                    <span className="tabular-nums">▲ {q.voteCount}</span>
+                    <span className="tabular-nums">{q.voteCount} votes</span>
                     <span className="rounded-full bg-muted px-2 py-0.5 capitalize">
                       {q.status}
                     </span>
@@ -843,17 +788,5 @@ Polls: ${pollAnalytics?.length ?? 0}
         </section>
       )}
     </div>
-  );
-}
-
-function BackLink({ id }: { id: string }) {
-  return (
-    <Link
-      href={`/dashboard/events/${id}`}
-      className="inline-flex items-center text-sm text-ink-muted transition-colors hover:text-foreground"
-    >
-      <ArrowLeft className="mr-1 h-4 w-4" />
-      Back to event
-    </Link>
   );
 }

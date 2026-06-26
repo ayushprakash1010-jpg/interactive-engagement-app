@@ -97,8 +97,18 @@ export async function downloadEventReport(
   window.URL.revokeObjectURL(url);
 }
 
+type EventListResponse = Event[] | { data?: Event[] };
+
+function normalizeEventList(response: EventListResponse): Event[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  return Array.isArray(response.data) ? response.data : [];
+}
+
 export const eventsApi = {
-  list: () => apiFetch<Event[]>('events'),
+  list: async () => normalizeEventList(await apiFetch<EventListResponse>('events')),
 
   get: (id: string) => apiFetch<Event>(`events/${id}`),
 

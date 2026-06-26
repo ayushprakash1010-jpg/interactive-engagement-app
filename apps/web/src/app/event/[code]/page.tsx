@@ -110,7 +110,7 @@ export default function EventPage() {
     return (
       <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
         <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
-          <header className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface-card px-3 py-2.5 shadow-sm">
+          <header className="flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card px-3 py-2.5 shadow-sm">
             <div className="flex items-center gap-2.5">
               <Logomark size={28} />
               <JoinCode code={code} size="sm" />
@@ -243,7 +243,7 @@ export default function EventPage() {
   return (
     <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
       <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
-        <header className="sticky top-3 z-10 flex items-center justify-between gap-4 rounded-2xl border border-border bg-surface-card/95 px-3 py-2.5 shadow-sm backdrop-blur">
+        <header className="sticky top-3 z-10 flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card/95 px-3 py-2.5 shadow-sm backdrop-blur">
           <div className="flex items-center gap-2.5">
             <Logomark size={28} />
             <JoinCode code={code} size="sm" />

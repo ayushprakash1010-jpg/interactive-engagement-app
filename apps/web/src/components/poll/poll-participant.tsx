@@ -219,7 +219,7 @@ export function PollParticipant({
   if (activity.type === "quiz") {
     const locked = hasAnsweredQuiz || quizExpired || isClosed;
     const questionText =
-      quizQuestion?.text || config.question || "Waiting for question...";
+      quizQuestion?.text || config.question || "Waiting for question…";
 
     return (
       <div className="space-y-5">
@@ -490,7 +490,7 @@ export function PollParticipant({
         size="lg"
         className="w-full"
       >
-        {submitting ? "Submitting..." : "Submit your vote"}
+        {submitting ? "Submitting…" : "Submit your vote"}
       </Button>
     </div>
   );

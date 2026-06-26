@@ -264,7 +264,7 @@ export function FeedbackParticipant({
             : feedbackExpired
               ? "Time is up"
               : isSubmitting
-                ? "Submitting..."
+                ? "Submitting…"
                 : "Submit feedback"}
         </Button>
       </div>

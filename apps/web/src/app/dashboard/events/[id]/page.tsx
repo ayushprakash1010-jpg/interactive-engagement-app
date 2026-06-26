@@ -612,7 +612,7 @@ export default function EventDetailPage() {
               onClick={handleEndSession}
               disabled={isEndingSession || event.status === "ended"}
             >
-              <Square className="mr-2 h-4 w-4" />
+              <Square className="h-4 w-4" />
               {isEndingSession
                 ? "Ending…"
                 : event.status === "ended"
@@ -622,7 +622,7 @@ export default function EventDetailPage() {
             {event.status === "ended" && (
               <Link href={`/dashboard/events/${id}/analytics`}>
                 <Button variant="default" size="sm">
-                  <BarChart2 className="mr-2 h-4 w-4" />
+                  <BarChart2 className="h-4 w-4" />
                   View Analytics
                 </Button>
               </Link>
@@ -632,7 +632,7 @@ export default function EventDetailPage() {
               size="sm"
               onClick={() => setEditOpen(true)}
             >
-              <Pencil className="mr-2 h-4 w-4" />
+              <Pencil className="h-4 w-4" />
               Edit
             </Button>
             <Button
@@ -640,7 +640,7 @@ export default function EventDetailPage() {
               size="sm"
               onClick={() => setDeleteOpen(true)}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
               Delete
             </Button>
           </ActionGroup>
@@ -742,7 +742,7 @@ export default function EventDetailPage() {
                 actions={
                   <Link href={`/dashboard/events/${id}/analytics`}>
                     <Button>
-                      <BarChart2 className="mr-2 h-4 w-4" />
+                      <BarChart2 className="h-4 w-4" />
                       View Analytics Report
                     </Button>
                   </Link>
@@ -828,25 +828,25 @@ export default function EventDetailPage() {
                   variant="outline"
                   onClick={() => openCreateBuilder("poll")}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="h-4 w-4" />
                   New poll
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => openCreateBuilder("feedback")}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="h-4 w-4" />
                   New feedback
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => openCreateBuilder("wordcloud")}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="h-4 w-4" />
                   New word cloud
                 </Button>
                 <Button onClick={() => openCreateBuilder("quiz")}>
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="h-4 w-4" />
                   New quiz
                 </Button>
               </ActionGroup>

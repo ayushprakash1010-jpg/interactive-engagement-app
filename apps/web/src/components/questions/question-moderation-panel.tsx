@@ -5,7 +5,13 @@ import { Check, CheckCheck, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import type { QaQuestion } from '@/lib/use-event-realtime';
 
 type QuestionModerationPanelProps = {
@@ -45,7 +51,7 @@ function QuestionMeta({ question }: { question: QaQuestion }) {
       <span>{question.authorName?.trim() || 'Anonymous'}</span>
       <span aria-hidden>·</span>
       <span className="font-mono tabular-nums">
-        ▲ {question.voteCount} vote{question.voteCount === 1 ? '' : 's'}
+        {question.voteCount} vote{question.voteCount === 1 ? '' : 's'}
       </span>
     </div>
   );
@@ -100,7 +106,7 @@ export function QuestionModerationPanel({
                     onClick={() => onApprove(question._id)}
                     disabled={isUpdating}
                   >
-                    <Check className="mr-2 h-4 w-4" />
+                    <Check className="h-4 w-4" />
                     Approve
                   </Button>
 
@@ -110,7 +116,7 @@ export function QuestionModerationPanel({
                     onClick={() => onDismiss(question._id)}
                     disabled={isUpdating}
                   >
-                    <X className="mr-2 h-4 w-4" />
+                    <X className="h-4 w-4" />
                     Dismiss
                   </Button>
                 </div>
@@ -147,7 +153,7 @@ export function QuestionModerationPanel({
                     onClick={() => onMarkAnswered(question._id)}
                     disabled={isUpdating}
                   >
-                    <CheckCheck className="mr-2 h-4 w-4" />
+                    <CheckCheck className="h-4 w-4" />
                     Mark Answered
                   </Button>
 
@@ -157,7 +163,7 @@ export function QuestionModerationPanel({
                     onClick={() => onDismiss(question._id)}
                     disabled={isUpdating}
                   >
-                    <X className="mr-2 h-4 w-4" />
+                    <X className="h-4 w-4" />
                     Dismiss
                   </Button>
                 </div>

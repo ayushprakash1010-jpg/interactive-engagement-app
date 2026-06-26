@@ -27,7 +27,7 @@ export default function JoinCodePage() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-surface-canvas px-4 py-8">
       <div className="mx-auto w-full max-w-container-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-6 rounded-2xl border border-border bg-surface-card p-3 shadow-sm">
+          <div className="mb-6 rounded-lg border border-border bg-surface-card p-3 shadow-sm">
             <Logomark size={44} />
           </div>
           <Eyebrow>You&apos;re joining</Eyebrow>

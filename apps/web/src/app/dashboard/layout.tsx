@@ -27,8 +27,15 @@ export default function DashboardLayout({
   const eventDetailMatch = pathname.match(/^\/dashboard\/events\/([^/]+)$/);
   const analyticsMatch = pathname.match(/^\/dashboard\/events\/([^/]+)\/analytics$/);
   const isAccountPage = pathname === '/dashboard/account';
+  const isAIStudioPage = pathname === '/dashboard/ai';
 
-  if (pathname === '/dashboard' || isAccountPage || eventDetailMatch || analyticsMatch) {
+  if (
+    pathname === '/dashboard' ||
+    isAccountPage ||
+    isAIStudioPage ||
+    eventDetailMatch ||
+    analyticsMatch
+  ) {
     const eventId = eventDetailMatch?.[1] ?? analyticsMatch?.[1];
 
     return (
@@ -52,6 +59,11 @@ export default function DashboardLayout({
               ? [
                   { label: 'Workspace', href: '/dashboard' },
                   { label: 'Account' },
+                ]
+            : isAIStudioPage
+              ? [
+                  { label: 'Workspace', href: '/dashboard' },
+                  { label: 'AI Studio' },
                 ]
             : [
                 { label: 'Workspace', href: '/dashboard' },
