@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SurfacePanel } from "@/components/ui/surface-panel";
+import { apiFetch } from "@/lib/events-api";
 import type {
   PollConfig,
   CreateActivityPayload,
@@ -105,29 +106,29 @@ export function PollBuilder({
     try {
       setIsGenerating(true);
 
-      let response: Response | null = null;
+      let data: { question?: string; options?: unknown[] } | null = null;
 
       for (let attempt = 1; attempt <= 3; attempt++) {
-        response = await fetch("http://localhost:4000/ai/generate-poll", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ topic }),
-        });
-
-        if (response.ok) break;
-
-        if (attempt < 3) {
+        try {
+          data = await apiFetch<{ question?: string; options?: unknown[] }>(
+            "ai/generate-poll",
+            {
+              method: "POST",
+              body: JSON.stringify({ topic }),
+            },
+          );
+          break;
+        } catch (error) {
+          if (attempt === 3) {
+            throw error;
+          }
           await new Promise((resolve) => setTimeout(resolve, 1200));
         }
       }
 
-      if (!response || !response.ok) {
+      if (!data) {
         throw new Error("Failed to generate poll after retries");
       }
-
-      const data = await response.json();
 
       setPollType("single");
       setQuestion(data.question ?? "");

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { Textarea } from "@/components/ui/textarea";
+import { apiFetch } from "@/lib/events-api";
 import type {
   WordCloudConfig,
   CreateActivityPayload,
@@ -89,22 +90,13 @@ export function WordCloudBuilder({
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-          const response = await fetch(
-            "http://localhost:4000/ai/generate-wordcloud",
+          const data = await apiFetch<{ words?: unknown[] }>(
+            "ai/generate-wordcloud",
             {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
               body: JSON.stringify({ topic }),
             },
           );
-
-          if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
-          }
-
-          const data = await response.json();
 
           if (!Array.isArray(data.words) || data.words.length === 0) {
             throw new Error("AI did not return word cloud suggestions");

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { Textarea } from "@/components/ui/textarea";
+import { apiFetch } from "@/lib/events-api";
 
 type FeedbackFieldType = "rating" | "text";
 
@@ -87,22 +88,13 @@ export function FeedbackBuilder({
     try {
       setIsGenerating(true);
 
-      const response = await fetch(
-        "http://localhost:4000/ai/generate-feedback",
+      const data = await apiFetch<{ question?: string }>(
+        "ai/generate-feedback",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({ topic }),
         },
       );
-
-      if (!response.ok) {
-        throw new Error("Failed to generate feedback");
-      }
-
-      const data = await response.json();
 
       onChange({
         ...value,

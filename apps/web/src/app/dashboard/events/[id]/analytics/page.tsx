@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { useParams } from 'next/navigation';
+import * as React from "react";
+import { useParams } from "next/navigation";
 import {
   Download,
   Users,
@@ -9,7 +9,7 @@ import {
   Activity,
   BarChart2,
   Sparkles,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -21,7 +21,7 @@ import {
   Line,
   CartesianGrid,
   Cell,
-} from 'recharts';
+} from "recharts";
 import {
   ActionGroup,
   BackLink as SharedBackLink,
@@ -35,17 +35,18 @@ import {
   MetricCard,
   PageHeader,
   StatusBadge,
-} from '@/components/ui';
-import { useAnalytics, downloadReport } from '@/hooks/use-analytics';
-import { useEvent } from '@/lib/use-events';
+} from "@/components/ui";
+import { useAnalytics, downloadReport } from "@/hooks/use-analytics";
+import { useEvent } from "@/lib/use-events";
+import { apiFetch } from "@/lib/events-api";
 
 const CHART_COLORS = [
-  '#01696f',
-  '#437a22',
-  '#006494',
-  '#d19900',
-  '#da7101',
-  '#7a39bb',
+  "#01696f",
+  "#437a22",
+  "#006494",
+  "#d19900",
+  "#da7101",
+  "#7a39bb",
 ];
 
 function formatPercentFromRatio(value: number | null | undefined) {
@@ -55,9 +56,9 @@ function formatPercentFromRatio(value: number | null | undefined) {
 function PollChart({
   poll,
 }: {
-  poll: import('@/hooks/use-analytics').PollAnalytic;
+  poll: import("@/hooks/use-analytics").PollAnalytic;
 }) {
-  if (poll.pollType === 'open') {
+  if (poll.pollType === "open") {
     return (
       <div className="space-y-1 text-sm">
         {(poll.responses ?? []).slice(0, 20).map((r, i) => (
@@ -77,7 +78,7 @@ function PollChart({
     );
   }
 
-  if (poll.pollType === 'rating') {
+  if (poll.pollType === "rating") {
     const distributionSource = poll.distribution ?? {};
     const data = Array.isArray(distributionSource)
       ? distributionSource.map((d: any) => ({
@@ -92,9 +93,9 @@ function PollChart({
     return (
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          Average:{' '}
+          Average:{" "}
           <span className="font-semibold text-foreground">
-            {poll.average?.toFixed(1) ?? '0.0'}
+            {poll.average?.toFixed(1) ?? "0.0"}
           </span>
         </p>
         <ResponsiveContainer width="100%" height={160}>
@@ -106,15 +107,11 @@ function PollChart({
             <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
             <Tooltip
               formatter={(value) => [
-                `${Array.isArray(value) ? value.join(', ') : value ?? 0} responses`,
-                'Count',
+                `${Array.isArray(value) ? value.join(", ") : (value ?? 0)} responses`,
+                "Count",
               ]}
             />
-            <Bar
-              dataKey="count"
-              fill={CHART_COLORS[0]}
-              radius={[3, 3, 0, 0]}
-            />
+            <Bar dataKey="count" fill={CHART_COLORS[0]} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -144,10 +141,10 @@ function PollChart({
         />
         <Tooltip
           formatter={(value, _name, item) => [
-            `${Array.isArray(value) ? value.join(', ') : value ?? 0} (${item?.payload?.pct ?? 0}%)`,
-            'Responses',
+            `${Array.isArray(value) ? value.join(", ") : (value ?? 0)} (${item?.payload?.pct ?? 0}%)`,
+            "Responses",
           ]}
-          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ''}
+          labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
         />
         <Bar dataKey="count" radius={[0, 3, 3, 0]}>
           {data.map((_, i) => (
@@ -162,7 +159,7 @@ function PollChart({
 function WordCloudDisplay({
   words,
 }: {
-  words: import('@/hooks/use-analytics').WordEntry[];
+  words: import("@/hooks/use-analytics").WordEntry[];
 }) {
   const max = words[0]?.weight ?? 1;
 
@@ -190,7 +187,7 @@ function WordCloudDisplay({
 function QuizLeaderboard({
   quiz,
 }: {
-  quiz: import('@/hooks/use-analytics').QuizAnalytic;
+  quiz: import("@/hooks/use-analytics").QuizAnalytic;
 }) {
   return (
     <div className="space-y-2">
@@ -198,10 +195,10 @@ function QuizLeaderboard({
         const anonId =
           (entry as any).participantAnonId ??
           (entry as any).anonId ??
-          'anonymous';
+          "anonymous";
         const displayName = (entry as any).displayName;
         const participantName =
-          typeof displayName === 'string' && displayName.trim().length > 0
+          typeof displayName === "string" && displayName.trim().length > 0
             ? displayName.trim()
             : `Participant ${String(anonId).slice(0, 6)}`;
         const points = (entry as any).totalPoints ?? (entry as any).points ?? 0;
@@ -235,19 +232,19 @@ function QuizLeaderboard({
 function FeedbackSection({
   feedback,
 }: {
-  feedback: import('@/hooks/use-analytics').FeedbackAnalytic;
+  feedback: import("@/hooks/use-analytics").FeedbackAnalytic;
 }) {
   return (
     <div className="space-y-4">
       {feedback.fields.map((field) =>
-        field.type === 'rating' ? (
+        field.type === "rating" ? (
           <div key={field.fieldId} className="space-y-1">
             <p className="text-sm font-medium">{field.label}</p>
             <p className="text-xs text-muted-foreground">
-              Average:{' '}
+              Average:{" "}
               <span className="font-semibold text-foreground">
                 {field.average.toFixed(1)}
-              </span>{' '}
+              </span>{" "}
               ({field.count} responses)
             </p>
             <div className="flex gap-1">
@@ -255,7 +252,8 @@ function FeedbackSection({
                 .sort(([a], [b]) => Number(a) - Number(b))
                 .map(([rating, count]) => {
                   const numericCount = Number(count);
-                  const ratio = field.count > 0 ? numericCount / field.count : 0;
+                  const ratio =
+                    field.count > 0 ? numericCount / field.count : 0;
 
                   return (
                     <div key={rating} className="text-center text-xs">
@@ -292,7 +290,7 @@ function FeedbackSection({
 function EngagementTimeline({
   data,
 }: {
-  data: import('@/hooks/use-analytics').TimelineBucket[];
+  data: import("@/hooks/use-analytics").TimelineBucket[];
 }) {
   if (data.length === 0) {
     return (
@@ -303,10 +301,10 @@ function EngagementTimeline({
   }
 
   const chartData = data.map((d) => ({
-    time: new Date(d.minute).toLocaleTimeString('en-IN', {
-      timeZone: 'Asia/Kolkata',
-      hour: '2-digit',
-      minute: '2-digit',
+    time: new Date(d.minute).toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
       hour12: false,
     }),
     responses: d.responses,
@@ -360,21 +358,20 @@ function AnalyticsSkeleton() {
 
 export default function AnalyticsPage() {
   const params = useParams<{ id: string }>();
-  const id = params?.id ?? '';
+  const id = params?.id ?? "";
 
   const { data: event } = useEvent(id);
   const { data: report, isLoading, isError, error } = useAnalytics(id);
-  const [downloading, setDownloading] = React.useState<'csv' | 'pdf' | null>(
+  const [downloading, setDownloading] = React.useState<"csv" | "pdf" | null>(
     null,
   );
-  const [summary, setSummary] = React.useState('');
-const [isGeneratingSummary, setIsGeneratingSummary] = React.useState(false);
+  const [summary, setSummary] = React.useState("");
+  const [isGeneratingSummary, setIsGeneratingSummary] = React.useState(false);
 
-const [insights, setInsights] = React.useState<string[]>([]);
-const [isGeneratingInsights, setIsGeneratingInsights] =
-  React.useState(false);
+  const [insights, setInsights] = React.useState<string[]>([]);
+  const [isGeneratingInsights, setIsGeneratingInsights] = React.useState(false);
 
-  const handleDownload = async (format: 'csv' | 'pdf') => {
+  const handleDownload = async (format: "csv" | "pdf") => {
     if (!id) return;
 
     setDownloading(format);
@@ -390,7 +387,9 @@ const [isGeneratingInsights, setIsGeneratingInsights] =
   if (isError || !report) {
     return (
       <div className="space-y-4">
-        <SharedBackLink href={`/dashboard/events/${id}`}>Back to event</SharedBackLink>
+        <SharedBackLink href={`/dashboard/events/${id}`}>
+          Back to event
+        </SharedBackLink>
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle className="text-base text-destructive">
@@ -399,7 +398,7 @@ const [isGeneratingInsights, setIsGeneratingInsights] =
             <CardDescription>
               {error instanceof Error
                 ? error.message
-                : 'Analytics not yet available.'}
+                : "Analytics not yet available."}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -418,15 +417,13 @@ const [isGeneratingInsights, setIsGeneratingInsights] =
   } = report;
 
   const handleGenerateSummary = async () => {
-  try {
-    setIsGeneratingSummary(true);
+    try {
+      setIsGeneratingSummary(true);
 
-    const summaryData = `
+      const summaryData = `
 Participants: ${headlineStats?.totalParticipants ?? 0}
 Responses: ${headlineStats?.totalResponses ?? 0}
-Participation Rate: ${formatPercentFromRatio(
-  headlineStats?.participationRate,
-)}
+Participation Rate: ${formatPercentFromRatio(headlineStats?.participationRate)}
 Questions Asked: ${qaAnalytics?.totalQuestions ?? 0}
 Word Clouds: ${wordCloudAnalytics?.length ?? 0}
 Feedback Forms: ${feedbackAnalytics?.length ?? 0}
@@ -434,41 +431,30 @@ Quizzes: ${quizAnalytics?.length ?? 0}
 Polls: ${pollAnalytics?.length ?? 0}
 `;
 
-    const response = await fetch(
-      'http://localhost:4000/ai/generate-session-summary',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const result = await apiFetch<{ summary?: string }>(
+        "ai/generate-session-summary",
+        {
+          method: "POST",
+          body: JSON.stringify({ data: summaryData }),
         },
-        body: JSON.stringify({ data: summaryData }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to generate summary');
+      );
+      setSummary(result.summary ?? "");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to generate AI summary");
+    } finally {
+      setIsGeneratingSummary(false);
     }
+  };
 
-    const result = await response.json();
-    setSummary(result.summary ?? '');
-  } catch (error) {
-    console.error(error);
-    alert('Failed to generate AI summary');
-  } finally {
-    setIsGeneratingSummary(false);
-  }
-};
+  const handleGenerateInsights = async () => {
+    try {
+      setIsGeneratingInsights(true);
 
-const handleGenerateInsights = async () => {
-  try {
-    setIsGeneratingInsights(true);
-
-    const insightsData = `
+      const insightsData = `
 Participants: ${headlineStats?.totalParticipants ?? 0}
 Responses: ${headlineStats?.totalResponses ?? 0}
-Participation Rate: ${formatPercentFromRatio(
-  headlineStats?.participationRate,
-)}
+Participation Rate: ${formatPercentFromRatio(headlineStats?.participationRate)}
 Questions Asked: ${qaAnalytics?.totalQuestions ?? 0}
 Word Clouds: ${wordCloudAnalytics?.length ?? 0}
 Feedback Forms: ${feedbackAnalytics?.length ?? 0}
@@ -476,43 +462,46 @@ Quizzes: ${quizAnalytics?.length ?? 0}
 Polls: ${pollAnalytics?.length ?? 0}
 `;
 
-    const response = await fetch(
-      'http://localhost:4000/ai/generate-insights',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const result = await apiFetch<{ insights?: string[] }>(
+        "ai/generate-insights",
+        {
+          method: "POST",
+          body: JSON.stringify({ data: insightsData }),
         },
-        body: JSON.stringify({ data: insightsData }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error('Failed to generate insights');
+      );
+      setInsights(result.insights ?? []);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to generate AI insights");
+    } finally {
+      setIsGeneratingInsights(false);
     }
-
-    const result = await response.json();
-    setInsights(result.insights ?? []);
-  } catch (error) {
-    console.error(error);
-    alert('Failed to generate AI insights');
-  } finally {
-    setIsGeneratingInsights(false);
-  }
-};
+  };
 
   return (
     <div className="space-y-8">
       <PageHeader
-        leading={<SharedBackLink href={`/dashboard/events/${id}`}>Back to event</SharedBackLink>}
+        leading={
+          <SharedBackLink href={`/dashboard/events/${id}`}>
+            Back to event
+          </SharedBackLink>
+        }
         eyebrow="Session report"
-        title={`${event?.name ?? 'Event'} analytics`}
-        description={`Generated ${new Date(report.generatedAt).toLocaleString('en-IN', {
-          timeZone: 'Asia/Kolkata',
-          dateStyle: 'medium',
-          timeStyle: 'medium',
-        })}`}
-        badge={<StatusBadge status={event?.status ?? 'ended'} className="capitalize" />}
+        title={`${event?.name ?? "Event"} analytics`}
+        description={`Generated ${new Date(report.generatedAt).toLocaleString(
+          "en-IN",
+          {
+            timeZone: "Asia/Kolkata",
+            dateStyle: "medium",
+            timeStyle: "medium",
+          },
+        )}`}
+        badge={
+          <StatusBadge
+            status={event?.status ?? "ended"}
+            className="capitalize"
+          />
+        }
         actions={
           <ActionGroup>
             <Button
@@ -522,7 +511,7 @@ Polls: ${pollAnalytics?.length ?? 0}
               onClick={handleGenerateSummary}
             >
               <Sparkles className="h-4 w-4 text-ai" />
-              {isGeneratingSummary ? 'Generating…' : 'AI Summary'}
+              {isGeneratingSummary ? "Generating…" : "AI Summary"}
             </Button>
             <Button
               variant="outline"
@@ -531,40 +520,38 @@ Polls: ${pollAnalytics?.length ?? 0}
               onClick={handleGenerateInsights}
             >
               <Sparkles className="h-4 w-4 text-ai" />
-              {isGeneratingInsights ? 'Generating…' : 'AI Insights'}
+              {isGeneratingInsights ? "Generating…" : "AI Insights"}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              disabled={downloading === 'csv'}
-              onClick={() => handleDownload('csv')}
+              disabled={downloading === "csv"}
+              onClick={() => handleDownload("csv")}
             >
               <Download className="h-4 w-4" />
-              {downloading === 'csv' ? 'Exporting...' : 'CSV'}
+              {downloading === "csv" ? "Exporting..." : "CSV"}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              disabled={downloading === 'pdf'}
-              onClick={() => handleDownload('pdf')}
+              disabled={downloading === "pdf"}
+              onClick={() => handleDownload("pdf")}
             >
               <Download className="h-4 w-4" />
-              {downloading === 'pdf' ? 'Exporting...' : 'PDF'}
+              {downloading === "pdf" ? "Exporting..." : "PDF"}
             </Button>
           </ActionGroup>
         }
       />
 
-            {summary && (
+      {summary && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-ai" />
               AI Session Summary
             </CardTitle>
-            <CardDescription>
-              Generated from event analytics
-            </CardDescription>
+            <CardDescription>Generated from event analytics</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="whitespace-pre-wrap leading-7">{summary}</p>
@@ -579,9 +566,7 @@ Polls: ${pollAnalytics?.length ?? 0}
               <BarChart2 className="h-5 w-5 text-ai" />
               AI Insights
             </CardTitle>
-            <CardDescription>
-              Generated from event analytics
-            </CardDescription>
+            <CardDescription>Generated from event analytics</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="list-disc space-y-2 pl-5">
@@ -632,7 +617,9 @@ Polls: ${pollAnalytics?.length ?? 0}
 
       {pollAnalytics.length > 0 && (
         <section className="space-y-4">
-          <h2 className="font-display text-lg font-semibold text-foreground">Polls</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Polls
+          </h2>
           <div className="grid gap-6 md:grid-cols-2">
             {pollAnalytics.map((poll) => (
               <Card key={poll.activityId}>
@@ -642,7 +629,7 @@ Polls: ${pollAnalytics?.length ?? 0}
                   </CardTitle>
                   <CardDescription>
                     {poll.totalResponses} response
-                    {poll.totalResponses !== 1 ? 's' : ''} · {poll.pollType}
+                    {poll.totalResponses !== 1 ? "s" : ""} · {poll.pollType}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -656,7 +643,9 @@ Polls: ${pollAnalytics?.length ?? 0}
 
       {quizAnalytics.length > 0 && (
         <section className="space-y-4">
-          <h2 className="font-display text-lg font-semibold text-foreground">Quizzes</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Quizzes
+          </h2>
           <div className="grid gap-6 md:grid-cols-2">
             {quizAnalytics.map((quiz) => (
               <Card key={quiz.activityId}>
@@ -666,7 +655,7 @@ Polls: ${pollAnalytics?.length ?? 0}
                   </CardTitle>
                   <CardDescription>
                     {quiz.questionStats.length} question
-                    {quiz.questionStats.length !== 1 ? 's' : ''}
+                    {quiz.questionStats.length !== 1 ? "s" : ""}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -679,7 +668,8 @@ Polls: ${pollAnalytics?.length ?? 0}
                       <div className="space-y-1">
                         {quiz.questionStats.map((q, i) => {
                           const pct =
-                            typeof q.correctPct === 'number' && q.correctPct <= 1
+                            typeof q.correctPct === "number" &&
+                            q.correctPct <= 1
                               ? Number((q.correctPct * 100).toFixed(1))
                               : Number(q.correctPct ?? 0);
 
@@ -715,7 +705,9 @@ Polls: ${pollAnalytics?.length ?? 0}
 
       {wordCloudAnalytics.length > 0 && (
         <section className="space-y-4">
-          <h2 className="font-display text-lg font-semibold text-foreground">Word clouds</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Word clouds
+          </h2>
           <div className="grid gap-6 md:grid-cols-2">
             {wordCloudAnalytics.map((wc) => (
               <Card key={wc.activityId}>
@@ -742,7 +734,9 @@ Polls: ${pollAnalytics?.length ?? 0}
 
       {feedbackAnalytics.length > 0 && (
         <section className="space-y-4">
-          <h2 className="font-display text-lg font-semibold text-foreground">Feedback</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Feedback
+          </h2>
           <div className="grid gap-6 md:grid-cols-2">
             {feedbackAnalytics.map((fb) => (
               <Card key={fb.activityId}>
@@ -752,7 +746,7 @@ Polls: ${pollAnalytics?.length ?? 0}
                   </CardTitle>
                   <CardDescription>
                     {fb.totalResponses} response
-                    {fb.totalResponses !== 1 ? 's' : ''}
+                    {fb.totalResponses !== 1 ? "s" : ""}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -766,7 +760,9 @@ Polls: ${pollAnalytics?.length ?? 0}
 
       {qaAnalytics.topQuestions.length > 0 && (
         <section className="space-y-4">
-          <h2 className="font-display text-lg font-semibold text-foreground">Top questions</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Top questions
+          </h2>
           <Card>
             <CardContent className="space-y-2 pt-4">
               {qaAnalytics.topQuestions.map((q, index) => (

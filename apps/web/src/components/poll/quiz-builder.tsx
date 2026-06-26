@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SurfacePanel } from "@/components/ui/surface-panel";
+import { apiFetch } from "@/lib/events-api";
 import type {
   QuizConfig,
   QuizQuestion,
@@ -32,6 +33,12 @@ const createQuestion = (): QuizQuestion => {
     points: 100,
     timeLimitSec: 20,
   };
+};
+
+type GeneratedQuizQuestion = {
+  question?: string;
+  options?: string[];
+  correctAnswer?: string;
 };
 
 interface Props {
@@ -199,27 +206,22 @@ export function QuizBuilder({
     try {
       setIsGenerating(true);
 
-      let response: Response | null = null;
+      let data: { questions?: GeneratedQuizQuestion[] } | null = null;
       let lastError = "";
 
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          response = await fetch("http://localhost:4000/ai/generate-quiz", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+          data = await apiFetch<{ questions?: GeneratedQuizQuestion[] }>(
+            "ai/generate-quiz",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                topic,
+                count: questionCount,
+              }),
             },
-            body: JSON.stringify({
-              topic,
-              count: questionCount,
-            }),
-          });
-
-          if (response.ok) {
-            break;
-          }
-
-          lastError = await response.text();
+          );
+          break;
         } catch (error) {
           lastError =
             error instanceof Error ? error.message : "Network request failed";
@@ -230,11 +232,9 @@ export function QuizBuilder({
         }
       }
 
-      if (!response || !response.ok) {
+      if (!data) {
         throw new Error(lastError || "Quiz generation failed after retries");
       }
-
-      const data = await response.json();
 
       if (!Array.isArray(data.questions) || data.questions.length === 0) {
         throw new Error("AI returned no quiz questions");

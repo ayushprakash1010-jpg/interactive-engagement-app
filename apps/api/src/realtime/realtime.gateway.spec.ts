@@ -1,6 +1,6 @@
 // apps/api/src/realtime/realtime.gateway.spec.ts
-import { ServerEvents, rooms } from '@iep/types';
-import { RealtimeGateway } from './realtime.gateway';
+import { ServerEvents, rooms } from "@iep/types";
+import { RealtimeGateway } from "./realtime.gateway";
 
 /**
  * Minimal in-memory stand-in for the Redis hash commands the gateway uses,
@@ -43,7 +43,7 @@ function createClient(id: string) {
   } as any;
 }
 
-describe('RealtimeGateway participant count', () => {
+describe("RealtimeGateway participant count", () => {
   let gateway: RealtimeGateway;
   let emit: jest.Mock;
   let redis: ReturnType<typeof createFakeRedis>;
@@ -70,6 +70,7 @@ describe('RealtimeGateway participant count', () => {
 
   const questionsService = {
     findApprovedByEvent: jest.fn(async () => []),
+    findByEvent: jest.fn(async () => []),
     create: jest.fn(),
     addVote: jest.fn(),
     updateStatus: jest.fn(),
@@ -77,12 +78,17 @@ describe('RealtimeGateway participant count', () => {
 
   const analyticsService = {
     invalidateCache: jest.fn(async () => undefined),
+    invalidateCacheIfLive: jest.fn(async () => undefined),
     generateReport: jest.fn(async () => ({})),
     cacheFinalReport: jest.fn(async () => undefined),
   };
 
   const rateLimitService = {
-    consume: jest.fn(async () => ({ allowed: true, remaining: 99, retryAfter: 0 })),
+    consume: jest.fn(async () => ({
+      allowed: true,
+      remaining: 99,
+      retryAfter: 0,
+    })),
     consumeForAction: jest.fn(async () => ({
       allowed: true,
       remaining: 99,
@@ -91,9 +97,9 @@ describe('RealtimeGateway participant count', () => {
   };
 
   const event = {
-    _id: 'evt1',
-    eventCode: 'ABC123',
-    status: 'live',
+    _id: "evt1",
+    eventCode: "ABC123",
+    status: "live",
     activeActivityId: null,
   };
 
@@ -105,6 +111,7 @@ describe('RealtimeGateway participant count', () => {
     events.findByEventCode.mockResolvedValue(event);
     responseService.computeTally.mockResolvedValue(null);
     questionsService.findApprovedByEvent.mockResolvedValue([]);
+    questionsService.findByEvent.mockResolvedValue([]);
 
     gateway = new RealtimeGateway(
       events as any,
@@ -128,38 +135,38 @@ describe('RealtimeGateway participant count', () => {
     return calls.length ? calls[calls.length - 1][1].count : undefined;
   };
 
-  it('counts two tabs of the same anonId as one participant', async () => {
+  it("counts two tabs of the same anonId as one participant", async () => {
     await gateway.handleEventJoin(
-      { eventCode: 'ABC123', anonId: 'a' },
-      createClient('s1'),
+      { eventCode: "ABC123", anonId: "a" },
+      createClient("s1"),
     );
     await gateway.handleEventJoin(
-      { eventCode: 'ABC123', anonId: 'a' },
-      createClient('s2'),
+      { eventCode: "ABC123", anonId: "a" },
+      createClient("s2"),
     );
 
     expect(lastCount()).toBe(1);
   });
 
-  it('counts distinct anonIds separately', async () => {
+  it("counts distinct anonIds separately", async () => {
     await gateway.handleEventJoin(
-      { eventCode: 'ABC123', anonId: 'a' },
-      createClient('s1'),
+      { eventCode: "ABC123", anonId: "a" },
+      createClient("s1"),
     );
     await gateway.handleEventJoin(
-      { eventCode: 'ABC123', anonId: 'b' },
-      createClient('s2'),
+      { eventCode: "ABC123", anonId: "b" },
+      createClient("s2"),
     );
 
     expect(lastCount()).toBe(2);
   });
 
-  it('keeps a participant counted until their last socket disconnects', async () => {
-    const s1 = createClient('s1');
-    const s2 = createClient('s2');
+  it("keeps a participant counted until their last socket disconnects", async () => {
+    const s1 = createClient("s1");
+    const s2 = createClient("s2");
 
-    await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, s1);
-    await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, s2);
+    await gateway.handleEventJoin({ eventCode: "ABC123", anonId: "a" }, s1);
+    await gateway.handleEventJoin({ eventCode: "ABC123", anonId: "a" }, s2);
 
     await gateway.handleDisconnect(s1);
     expect(lastCount()).toBe(1);
@@ -167,14 +174,14 @@ describe('RealtimeGateway participant count', () => {
 
     await gateway.handleDisconnect(s2);
     expect(lastCount()).toBe(0);
-    expect(participants.markDisconnected).toHaveBeenCalledWith('evt1', 'a');
+    expect(participants.markDisconnected).toHaveBeenCalledWith("evt1", "a");
   });
 
-  it('rejects an invalid code with a friendly error and does not count it', async () => {
+  it("rejects an invalid code with a friendly error and does not count it", async () => {
     events.findByEventCode.mockResolvedValueOnce(null);
-    const client = createClient('s1');
+    const client = createClient("s1");
 
-    await gateway.handleEventJoin({ eventCode: 'NOPE12', anonId: 'a' }, client);
+    await gateway.handleEventJoin({ eventCode: "NOPE12", anonId: "a" }, client);
 
     expect(client.emit).toHaveBeenCalledWith(
       ServerEvents.ERROR,
@@ -184,11 +191,11 @@ describe('RealtimeGateway participant count', () => {
     expect(lastCount()).toBeUndefined();
   });
 
-  it('rejects an ended event', async () => {
-    events.findByEventCode.mockResolvedValueOnce({ ...event, status: 'ended' });
-    const client = createClient('s1');
+  it("rejects an ended event", async () => {
+    events.findByEventCode.mockResolvedValueOnce({ ...event, status: "ended" });
+    const client = createClient("s1");
 
-    await gateway.handleEventJoin({ eventCode: 'ABC123', anonId: 'a' }, client);
+    await gateway.handleEventJoin({ eventCode: "ABC123", anonId: "a" }, client);
 
     expect(client.emit).toHaveBeenCalledWith(
       ServerEvents.ERROR,
@@ -196,13 +203,13 @@ describe('RealtimeGateway participant count', () => {
     );
   });
 
-  it('observers join the room without being counted', async () => {
-    const client = createClient('obs');
+  it("observers join the room without being counted", async () => {
+    const client = createClient("obs");
 
-    await gateway.handleEventObserve({ eventCode: 'ABC123' }, client);
+    await gateway.handleEventObserve({ eventCode: "ABC123" }, client);
 
-    expect(client.join).toHaveBeenCalledWith('event:evt1');
-    expect(client.join).toHaveBeenCalledWith('host:evt1');
+    expect(client.join).toHaveBeenCalledWith("event:evt1");
+    expect(client.join).toHaveBeenCalledWith("host:evt1");
     expect(participants.upsertParticipant).not.toHaveBeenCalled();
     expect(client.emit).toHaveBeenCalledWith(ServerEvents.PARTICIPANT_COUNT, {
       count: 0,
@@ -214,67 +221,78 @@ describe('RealtimeGateway participant count', () => {
   const roomsTargeted = () =>
     (gateway.server.to as jest.Mock).mock.calls.map(([room]) => room);
 
-  it('holds a question for the host only when moderation is ON', async () => {
+  it("holds a question for the host only when moderation is ON", async () => {
     events.findByEventCode.mockResolvedValueOnce({
       ...event,
       settings: { requireModeration: true },
     });
-    questionsService.create.mockResolvedValueOnce({ _id: 'q1', eventId: 'evt1' });
+    questionsService.create.mockResolvedValueOnce({
+      _id: "q1",
+      eventId: "evt1",
+    });
 
     await gateway.handleQaAsk(
-      { eventCode: 'ABC123', anonId: 'a', text: 'Hi?' },
-      createClient('s1'),
+      { eventCode: "ABC123", anonId: "a", text: "Hi?" },
+      createClient("s1"),
     );
 
     // Created as pending and broadcast to the host room — NEVER the event room.
     expect(questionsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'pending' }),
+      expect.objectContaining({ status: "pending" }),
     );
-    expect(roomsTargeted()).toContain(rooms.host('evt1'));
-    expect(roomsTargeted()).not.toContain(rooms.event('evt1'));
+    expect(roomsTargeted()).toContain(rooms.host("evt1"));
+    expect(roomsTargeted()).not.toContain(rooms.event("evt1"));
     expect(emit).toHaveBeenCalledWith(ServerEvents.QA_NEW, {
-      question: { _id: 'q1', eventId: 'evt1' },
+      question: { _id: "q1", eventId: "evt1" },
     });
   });
 
-  it('broadcasts a question to everyone when moderation is OFF', async () => {
+  it("broadcasts a question to everyone when moderation is OFF", async () => {
     events.findByEventCode.mockResolvedValueOnce({
       ...event,
       settings: { requireModeration: false },
     });
-    questionsService.create.mockResolvedValueOnce({ _id: 'q2', eventId: 'evt1' });
+    questionsService.create.mockResolvedValueOnce({
+      _id: "q2",
+      eventId: "evt1",
+    });
 
     await gateway.handleQaAsk(
-      { eventCode: 'ABC123', anonId: 'a', text: 'Hi?' },
-      createClient('s1'),
+      { eventCode: "ABC123", anonId: "a", text: "Hi?" },
+      createClient("s1"),
     );
 
     expect(questionsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'approved' }),
+      expect.objectContaining({ status: "approved" }),
     );
-    expect(roomsTargeted()).toContain(rooms.event('evt1'));
+    expect(roomsTargeted()).toContain(rooms.event("evt1"));
     expect(emit).toHaveBeenCalledWith(ServerEvents.QA_NEW, {
-      question: { _id: 'q2', eventId: 'evt1' },
+      question: { _id: "q2", eventId: "evt1" },
     });
   });
 
-  it('on approval, broadcasts the question to the whole room', async () => {
+  it("on approval, broadcasts the question to the whole room", async () => {
     questionsService.updateStatus.mockResolvedValueOnce({
-      _id: 'q3',
-      eventId: 'evt1',
-      status: 'approved',
+      _id: "q3",
+      eventId: "evt1",
+      status: "approved",
     });
 
     await gateway.handleQaModerate(
-      { questionId: 'q3', status: 'approved' },
-      createClient('s1'),
+      { questionId: "q3", status: "approved" },
+      createClient("s1"),
     );
 
-    expect(questionsService.updateStatus).toHaveBeenCalledWith('q3', 'approved');
-    expect(roomsTargeted()).toContain(rooms.event('evt1'));
+    expect(questionsService.updateStatus).toHaveBeenCalledWith(
+      "q3",
+      "approved",
+    );
+    expect(roomsTargeted()).toContain(rooms.event("evt1"));
     expect(emit).toHaveBeenCalledWith(
       ServerEvents.QA_NEW,
-      expect.objectContaining({ question: expect.objectContaining({ _id: 'q3' }) }),
+      expect.objectContaining({
+        question: expect.objectContaining({ _id: "q3" }),
+      }),
     );
   });
 });
