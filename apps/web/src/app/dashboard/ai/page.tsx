@@ -10,17 +10,26 @@ import {
   Cloud,
   HelpCircle,
   Star,
-  ChevronDown,
+  FileText,
+  Lightbulb,
+  MessageSquareText,
+  WandSparkles,
 } from 'lucide-react';
 import {
+  ActionGroup,
+  Button,
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+  EmptyState,
+  LoadingSkeleton,
+  PageHeader,
+  SectionHeader,
+  Select,
+  SurfacePanel,
+} from '@/components/ui';
 import {
-  Eyebrow,
   AIBadge,
   AIComposer,
   AISummaryCard,
@@ -71,6 +80,34 @@ const SUGGESTIONS = [
   'A 30-minute product kickoff for 80 people',
   'An icebreaker plus a 5-question trivia round',
   'A retro that gathers wins, blockers, and a mood rating',
+];
+
+const FEATURE_CARDS = [
+  {
+    title: 'Poll generation',
+    description: 'Turn goals into quick audience checks and decision points.',
+    icon: <BarChart3 className="h-4 w-4" />,
+  },
+  {
+    title: 'Quiz generation',
+    description: 'Draft knowledge checks with ready-to-review questions.',
+    icon: <ListChecks className="h-4 w-4" />,
+  },
+  {
+    title: 'Feedback generation',
+    description: 'Shape retros, sentiment prompts, and open response moments.',
+    icon: <MessageSquareText className="h-4 w-4" />,
+  },
+  {
+    title: 'Word cloud generation',
+    description: 'Prompt fast, visual audience inputs for live discussion.',
+    icon: <Cloud className="h-4 w-4" />,
+  },
+  {
+    title: 'Summary and insights',
+    description: 'Distill live answers into themes hosts can act on.',
+    icon: <Lightbulb className="h-4 w-4" />,
+  },
 ];
 
 function normaliseActivity(
@@ -136,7 +173,9 @@ export default function AIStudioPage() {
   const [accepted, setAccepted] = React.useState<DraftActivity[]>([]);
 
   const [isCreatingEvent, setIsCreatingEvent] = React.useState(false);
-  const [createEventError, setCreateEventError] = React.useState<string | null>(null);
+  const [createEventError, setCreateEventError] = React.useState<string | null>(
+    null,
+  );
 
   const [events, setEvents] = React.useState<
     Array<{ id: string; name: string; eventCode?: string }>
@@ -144,7 +183,8 @@ export default function AIStudioPage() {
   const [eventsLoading, setEventsLoading] = React.useState(false);
   const [selectedEventId, setSelectedEventId] = React.useState('');
   const [summarizing, setSummarizing] = React.useState(false);
-  const [summaryResult, setSummaryResult] = React.useState<LiveSummaryResult | null>(null);
+  const [summaryResult, setSummaryResult] =
+    React.useState<LiveSummaryResult | null>(null);
   const [summaryError, setSummaryError] = React.useState<string | null>(null);
 
   const timers = React.useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -156,7 +196,7 @@ export default function AIStudioPage() {
     };
   }, []);
 
-  // Fetch host's own events via the authenticated proxy
+  // Fetch host's own events via the authenticated proxy.
   React.useEffect(() => {
     let cancelled = false;
     setEventsLoading(true);
@@ -175,7 +215,7 @@ export default function AIStudioPage() {
         );
       })
       .catch(() => {
-        /* silently ignore — selector just stays empty */
+        /* silently ignore - selector just stays empty */
       })
       .finally(() => {
         if (!cancelled) setEventsLoading(false);
@@ -203,7 +243,7 @@ export default function AIStudioPage() {
     setSummaryResult(null);
 
     try {
-      // Use the Next.js proxy so the Auth0 Bearer token is forwarded automatically
+      // Use the Next.js proxy so the Auth0 Bearer token is forwarded automatically.
       const res = await fetch('/api/proxy/ai/generate-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,13 +278,13 @@ export default function AIStudioPage() {
           ) {
             message =
               'The AI service is temporarily busy. Please wait a moment and try again.';
-            }
-          } catch {
-            if (text) message = text;
           }
-
-          throw new Error(message);
+        } catch {
+          if (text) message = text;
         }
+
+        throw new Error(message);
+      }
 
       const data = (await res.json()) as {
         event?: { title?: string; description?: string };
@@ -298,9 +338,7 @@ export default function AIStudioPage() {
   };
 
   const dismissDraft = (id: string) => {
-    setDrafts((previous) =>
-      previous.filter((activity) => activity.id !== id),
-    );
+    setDrafts((previous) => previous.filter((activity) => activity.id !== id));
   };
 
   const handleCreateEventFromDraft = async () => {
@@ -317,7 +355,7 @@ export default function AIStudioPage() {
 
       const authHeaders = { 'Content-Type': 'application/json' };
 
-      // Step 1: Create the event
+      // Step 1: Create the event.
       const eventResponse = await fetch('/api/proxy/events', {
         method: 'POST',
         headers: authHeaders,
@@ -335,7 +373,9 @@ export default function AIStudioPage() {
       });
 
       if (!eventResponse.ok) {
-        const errorData = await eventResponse.json().catch(() => null) as { message?: string | string[] } | null;
+        const errorData = (await eventResponse.json().catch(() => null)) as {
+          message?: string | string[];
+        } | null;
         throw new Error(
           Array.isArray(errorData?.message)
             ? errorData.message.join(', ')
@@ -360,7 +400,7 @@ export default function AIStudioPage() {
         throw new Error('Event was created but no event code was returned.');
       }
 
-      // Step 2: Create all accepted activities
+      // Step 2: Create all accepted activities.
       for (const activity of accepted) {
         if (
           activity.type !== 'poll' &&
@@ -385,7 +425,9 @@ export default function AIStudioPage() {
         );
 
         if (!activityResponse.ok) {
-          const errorData = await activityResponse.json().catch(() => null) as { message?: string | string[] } | null;
+          const errorData = (await activityResponse
+            .json()
+            .catch(() => null)) as { message?: string | string[] } | null;
           console.error('AI activity creation failed:', {
             activity,
             status: activityResponse.status,
@@ -432,13 +474,15 @@ export default function AIStudioPage() {
       );
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => null) as { message?: string } | null;
+        const errorData = (await res.json().catch(() => null)) as {
+          message?: string;
+        } | null;
         const status = res.status;
         throw new Error(
           status === 403
             ? 'You do not own this event.'
             : status === 401
-              ? 'Session expired — please log in again.'
+              ? 'Session expired - please log in again.'
               : errorData?.message ?? `Server returned ${status}.`,
         );
       }
@@ -464,51 +508,58 @@ export default function AIStudioPage() {
   const selectedEvent = events.find((e) => e.id === selectedEventId);
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Eyebrow>AI Studio</Eyebrow>
-          <AIBadge label="Beta" size="sm" />
-        </div>
+    <div className="space-y-7">
+      <PageHeader
+        eyebrow="AI workspace"
+        title="AI Studio"
+        badge={<AIBadge label="Beta" size="sm" />}
+        description="Draft sessions, review suggested activities, and summarize live audience responses from one focused workspace."
+      />
 
-        <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-          Draft a session in seconds
-        </h1>
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <SurfacePanel tone="ai" className="space-y-5 p-4 sm:p-5">
+          <SectionHeader
+            eyebrow="Prompt area"
+            title="Describe the session you want"
+            description="Pulse keeps the workflow editable: generate suggestions, accept the useful ones, then create the event when the draft is ready."
+          />
 
-        <p className="max-w-2xl text-sm text-ink-secondary">
-          Describe what you want to run and Pulse drafts the activities for you.
-          Accept the ones you like, then create a live event directly from your
-          AI-generated session.
-        </p>
-      </div>
-
-      <Card className="border-ai-border">
-        <CardContent className="space-y-5 pt-6">
           <AIComposer
             value={prompt}
             onChange={setPrompt}
             onGenerate={handleGenerate}
             loading={generating}
             suggestions={SUGGESTIONS}
-            placeholder="Describe your session — Pulse drafts the activities…"
+            placeholder="Describe your session - Pulse drafts the activities..."
+            className="bg-surface-card"
           />
 
           {generating && (
-            <div className="flex items-center gap-2 text-sm text-ai-subtle-text">
-              <Sparkles className="h-4 w-4 animate-spin text-ai" />
-              Drafting activities for your session…
+            <div className="space-y-3 rounded-md border border-ai-border bg-surface-card p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-ai-subtle-text">
+                <Sparkles className="h-4 w-4 animate-spin text-ai" />
+                Drafting activities for your session...
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[0, 1, 2].map((index) => (
+                  <LoadingSkeleton
+                    key={index}
+                    variant="card"
+                    className="h-24"
+                  />
+                ))}
+              </div>
             </div>
           )}
 
           {generateError && (
-            <p className="flex items-center gap-1.5 text-sm text-destructive">
-              <span aria-hidden="true">⚠</span>
+            <p className="rounded-md border border-destructive/30 bg-error-subtle px-3 py-2 text-sm text-destructive">
               {generateError}
             </p>
           )}
 
           {drafts.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-md border border-ai-border bg-surface-card p-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-ai" />
                 <span className="text-sm font-semibold text-ai-subtle-text">
@@ -516,16 +567,17 @@ export default function AIStudioPage() {
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="grid gap-2">
                 {drafts.map((draft) => (
                   <SuggestionChip
                     key={draft.id}
+                    className="rounded-lg"
                     text={
                       <span>
                         <span className="font-semibold">{draft.title}</span>
                         <span className="text-ink-muted">
                           {' '}
-                          · {draft.description}
+                          - {draft.description}
                         </span>
                       </span>
                     }
@@ -536,98 +588,131 @@ export default function AIStudioPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </SurfacePanel>
+
+        <div className="space-y-4">
+          <SurfacePanel className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-ai-subtle text-ai">
+                <WandSparkles className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Workspace status
+                </p>
+                <p className="text-xs text-ink-muted">
+                  {accepted.length} accepted / {drafts.length} suggested
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-md border border-border bg-surface-sunken p-3">
+                <p className="font-mono text-lg font-semibold text-foreground">
+                  {drafts.length}
+                </p>
+                <p className="text-xs text-ink-muted">Open suggestions</p>
+              </div>
+              <div className="rounded-md border border-border bg-surface-sunken p-3">
+                <p className="font-mono text-lg font-semibold text-foreground">
+                  {accepted.length}
+                </p>
+                <p className="text-xs text-ink-muted">In draft</p>
+              </div>
+            </div>
+          </SurfacePanel>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            {FEATURE_CARDS.map((feature) => (
+              <Card key={feature.title} className="shadow-xs">
+                <CardHeader className="flex-row items-start gap-3 space-y-0 p-4">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-ai-subtle text-ai">
+                    {feature.icon}
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <CardTitle className="text-sm leading-tight">
+                      {feature.title}
+                    </CardTitle>
+                    <CardDescription className="text-xs leading-relaxed">
+                      {feature.description}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="space-y-1">
-            <h2 className="font-display text-lg font-semibold text-foreground">
-              Your drafted session
-            </h2>
-
-            <p className="text-sm text-ink-secondary">
-              Activities you have accepted. Add these to an event to run them
-              live.
-            </p>
-          </div>
-
-          {accepted.length > 0 && (
-            <button
-              type="button"
-              onClick={handleCreateEventFromDraft}
-              disabled={isCreatingEvent}
-              className="inline-flex h-10 items-center gap-2 rounded-sm bg-ai px-[1.125rem] text-sm font-semibold text-white transition-colors hover:bg-ai-hover disabled:cursor-not-allowed disabled:bg-ai-border"
-            >
-              <Sparkles
-                className={
-                  isCreatingEvent
-                    ? 'h-[15px] w-[15px] animate-spin'
-                    : 'h-[15px] w-[15px]'
-                }
-              />
-              {isCreatingEvent ? 'Creating event…' : 'Create event from draft'}
-            </button>
-          )}
-        </div>
+        <SectionHeader
+          title="Generated output"
+          description="Activities you have accepted. Add them to an event to run them live."
+          actions={
+            accepted.length > 0 ? (
+              <Button
+                type="button"
+                variant="ai"
+                onClick={handleCreateEventFromDraft}
+                loading={isCreatingEvent}
+              >
+                {!isCreatingEvent && <Sparkles className="h-4 w-4" />}
+                {isCreatingEvent ? 'Creating event...' : 'Create event from draft'}
+              </Button>
+            ) : undefined
+          }
+        />
 
         {createEventError && (
-          <p className="flex items-center gap-1.5 text-sm text-destructive">
-            <span aria-hidden="true">⚠</span>
+          <p className="rounded-md border border-destructive/30 bg-error-subtle px-3 py-2 text-sm text-destructive">
             {createEventError}
           </p>
         )}
 
         {accepted.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-ai-subtle text-ai">
-                <Sparkles className="h-6 w-6" />
-              </span>
-
-              <div className="space-y-1">
-                <p className="font-display text-lg font-semibold text-foreground">
-                  Nothing drafted yet
-                </p>
-
-                <p className="max-w-sm text-sm text-ink-secondary">
-                  Generate a session above, then accept the suggestions you want
-                  to keep.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyState
+            tone="ai"
+            icon={<FileText className="h-6 w-6" />}
+            title="Nothing drafted yet"
+            description="Generate a session above, then accept the suggestions you want to keep."
+          />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {accepted.map((draft) => (
-              <ActivityTile
-                key={draft.id}
-                type={draft.type}
-                icon={ICON_BY_TYPE[draft.type]}
-                title={draft.title}
-                description={draft.description}
-              />
-            ))}
+          <div className="space-y-4">
+            {generatedEvent && (
+              <SurfacePanel className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-ai">
+                  Event draft
+                </p>
+                <h3 className="font-display text-xl font-semibold text-foreground">
+                  {generatedEvent.title}
+                </h3>
+                <p className="text-sm text-ink-secondary">
+                  {generatedEvent.description}
+                </p>
+              </SurfacePanel>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {accepted.map((draft) => (
+                <ActivityTile
+                  key={draft.id}
+                  type={draft.type}
+                  icon={ICON_BY_TYPE[draft.type]}
+                  title={draft.title}
+                  description={draft.description}
+                />
+              ))}
+            </div>
           </div>
         )}
       </section>
 
       <section className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="space-y-1">
-            <h2 className="font-display text-lg font-semibold text-foreground">
-              Live answer summary
-            </h2>
-
-            <p className="text-sm text-ink-secondary">
-              Pulse distills open responses and Q&amp;A into a short readout you
-              can read aloud.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <select
+        <SectionHeader
+          title="AI summary and insights"
+          description="Pulse distills open responses and Q&A into a short readout you can read aloud."
+          actions={
+            <ActionGroup className="w-full sm:w-auto" align="end">
+              <Select
                 value={selectedEventId}
                 onChange={(e) => {
                   setSelectedEventId(e.target.value);
@@ -635,11 +720,11 @@ export default function AIStudioPage() {
                   setSummaryError(null);
                 }}
                 disabled={eventsLoading || summarizing}
-                className="h-10 appearance-none rounded-sm border border-border bg-background pl-3 pr-8 text-sm text-foreground outline-none ring-offset-background transition-colors focus:ring-2 focus:ring-ai focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                wrapperClassName="w-full sm:w-64"
               >
                 <option value="">
                   {eventsLoading
-                    ? 'Loading events…'
+                    ? 'Loading events...'
                     : events.length === 0
                       ? 'No events yet'
                       : 'Select an event'}
@@ -647,34 +732,27 @@ export default function AIStudioPage() {
                 {events.map((event) => (
                   <option key={event.id} value={event.id}>
                     {event.name}
-                    {event.eventCode ? ` · ${event.eventCode}` : ''}
+                    {event.eventCode ? ` - ${event.eventCode}` : ''}
                   </option>
                 ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-            </div>
+              </Select>
 
-            <button
-              type="button"
-              onClick={handleSummarize}
-              disabled={summarizing || !selectedEventId}
-              className="inline-flex h-10 items-center gap-2 rounded-sm bg-ai px-[1.125rem] text-sm font-semibold text-white transition-colors hover:bg-ai-hover disabled:cursor-not-allowed disabled:bg-ai-border"
-            >
-              <Sparkles
-                className={
-                  summarizing
-                    ? 'h-[15px] w-[15px] animate-spin'
-                    : 'h-[15px] w-[15px]'
-                }
-              />
-              {summarizing ? 'Analyzing responses…' : 'Summarize answers'}
-            </button>
-          </div>
-        </div>
+              <Button
+                type="button"
+                variant="ai"
+                onClick={handleSummarize}
+                disabled={!selectedEventId}
+                loading={summarizing}
+              >
+                {!summarizing && <Sparkles className="h-4 w-4" />}
+                {summarizing ? 'Analyzing responses...' : 'Summarize answers'}
+              </Button>
+            </ActionGroup>
+          }
+        />
 
         {summaryError && (
-          <p className="flex items-center gap-1.5 text-sm text-destructive">
-            <span aria-hidden="true">⚠</span>
+          <p className="rounded-md border border-destructive/30 bg-error-subtle px-3 py-2 text-sm text-destructive">
             {summaryError}
           </p>
         )}
@@ -689,20 +767,15 @@ export default function AIStudioPage() {
               footnote={
                 summarizing
                   ? undefined
-                  : `Summarized from ${summaryResult.responseCount} real response${summaryResult.responseCount === 1 ? '' : 's'}${selectedEvent ? ` · ${selectedEvent.name}` : ''}`
+                  : `Summarized from ${summaryResult.responseCount} real response${summaryResult.responseCount === 1 ? '' : 's'}${selectedEvent ? ` - ${selectedEvent.name}` : ''}`
               }
             />
           ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">
-                  No audience responses yet
-                </CardTitle>
-                <CardDescription>
-                  {summaryResult.message}
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <EmptyState
+              icon={<MessageSquareText className="h-6 w-6" />}
+              title="No audience responses yet"
+              description={summaryResult.message}
+            />
           )
         ) : summarizing ? (
           <AISummaryCard
@@ -713,16 +786,12 @@ export default function AIStudioPage() {
             footnote={undefined}
           />
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                No answers summarized yet
-              </CardTitle>
-              <CardDescription>
-                Run a summary to see the top themes from your audience.
-              </CardDescription>
-            </CardHeader>
-          </Card>
+          <EmptyState
+            tone="ai"
+            icon={<Lightbulb className="h-6 w-6" />}
+            title="No answers summarized yet"
+            description="Run a summary to see the top themes from your audience."
+          />
         )}
       </section>
     </div>

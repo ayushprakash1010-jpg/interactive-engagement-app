@@ -1,29 +1,32 @@
-'use client';
+"use client";
 
-import { useId, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useId, useState } from "react";
+import { Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { SurfacePanel } from "@/components/ui/surface-panel";
 import type {
   QuizConfig,
   QuizQuestion,
   CreateActivityPayload,
-} from '../../hooks/use-activities';
+} from "../../hooks/use-activities";
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-const createOption = (label = '') => ({
+const createOption = (label = "") => ({
   id: uid(),
   label,
 });
 
 const createQuestion = (): QuizQuestion => {
-  const optionA = createOption('Option A');
-  const optionB = createOption('Option B');
+  const optionA = createOption("Option A");
+  const optionB = createOption("Option B");
 
   return {
     id: uid(),
-    text: '',
+    text: "",
     options: [optionA, optionB],
     correctOptionId: optionA.id,
     points: 100,
@@ -48,7 +51,7 @@ export function QuizBuilder({
   const formId = useId();
   const isEditing = Boolean(initialConfig);
 
-  const [title, setTitle] = useState(initialConfig?.title ?? '');
+  const [title, setTitle] = useState(initialConfig?.title ?? "");
   const [questions, setQuestions] = useState<QuizQuestion[]>(
     initialConfig?.questions?.length
       ? initialConfig.questions
@@ -59,9 +62,9 @@ export function QuizBuilder({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
-const [showAiModal, setShowAiModal] = useState(false);
-const [aiTopic, setAiTopic] = useState('');
-const [questionCount, setQuestionCount] = useState(1);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
+  const [questionCount, setQuestionCount] = useState(1);
 
   const updateQuestion = (questionId: string, patch: Partial<QuizQuestion>) => {
     setQuestions((prev) =>
@@ -76,7 +79,9 @@ const [questionCount, setQuestionCount] = useState(1);
   };
 
   const removeQuestion = (questionId: string) => {
-    setQuestions((prev) => prev.filter((question) => question.id !== questionId));
+    setQuestions((prev) =>
+      prev.filter((question) => question.id !== questionId),
+    );
   };
 
   const addOption = (questionId: string) => {
@@ -85,7 +90,7 @@ const [questionCount, setQuestionCount] = useState(1);
         question.id === questionId && question.options.length < 8
           ? {
               ...question,
-              options: [...question.options, createOption('')],
+              options: [...question.options, createOption("")],
             }
           : question,
       ),
@@ -119,7 +124,7 @@ const [questionCount, setQuestionCount] = useState(1);
         const nextOptions = question.options.filter(
           (option) => option.id !== optionId,
         );
-        const fallbackCorrectOptionId = nextOptions[0]?.id ?? '';
+        const fallbackCorrectOptionId = nextOptions[0]?.id ?? "";
 
         return {
           ...question,
@@ -137,11 +142,11 @@ const [questionCount, setQuestionCount] = useState(1);
     const nextErrors: Record<string, string> = {};
 
     if (!title.trim()) {
-      nextErrors.title = 'Activity title is required';
+      nextErrors.title = "Activity title is required";
     }
 
     if (questions.length === 0) {
-      nextErrors.questions = 'Add at least 1 question';
+      nextErrors.questions = "Add at least 1 question";
     }
 
     questions.forEach((question, index) => {
@@ -160,7 +165,9 @@ const [questionCount, setQuestionCount] = useState(1);
           `Question ${index + 1} requires at least 2 options`;
       }
 
-      if (!filledOptions.some((option) => option.id === question.correctOptionId)) {
+      if (
+        !filledOptions.some((option) => option.id === question.correctOptionId)
+      ) {
         nextErrors[`${key}-correct`] =
           `Question ${index + 1} must have a correct answer`;
       }
@@ -185,103 +192,103 @@ const [questionCount, setQuestionCount] = useState(1);
   };
 
   const handleGenerateWithAI = async () => {
-  const topic = aiTopic.trim();
+    const topic = aiTopic.trim();
 
-  if (!topic) return;
+    if (!topic) return;
 
-  try {
-    setIsGenerating(true);
+    try {
+      setIsGenerating(true);
 
-    let response: Response | null = null;
-    let lastError = '';
+      let response: Response | null = null;
+      let lastError = "";
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        response = await fetch('http://localhost:4000/ai/generate-quiz', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            topic,
-            count: questionCount,
-          }),
-        });
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          response = await fetch("http://localhost:4000/ai/generate-quiz", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              topic,
+              count: questionCount,
+            }),
+          });
 
-        if (response.ok) {
-          break;
+          if (response.ok) {
+            break;
+          }
+
+          lastError = await response.text();
+        } catch (error) {
+          lastError =
+            error instanceof Error ? error.message : "Network request failed";
         }
 
-        lastError = await response.text();
-      } catch (error) {
-        lastError =
-          error instanceof Error ? error.message : 'Network request failed';
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
+        }
       }
 
-      if (attempt < 3) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 1200));
+      if (!response || !response.ok) {
+        throw new Error(lastError || "Quiz generation failed after retries");
       }
+
+      const data = await response.json();
+
+      if (!Array.isArray(data.questions) || data.questions.length === 0) {
+        throw new Error("AI returned no quiz questions");
+      }
+
+      const generatedQuestions: QuizQuestion[] = data.questions.map(
+        (question: {
+          question?: string;
+          options?: string[];
+          correctAnswer?: string;
+        }) => {
+          const generatedOptions =
+            Array.isArray(question.options) && question.options.length >= 2
+              ? question.options.map((label: string) => createOption(label))
+              : [
+                  createOption("Option A"),
+                  createOption("Option B"),
+                  createOption("Option C"),
+                  createOption("Option D"),
+                ];
+
+          const correctOption =
+            generatedOptions.find(
+              (option) =>
+                option.label.trim().toLowerCase() ===
+                (question.correctAnswer ?? "").trim().toLowerCase(),
+            ) ?? generatedOptions[0];
+
+          return {
+            id: uid(),
+            text: question.question?.trim() ?? "",
+            options: generatedOptions,
+            correctOptionId: correctOption?.id ?? "",
+            points: 100,
+            timeLimitSec: 20,
+          };
+        },
+      );
+
+      setQuestions(generatedQuestions);
+
+      if (!title.trim()) {
+        setTitle(`${topic} Quiz`);
+      }
+
+      setAiTopic("");
+      setShowAiModal(false);
+    } catch (error) {
+      console.error("Quiz AI generation error:", error);
+      alert("Failed to generate quiz after 3 attempts. Please try again.");
+    } finally {
+      setIsGenerating(false);
     }
-
-    if (!response || !response.ok) {
-      throw new Error(lastError || 'Quiz generation failed after retries');
-    }
-
-    const data = await response.json();
-
-    if (!Array.isArray(data.questions) || data.questions.length === 0) {
-      throw new Error('AI returned no quiz questions');
-    }
-
-    const generatedQuestions: QuizQuestion[] = data.questions.map(
-      (question: {
-        question?: string;
-        options?: string[];
-        correctAnswer?: string;
-      }) => {
-        const generatedOptions =
-          Array.isArray(question.options) && question.options.length >= 2
-            ? question.options.map((label: string) => createOption(label))
-            : [
-                createOption('Option A'),
-                createOption('Option B'),
-                createOption('Option C'),
-                createOption('Option D'),
-              ];
-
-        const correctOption =
-          generatedOptions.find(
-            (option) =>
-              option.label.trim().toLowerCase() ===
-              (question.correctAnswer ?? '').trim().toLowerCase(),
-          ) ?? generatedOptions[0];
-
-        return {
-          id: uid(),
-          text: question.question?.trim() ?? '',
-          options: generatedOptions,
-          correctOptionId: correctOption?.id ?? '',
-          points: 100,
-          timeLimitSec: 20,
-        };
-      },
-    );
-
-    setQuestions(generatedQuestions);
-
-    if (!title.trim()) {
-      setTitle(`${topic} Quiz`);
-    }
-
-    setAiTopic('');
-    setShowAiModal(false);
-  } catch (error) {
-    console.error('Quiz AI generation error:', error);
-    alert('Failed to generate quiz after 3 attempts. Please try again.');
-  } finally {
-    setIsGenerating(false);
-  }
-};
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -296,7 +303,7 @@ const [questionCount, setQuestionCount] = useState(1);
             label: option.label.trim(),
           }));
 
-        const fallbackCorrectOptionId = trimmedOptions[0]?.id ?? '';
+        const fallbackCorrectOptionId = trimmedOptions[0]?.id ?? "";
         const correctOptionExists = trimmedOptions.some(
           (option) => option.id === question.correctOptionId,
         );
@@ -316,7 +323,7 @@ const [questionCount, setQuestionCount] = useState(1);
     };
 
     await onSave({
-      type: 'quiz',
+      type: "quiz",
       title: title.trim(),
       config,
     });
@@ -324,57 +331,88 @@ const [questionCount, setQuestionCount] = useState(1);
 
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-6 pb-2">
-      <div className="space-y-1.5">
-        <Label htmlFor={`${formId}-title`}>Activity title</Label>
-        <Input
-          id={`${formId}-title`}
-          placeholder="e.g. Product knowledge quiz"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className={errors.title ? 'border-destructive' : undefined}
-        />
-        {errors.title && (
-          <p className="text-xs text-destructive">{errors.title}</p>
-        )}
-      </div>
-
-      <div className="flex items-start gap-3 rounded-lg border border-border bg-surface-sunken p-4">
-        <input
-          id={`${formId}-speed-bonus`}
-          type="checkbox"
-          checked={speedBonusEnabled}
-          onChange={(e) => setSpeedBonusEnabled(e.target.checked)}
-          className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
-        />
-        <div className="space-y-0.5">
-          <Label htmlFor={`${formId}-speed-bonus`}>Speed bonus</Label>
-          <p className="text-xs text-ink-muted">
-            Award extra points for fast correct answers, scaled by the time
-            remaining when they answer.
+      <SurfacePanel tone="sunken" className="space-y-4">
+        <div>
+          <h3 className="font-display text-sm font-semibold text-foreground">
+            Activity setup
+          </h3>
+          <p className="mt-1 text-xs text-ink-muted">
+            Name the quiz and decide whether fast correct answers get rewarded.
           </p>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between gap-3">
-  <Label>Quiz questions</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor={`${formId}-title`}>Activity title</Label>
+          <Input
+            id={`${formId}-title`}
+            placeholder="e.g. Product knowledge quiz"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={errors.title ? "border-destructive" : undefined}
+          />
+          {errors.title && (
+            <p className="text-xs text-destructive">{errors.title}</p>
+          )}
+        </div>
 
-  <div className="flex gap-2">
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      onClick={() => setShowAiModal(true)}
-      disabled={isGenerating}
-    >
-      {isGenerating ? 'Generating…' : '✨ Generate with AI'}
-    </Button>
+        <label
+          htmlFor={`${formId}-speed-bonus`}
+          className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-surface-card p-4 transition hover:bg-surface-raised"
+        >
+          <input
+            id={`${formId}-speed-bonus`}
+            type="checkbox"
+            checked={speedBonusEnabled}
+            onChange={(e) => setSpeedBonusEnabled(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
+          />
+          <span className="space-y-0.5">
+            <span className="block text-sm font-medium text-foreground">
+              Speed bonus
+            </span>
+            <span className="block text-xs text-ink-muted">
+              Award extra points for fast correct answers, scaled by the time
+              remaining when they answer.
+            </span>
+          </span>
+        </label>
+      </SurfacePanel>
 
-    <Button type="button" variant="outline" size="sm" onClick={addQuestion}>
-      + Add question
-    </Button>
-  </div>
-</div>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="font-display text-sm font-semibold text-foreground">
+              Quiz questions
+            </h3>
+            <p className="mt-1 text-xs text-ink-muted">
+              Build the sequence, mark the correct answer, and set scoring.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="ai"
+              size="sm"
+              onClick={() => setShowAiModal(true)}
+              disabled={isGenerating}
+              loading={isGenerating}
+            >
+              <Sparkles className="h-4 w-4" />
+              Generate with AI
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addQuestion}
+            >
+              <Plus className="h-4 w-4" />
+              Add question
+            </Button>
+          </div>
+        </div>
 
         {errors.questions && (
           <p className="text-xs text-destructive">{errors.questions}</p>
@@ -385,33 +423,34 @@ const [questionCount, setQuestionCount] = useState(1);
             const key = `question-${question.id}`;
 
             return (
-              <div
-                key={question.id}
-                className="space-y-4 rounded-lg border border-border bg-surface-sunken p-4"
-              >
-                <div className="flex items-center justify-between gap-3">
+              <SurfacePanel key={question.id} className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h3 className="font-display text-sm font-semibold text-foreground">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-brand">
                       Question {questionIndex + 1}
-                    </h3>
-                    <p className="text-xs text-ink-muted">
-                      Add answers, choose the correct option, set points and timer.
                     </p>
+                    <h4 className="mt-1 font-display text-base font-semibold text-foreground">
+                      {question.text || "Untitled question"}
+                    </h4>
                   </div>
 
                   {questions.length > 1 && (
                     <Button
                       type="button"
                       variant="ghost"
+                      size="sm"
                       onClick={() => removeQuestion(question.id)}
                     >
+                      <Trash2 className="h-4 w-4" />
                       Remove
                     </Button>
                   )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor={`${formId}-${question.id}-text`}>Question</Label>
+                  <Label htmlFor={`${formId}-${question.id}-text`}>
+                    Question
+                  </Label>
                   <Input
                     id={`${formId}-${question.id}-text`}
                     placeholder="What would you like to ask?"
@@ -420,7 +459,7 @@ const [questionCount, setQuestionCount] = useState(1);
                       updateQuestion(question.id, { text: e.target.value })
                     }
                     className={
-                      errors[`${key}-text`] ? 'border-destructive' : undefined
+                      errors[`${key}-text`] ? "border-destructive" : undefined
                     }
                   />
                   {errors[`${key}-text`] && (
@@ -447,7 +486,9 @@ const [questionCount, setQuestionCount] = useState(1);
                         })
                       }
                       className={
-                        errors[`${key}-points`] ? 'border-destructive' : undefined
+                        errors[`${key}-points`]
+                          ? "border-destructive"
+                          : undefined
                       }
                     />
                     {errors[`${key}-points`] && (
@@ -474,7 +515,7 @@ const [questionCount, setQuestionCount] = useState(1);
                         })
                       }
                       className={
-                        errors[`${key}-time`] ? 'border-destructive' : undefined
+                        errors[`${key}-time`] ? "border-destructive" : undefined
                       }
                     />
                     {errors[`${key}-time`] && (
@@ -486,7 +527,13 @@ const [questionCount, setQuestionCount] = useState(1);
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Answer options</Label>
+                  <div>
+                    <Label>Answer options</Label>
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Select the correct answer with the radio button.
+                    </p>
+                  </div>
+
                   <div className="space-y-2">
                     {question.options.map((option, optionIndex) => (
                       <div key={option.id} className="flex items-center gap-2">
@@ -515,18 +562,14 @@ const [questionCount, setQuestionCount] = useState(1);
                             type="button"
                             onClick={() => removeOption(question.id, option.id)}
                             aria-label="Remove option"
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-card hover:text-foreground"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-sunken hover:text-foreground"
                           >
-                            ✕
+                            <X className="h-4 w-4" />
                           </button>
                         )}
                       </div>
                     ))}
                   </div>
-
-                  <p className="text-xs text-ink-muted">
-                    Select the correct answer with the radio button.
-                  </p>
 
                   {errors[`${key}-options`] && (
                     <p className="text-xs text-destructive">
@@ -548,75 +591,91 @@ const [questionCount, setQuestionCount] = useState(1);
                       onClick={() => addOption(question.id)}
                       className="mt-1"
                     >
-                      + Add option
+                      <Plus className="h-4 w-4" />
+                      Add option
                     </Button>
                   )}
                 </div>
-              </div>
+              </SurfacePanel>
             );
           })}
         </div>
       </div>
 
-      <div className="sticky bottom-0 flex items-center justify-end gap-3 bg-surface-card pt-2">
+      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-1 pt-4 backdrop-blur">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSaving}>
-          {isSaving ? 'Saving…' : isEditing ? 'Update quiz' : 'Create quiz'}
+        <Button type="submit" disabled={isSaving} loading={isSaving}>
+          {isEditing ? "Update quiz" : "Create quiz"}
         </Button>
       </div>
 
       {showAiModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <div className="w-full max-w-md rounded-xl bg-background p-6 shadow-xl">
-      <h3 className="mb-4 text-lg font-semibold">
-        Generate Quiz with AI
-      </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-lg border border-ai-border bg-surface-card p-6 shadow-xl">
+            <div className="mb-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Generate quiz with AI
+              </h3>
+              <p className="mt-1 text-sm text-ink-muted">
+                Enter a topic and choose how many questions to draft.
+              </p>
+            </div>
 
-      <Input
-        placeholder="Enter quiz topic..."
-        value={aiTopic}
-        onChange={(e) => setAiTopic(e.target.value)}
-      />
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor={`${formId}-ai-topic`}>Topic</Label>
+                <Input
+                  id={`${formId}-ai-topic`}
+                  placeholder="Enter quiz topic..."
+                  value={aiTopic}
+                  onChange={(e) => setAiTopic(e.target.value)}
+                  disabled={isGenerating}
+                />
+              </div>
 
-      <div className="mt-4">
-        <Label>Number of Questions</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor={`${formId}-ai-count`}>
+                  Number of questions
+                </Label>
+                <Select
+                  id={`${formId}-ai-count`}
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(Number(e.target.value))}
+                  disabled={isGenerating}
+                >
+                  <option value={1}>1 question</option>
+                  <option value={5}>5 questions</option>
+                  <option value={10}>10 questions</option>
+                  <option value={15}>15 questions</option>
+                </Select>
+              </div>
+            </div>
 
-        <select
-          value={questionCount}
-          onChange={(e) => setQuestionCount(Number(e.target.value))}
-          className="mt-2 w-full rounded-lg border border-border bg-background p-2"
-        >
-          <option value={1}>1 Question</option>
-          <option value={5}>5 Questions</option>
-          <option value={10}>10 Questions</option>
-          <option value={15}>15 Questions</option>
-        </select>
-      </div>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAiModal(false)}
+                disabled={isGenerating}
+              >
+                Cancel
+              </Button>
 
-      <div className="mt-4 flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setShowAiModal(false)}
-          disabled={isGenerating}
-        >
-          Cancel
-        </Button>
-
-        <Button
-          type="button"
-          disabled={!aiTopic.trim() || isGenerating}
-          onClick={handleGenerateWithAI}
-        >
-          {isGenerating ? 'Generating…' : 'Generate'}
-        </Button>
-      </div>
-    </div>
-  </div>
-)}
-
+              <Button
+                type="button"
+                variant="ai"
+                disabled={!aiTopic.trim() || isGenerating}
+                onClick={handleGenerateWithAI}
+                loading={isGenerating}
+              >
+                Generate
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

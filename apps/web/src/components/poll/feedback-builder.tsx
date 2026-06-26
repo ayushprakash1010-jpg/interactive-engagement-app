@@ -1,7 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { MessageSquareText, Plus, Sparkles, Star, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SurfacePanel } from "@/components/ui/surface-panel";
+import { Textarea } from "@/components/ui/textarea";
 
 type FeedbackFieldType = "rating" | "text";
 
@@ -127,78 +133,92 @@ export function FeedbackBuilder({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">
-          Feedback prompt
-        </label>
+      <SurfacePanel className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-sm font-semibold text-foreground">
+              Prompt
+            </h3>
+            <p className="mt-1 text-xs text-ink-muted">
+              This appears above the participant feedback form.
+            </p>
+          </div>
 
-        <textarea
-          value={value.prompt}
-          onChange={(e) => updatePrompt(e.target.value)}
-          disabled={disabled}
-          rows={3}
-          placeholder="What would you like your audience to give feedback on?"
-          className="w-full rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-subtle disabled:cursor-not-allowed disabled:opacity-60"
-        />
+          <Button
+            type="button"
+            variant="ai"
+            size="sm"
+            onClick={() => setShowAiModal(true)}
+            disabled={disabled || isGenerating}
+            loading={isGenerating}
+          >
+            <Sparkles className="h-4 w-4" />
+            Generate with AI
+          </Button>
+        </div>
 
-        <p className="text-xs text-ink-muted">
-          This prompt appears above the participant feedback form.
-        </p>
-      </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="feedback-prompt">Feedback prompt</Label>
+          <Textarea
+            id="feedback-prompt"
+            value={value.prompt}
+            onChange={(e) => updatePrompt(e.target.value)}
+            disabled={disabled}
+            rows={3}
+            placeholder="What would you like your audience to give feedback on?"
+          />
+        </div>
+      </SurfacePanel>
 
-      <div className="space-y-4">
+      <SurfacePanel tone="sunken" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="font-display text-sm font-semibold text-foreground">
               Fields
             </h3>
-            <p className="text-xs text-ink-muted">
+            <p className="mt-1 text-xs text-ink-muted">
               Add rating and text inputs for your audience.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
+            <Button
               type="button"
-              onClick={() => setShowAiModal(true)}
-              disabled={disabled || isGenerating}
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-card px-3 py-2 text-sm font-medium text-ink-secondary transition hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isGenerating ? "Generating…" : "✨ Generate with AI"}
-            </button>
-
-            <button
-              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => addField("rating")}
               disabled={disabled}
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-card px-3 py-2 text-sm font-medium text-ink-secondary transition hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Plus className="h-4 w-4" />
+              <Star className="h-4 w-4" />
               Add rating
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => addField("text")}
               disabled={disabled}
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-card px-3 py-2 text-sm font-medium text-ink-secondary transition hover:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Plus className="h-4 w-4" />
+              <MessageSquareText className="h-4 w-4" />
               Add text
-            </button>
+            </Button>
           </div>
         </div>
 
         {fields.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border bg-surface-sunken px-4 py-6 text-sm text-ink-muted">
-            No feedback fields added yet. Add at least one rating or text field.
-          </div>
+          <EmptyState
+            icon={<Plus className="h-5 w-5" />}
+            title="No feedback fields yet"
+            description="Add at least one rating or text field before saving."
+            className="bg-background py-8"
+          />
         ) : (
           <div className="space-y-3">
             {fields.map((field, index) => (
               <div
                 key={field.id}
-                className="rounded-lg border border-border bg-surface-card p-4 shadow-sm"
+                className="rounded-lg border border-border bg-surface-card p-4 shadow-xs transition-colors hover:bg-surface-raised"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
@@ -210,23 +230,22 @@ export function FeedbackBuilder({
                     </p>
                   </div>
 
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => removeField(field.id)}
                     disabled={disabled}
-                    className="inline-flex items-center gap-2 rounded-md border border-destructive/30 bg-surface-card px-3 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 className="h-4 w-4" />
                     Remove
-                  </button>
+                  </Button>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Label
-                  </label>
-
-                  <input
+                <div className="space-y-1.5">
+                  <Label htmlFor={`feedback-field-${field.id}`}>Label</Label>
+                  <Input
+                    id={`feedback-field-${field.id}`}
                     type="text"
                     value={field.label}
                     onChange={(e) =>
@@ -238,7 +257,6 @@ export function FeedbackBuilder({
                         ? "Rate this activity"
                         : "Tell us what you think"
                     }
-                    className="w-full rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-subtle disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </div>
 
@@ -251,14 +269,12 @@ export function FeedbackBuilder({
             ))}
           </div>
         )}
-      </div>
+      </SurfacePanel>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">
-          Time limit (seconds)
-        </label>
-
-        <input
+      <SurfacePanel tone="sunken" className="space-y-1.5">
+        <Label htmlFor="feedback-time-limit">Time limit (seconds)</Label>
+        <Input
+          id="feedback-time-limit"
           type="number"
           min="5"
           max="600"
@@ -273,51 +289,55 @@ export function FeedbackBuilder({
           }
           disabled={disabled}
           placeholder="e.g. 60 (optional)"
-          className="w-full rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand-subtle disabled:cursor-not-allowed disabled:opacity-60"
         />
 
         <p className="text-xs text-ink-muted">
           Leave empty to keep the feedback form open until you close it.
         </p>
-      </div>
+      </SurfacePanel>
 
       {showAiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-surface-card p-6 shadow-xl">
-            <h3 className="mb-4 font-display text-lg font-semibold text-foreground">
-              Generate Feedback with AI
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-lg border border-ai-border bg-surface-card p-6 shadow-xl">
+            <div className="mb-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Generate feedback with AI
+              </h3>
+              <p className="mt-1 text-sm text-ink-muted">
+                Enter a topic and AI will draft a feedback prompt.
+              </p>
+            </div>
 
-            <input
+            <Input
               type="text"
               placeholder="Enter feedback topic..."
               value={aiTopic}
               onChange={(e) => setAiTopic(e.target.value)}
               disabled={isGenerating}
-              className="w-full rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand-subtle"
             />
 
             <div className="mt-4 flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
                 onClick={() => {
                   setShowAiModal(false);
                   setAiTopic("");
                 }}
                 disabled={isGenerating}
-                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-sunken disabled:opacity-60"
               >
                 Cancel
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
+                variant="ai"
                 disabled={!aiTopic.trim() || isGenerating}
                 onClick={handleGenerateWithAI}
-                className="rounded-md bg-brand px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+                loading={isGenerating}
               >
-                {isGenerating ? "Generating…" : "Generate"}
-              </button>
+                Generate
+              </Button>
             </div>
           </div>
         </div>

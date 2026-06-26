@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import * as React from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import {
   Check,
   Copy,
@@ -16,12 +16,12 @@ import {
   ListChecks,
   Star,
   Cloud,
-} from 'lucide-react';
-import { JoinCode, LiveDot, ActivityTile } from '@/components/pulse';
-import { cn } from '@/lib/utils';
-import { QuizRunPanel } from '@/components/poll/quiz-run-panel';
-import { FeedbackRunPanel } from '@/components/poll/feedback-run-panel';
-import { WordCloudRunPanel } from '@/components/poll/wordcloud-run-panel';
+} from "lucide-react";
+import { JoinCode, LiveDot, ActivityTile } from "@/components/pulse";
+import { cn } from "@/lib/utils";
+import { QuizRunPanel } from "@/components/poll/quiz-run-panel";
+import { FeedbackRunPanel } from "@/components/poll/feedback-run-panel";
+import { WordCloudRunPanel } from "@/components/poll/wordcloud-run-panel";
 import {
   ActionGroup,
   BackLink,
@@ -43,19 +43,19 @@ import {
   SectionHeader,
   StatusBadge,
   SurfacePanel,
-} from '@/components/ui';
-import { EventForm } from '@/components/event-form';
-import { ConnectionStatus } from '@/components/connection-status';
-import { useToast } from '@/components/ui/use-toast';
-import { useEventRealtime } from '@/lib/use-event-realtime';
-import { QuestionModerationPanel } from '@/components/questions/question-moderation-panel';
+} from "@/components/ui";
+import { EventForm } from "@/components/event-form";
+import { ConnectionStatus } from "@/components/connection-status";
+import { useToast } from "@/components/ui/use-toast";
+import { useEventRealtime } from "@/lib/use-event-realtime";
+import { QuestionModerationPanel } from "@/components/questions/question-moderation-panel";
 import {
   useEvent,
   useEventQr,
   useUpdateEvent,
   useDeleteEvent,
-} from '@/lib/use-events';
-import { ApiError } from '@/lib/events-api';
+} from "@/lib/use-events";
+import { ApiError } from "@/lib/events-api";
 import {
   useActivities,
   useCreateActivity,
@@ -66,64 +66,96 @@ import {
   type PollConfig,
   type QuizConfig,
   type WordCloudConfig,
-} from '@/hooks/use-activities';
-import { PollBuilder } from '@/components/poll/poll-builder';
-import { QuizBuilder } from '@/components/poll/quiz-builder';
-import { PollRunPanel } from '@/components/poll/poll-run-panel';
-import { WordCloudBuilder } from '@/components/poll/wordcloud-builder';
+} from "@/hooks/use-activities";
+import { PollBuilder } from "@/components/poll/poll-builder";
+import { QuizBuilder } from "@/components/poll/quiz-builder";
+import { PollRunPanel } from "@/components/poll/poll-run-panel";
+import { WordCloudBuilder } from "@/components/poll/wordcloud-builder";
 import {
   FeedbackBuilder,
   type FeedbackConfig,
-} from '@/components/poll/feedback-builder';
+} from "@/components/poll/feedback-builder";
 
-type Tab = 'overview' | 'polls' | 'qa';
-type BuilderType = 'poll' | 'quiz' | 'feedback' | 'wordcloud';
+type Tab = "overview" | "polls" | "qa";
+type BuilderType = "poll" | "quiz" | "feedback" | "wordcloud";
 
-function isPollConfig(config: Activity['config']): config is PollConfig {
+function isPollConfig(config: Activity["config"]): config is PollConfig {
   return (
-    typeof config === 'object' &&
+    typeof config === "object" &&
     config !== null &&
-    'pollType' in config &&
-    'question' in config
+    "pollType" in config &&
+    "question" in config
   );
 }
 
-function isQuizConfig(config: Activity['config']): config is QuizConfig {
+function isQuizConfig(config: Activity["config"]): config is QuizConfig {
   return (
-    typeof config === 'object' &&
+    typeof config === "object" &&
     config !== null &&
-    'questions' in config &&
+    "questions" in config &&
     Array.isArray((config as QuizConfig).questions)
   );
 }
 
-function isFeedbackConfig(config: Activity['config']): config is FeedbackConfig {
+function isFeedbackConfig(
+  config: Activity["config"],
+): config is FeedbackConfig {
   return (
-    typeof config === 'object' &&
+    typeof config === "object" &&
     config !== null &&
-    'prompt' in config &&
-    'fields' in config &&
+    "prompt" in config &&
+    "fields" in config &&
     Array.isArray((config as FeedbackConfig).fields)
   );
 }
 
 function isWordCloudConfig(
-  config: Activity['config'],
+  config: Activity["config"],
 ): config is WordCloudConfig {
   return (
-    typeof config === 'object' &&
+    typeof config === "object" &&
     config !== null &&
-    'prompt' in config &&
-    !('fields' in config) &&
-    !('questions' in config) &&
-    !('pollType' in config)
+    "prompt" in config &&
+    !("fields" in config) &&
+    !("questions" in config) &&
+    !("pollType" in config)
   );
 }
 
 const defaultFeedbackConfig: FeedbackConfig = {
-  prompt: '',
+  prompt: "",
   fields: [],
 };
+
+const ACTIVITY_TYPE_META = {
+  poll: {
+    label: "Poll",
+    icon: BarChart3,
+    description: "Live audience question with instant results.",
+  },
+  quiz: {
+    label: "Quiz",
+    icon: ListChecks,
+    description: "Timed scored questions with results.",
+  },
+  feedback: {
+    label: "Feedback",
+    icon: Star,
+    description: "Ratings and written comments from participants.",
+  },
+  wordcloud: {
+    label: "Word cloud",
+    icon: Cloud,
+    description: "Short responses visualized by popularity.",
+  },
+} satisfies Record<
+  BuilderType,
+  {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    description: string;
+  }
+>;
 
 export default function EventDetailPage() {
   const params = useParams<{ id: string }>();
@@ -143,12 +175,13 @@ export default function EventDetailPage() {
     sessionEnded,
     sessionEndError,
     resetSessionEndState,
-  } = useEventRealtime(event?.eventCode, 'observe', { eventId: id });
+  } = useEventRealtime(event?.eventCode, "observe", { eventId: id });
 
   const updateEvent = useUpdateEvent(id);
   const deleteEvent = useDeleteEvent();
 
-  const { data: activitiesData, isLoading: activitiesLoading } = useActivities(id);
+  const { data: activitiesData, isLoading: activitiesLoading } =
+    useActivities(id);
   const createActivity = useCreateActivity(id);
   const updateActivity = useUpdateActivity(id);
   const deleteActivity = useDeleteActivity(id);
@@ -157,30 +190,40 @@ export default function EventDetailPage() {
     return Array.isArray(activitiesData) ? activitiesData : [];
   }, [activitiesData]);
 
-  const [activeTab, setActiveTab] = React.useState<Tab>('overview');
+  const [activeTab, setActiveTab] = React.useState<Tab>("overview");
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [builderOpen, setBuilderOpen] = React.useState(false);
-  const [editingActivity, setEditingActivity] = React.useState<Activity | null>(null);
-  const [builderType, setBuilderType] = React.useState<BuilderType>('poll');
+  const [editingActivity, setEditingActivity] = React.useState<Activity | null>(
+    null,
+  );
+  const [builderType, setBuilderType] = React.useState<BuilderType>("poll");
   const [copied, setCopied] = React.useState(false);
   const [isModerating, setIsModerating] = React.useState(false);
-  const [feedbackDraft, setFeedbackDraft] =
-    React.useState<FeedbackConfig>(defaultFeedbackConfig);
+  const [feedbackDraft, setFeedbackDraft] = React.useState<FeedbackConfig>(
+    defaultFeedbackConfig,
+  );
 
-  const pollActivities = activities.filter((activity) => activity.type === 'poll');
-  const quizActivities = activities.filter((activity) => activity.type === 'quiz');
-  const feedbackActivities = activities.filter((activity) => activity.type === 'feedback');
+  const pollActivities = activities.filter(
+    (activity) => activity.type === "poll",
+  );
+  const quizActivities = activities.filter(
+    (activity) => activity.type === "quiz",
+  );
+  const feedbackActivities = activities.filter(
+    (activity) => activity.type === "feedback",
+  );
   const wordcloudActivities = activities.filter(
-    (activity) => activity.type === 'wordcloud',
+    (activity) => activity.type === "wordcloud",
   );
 
   const pendingQuestions = React.useMemo(
     () =>
       [...allQuestions]
-        .filter((question) => question.status === 'pending')
+        .filter((question) => question.status === "pending")
         .sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         ),
     [allQuestions],
   );
@@ -188,12 +231,14 @@ export default function EventDetailPage() {
   const approvedQuestions = React.useMemo(
     () =>
       [...allQuestions]
-        .filter((question) => question.status === 'approved')
+        .filter((question) => question.status === "approved")
         .sort((a, b) => {
           if (b.voteCount !== a.voteCount) {
             return b.voteCount - a.voteCount;
           }
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return (
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
         }),
     [allQuestions],
   );
@@ -201,9 +246,10 @@ export default function EventDetailPage() {
   const answeredQuestions = React.useMemo(
     () =>
       [...allQuestions]
-        .filter((question) => question.status === 'answered')
+        .filter((question) => question.status === "answered")
         .sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         ),
     [allQuestions],
   );
@@ -211,7 +257,7 @@ export default function EventDetailPage() {
   React.useEffect(() => {
     if (!sessionEnded) return;
 
-    toast({ title: 'Session ended' });
+    toast({ title: "Session ended" });
     resetSessionEndState();
     router.push(`/dashboard/events/${id}/analytics`);
   }, [sessionEnded, id, resetSessionEndState, router, toast]);
@@ -220,14 +266,14 @@ export default function EventDetailPage() {
     if (!sessionEndError) return;
 
     toast({
-      variant: 'destructive',
-      title: 'Could not end session',
+      variant: "destructive",
+      title: "Could not end session",
       description: sessionEndError,
     });
   }, [sessionEndError, toast]);
 
   const handleEndSession = () => {
-    if (!event || event.status === 'ended') return;
+    if (!event || event.status === "ended") return;
     endSession({ eventId: id });
   };
 
@@ -241,28 +287,28 @@ export default function EventDetailPage() {
   const resetBuilderState = () => {
     setBuilderOpen(false);
     setEditingActivity(null);
-    setBuilderType('poll');
+    setBuilderType("poll");
     setFeedbackDraft(defaultFeedbackConfig);
   };
 
   const handleSaveActivity = async (payload: CreateActivityPayload) => {
     const activityLabel =
-      payload.type === 'quiz'
-        ? 'quiz'
-        : payload.type === 'feedback'
-        ? 'feedback'
-        : payload.type === 'wordcloud'
-        ? 'word cloud'
-        : 'poll';
+      payload.type === "quiz"
+        ? "quiz"
+        : payload.type === "feedback"
+          ? "feedback"
+          : payload.type === "wordcloud"
+            ? "word cloud"
+            : "poll";
 
     const titleCaseLabel =
-      activityLabel === 'quiz'
-        ? 'Quiz'
-        : activityLabel === 'feedback'
-        ? 'Feedback'
-        : activityLabel === 'word cloud'
-        ? 'Word cloud'
-        : 'Poll';
+      activityLabel === "quiz"
+        ? "Quiz"
+        : activityLabel === "feedback"
+          ? "Feedback"
+          : activityLabel === "word cloud"
+            ? "Word cloud"
+            : "Poll";
 
     try {
       if (editingActivity) {
@@ -283,14 +329,14 @@ export default function EventDetailPage() {
       resetBuilderState();
     } catch (err) {
       toast({
-        variant: 'destructive',
+        variant: "destructive",
         title: editingActivity
           ? `Could not update ${activityLabel}`
           : `Could not create ${activityLabel}`,
         description:
           err instanceof ApiError || err instanceof Error
             ? err.message
-            : 'Unknown error',
+            : "Unknown error",
       });
     }
   };
@@ -306,27 +352,27 @@ export default function EventDetailPage() {
 
     if (!trimmedPrompt) {
       toast({
-        variant: 'destructive',
-        title: 'Feedback prompt is required',
+        variant: "destructive",
+        title: "Feedback prompt is required",
       });
       return;
     }
 
     if (cleanedFields.length === 0) {
       toast({
-        variant: 'destructive',
-        title: 'Add at least one feedback field',
+        variant: "destructive",
+        title: "Add at least one feedback field",
       });
       return;
     }
 
     await handleSaveActivity({
-      type: 'feedback',
+      type: "feedback",
       title: trimmedPrompt,
       config: {
         prompt: trimmedPrompt,
         fields: cleanedFields,
-        timeLimitSec: feedbackDraft.timeLimitSec, 
+        timeLimitSec: feedbackDraft.timeLimitSec,
       },
     } as CreateActivityPayload);
   };
@@ -340,17 +386,20 @@ export default function EventDetailPage() {
 
   const openEditBuilder = (activity: Activity) => {
     setEditingActivity(activity);
-    if (activity.type === 'quiz') {
-      setBuilderType('quiz');
+    if (activity.type === "quiz") {
+      setBuilderType("quiz");
       setFeedbackDraft(defaultFeedbackConfig);
-    } else if (activity.type === 'feedback' && isFeedbackConfig(activity.config)) {
-      setBuilderType('feedback');
+    } else if (
+      activity.type === "feedback" &&
+      isFeedbackConfig(activity.config)
+    ) {
+      setBuilderType("feedback");
       setFeedbackDraft(activity.config);
-    } else if (activity.type === 'wordcloud') {
-      setBuilderType('wordcloud');
+    } else if (activity.type === "wordcloud") {
+      setBuilderType("wordcloud");
       setFeedbackDraft(defaultFeedbackConfig);
     } else {
-      setBuilderType('poll');
+      setBuilderType("poll");
       setFeedbackDraft(defaultFeedbackConfig);
     }
     setBuilderOpen(true);
@@ -358,7 +407,7 @@ export default function EventDetailPage() {
 
   const handleModerateQuestion = (
     questionId: string,
-    status: 'approved' | 'dismissed' | 'answered',
+    status: "approved" | "dismissed" | "answered",
   ) => {
     try {
       setIsModerating(true);
@@ -366,24 +415,123 @@ export default function EventDetailPage() {
 
       toast({
         title:
-          status === 'approved'
-            ? 'Question approved'
-            : status === 'answered'
-            ? 'Question marked answered'
-            : 'Question dismissed',
+          status === "approved"
+            ? "Question approved"
+            : status === "answered"
+              ? "Question marked answered"
+              : "Question dismissed",
       });
     } catch (err) {
       toast({
-        variant: 'destructive',
-        title: 'Could not update question',
+        variant: "destructive",
+        title: "Could not update question",
         description:
           err instanceof ApiError || err instanceof Error
             ? err.message
-            : 'Unknown error',
+            : "Unknown error",
       });
     } finally {
       setIsModerating(false);
     }
+  };
+
+  const handleDeleteActivity = (activity: Activity) => {
+    const meta = ACTIVITY_TYPE_META[activity.type as BuilderType];
+    const label = meta?.label ?? "Activity";
+
+    deleteActivity.mutate(activity._id, {
+      onSuccess: () => {
+        toast({ title: `${label} deleted` });
+      },
+      onError: (err) => {
+        toast({
+          variant: "destructive",
+          title: `Could not delete ${label.toLowerCase()}`,
+          description:
+            err instanceof ApiError || err instanceof Error
+              ? err.message
+              : "Unknown error",
+        });
+      },
+    });
+  };
+
+  const renderActivityRunPanel = (activity: Activity) => {
+    if (activity.type === "quiz") {
+      return <QuizRunPanel activity={activity} eventId={id} />;
+    }
+
+    if (activity.type === "feedback") {
+      return <FeedbackRunPanel activity={activity} />;
+    }
+
+    if (activity.type === "wordcloud") {
+      return <WordCloudRunPanel activity={activity} />;
+    }
+
+    return <PollRunPanel activity={activity} />;
+  };
+
+  const renderActivityCard = (activity: Activity) => {
+    const type = activity.type as BuilderType;
+    const meta = ACTIVITY_TYPE_META[type] ?? ACTIVITY_TYPE_META.poll;
+    const Icon = meta.icon;
+
+    return (
+      <div
+        key={activity._id}
+        className="group overflow-hidden rounded-lg border border-border bg-surface-card shadow-xs transition duration-base ease-standard hover:border-brand/40 hover:shadow-md"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-surface-raised px-4 py-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-subtle text-brand">
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {activity.title}
+                </p>
+                <StatusBadge status={activity.status} className="capitalize" />
+              </div>
+              <p className="mt-1 text-xs text-ink-muted">
+                {meta.label} - {meta.description}
+              </p>
+            </div>
+          </div>
+
+          <ActionGroup className="justify-start">
+            <Link href={`/dashboard/events/${id}/analytics`}>
+              <Button variant="ghost" size="sm">
+                <BarChart2 className="h-4 w-4" />
+                Analytics
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openEditBuilder(activity)}
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={deleteActivity.isPending || activity.status === "live"}
+              onClick={() => handleDeleteActivity(activity)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </ActionGroup>
+        </div>
+
+        <div className="[&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+          {renderActivityRunPanel(activity)}
+        </div>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -410,7 +558,7 @@ export default function EventDetailPage() {
               Could not load this event
             </CardTitle>
             <CardDescription>
-              {error instanceof Error ? error.message : 'Event not found'}
+              {error instanceof Error ? error.message : "Event not found"}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -419,7 +567,9 @@ export default function EventDetailPage() {
   }
 
   const editingPollConfig =
-    editingActivity && editingActivity.type === 'poll' && isPollConfig(editingActivity.config)
+    editingActivity &&
+    editingActivity.type === "poll" &&
+    isPollConfig(editingActivity.config)
       ? {
           ...editingActivity.config,
           title: editingActivity.title,
@@ -427,7 +577,9 @@ export default function EventDetailPage() {
       : undefined;
 
   const editingQuizConfig =
-    editingActivity && editingActivity.type === 'quiz' && isQuizConfig(editingActivity.config)
+    editingActivity &&
+    editingActivity.type === "quiz" &&
+    isQuizConfig(editingActivity.config)
       ? {
           ...editingActivity.config,
           title: editingActivity.title,
@@ -436,7 +588,7 @@ export default function EventDetailPage() {
 
   const editingWordCloudConfig =
     editingActivity &&
-    editingActivity.type === 'wordcloud' &&
+    editingActivity.type === "wordcloud" &&
     isWordCloudConfig(editingActivity.config)
       ? {
           ...editingActivity.config,
@@ -454,40 +606,51 @@ export default function EventDetailPage() {
         badge={<StatusBadge status={event.status} className="capitalize" />}
         actions={
           <ActionGroup>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleEndSession}
-            disabled={isEndingSession || event.status === 'ended'}
-          >
-            <Square className="mr-2 h-4 w-4" />
-            {isEndingSession ? 'Ending…' : event.status === 'ended' ? 'Session ended' : 'End session'}
-          </Button>
-          {event.status === 'ended' && (
-            <Link href={`/dashboard/events/${id}/analytics`}>
-              <Button variant="default" size="sm">
-                <BarChart2 className="mr-2 h-4 w-4" />
-                View Analytics
-              </Button>
-            </Link>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
-          </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleEndSession}
+              disabled={isEndingSession || event.status === "ended"}
+            >
+              <Square className="mr-2 h-4 w-4" />
+              {isEndingSession
+                ? "Ending…"
+                : event.status === "ended"
+                  ? "Session ended"
+                  : "End session"}
+            </Button>
+            {event.status === "ended" && (
+              <Link href={`/dashboard/events/${id}/analytics`}>
+                <Button variant="default" size="sm">
+                  <BarChart2 className="mr-2 h-4 w-4" />
+                  View Analytics
+                </Button>
+              </Link>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
           </ActionGroup>
         }
       />
 
-      <SurfacePanel tone="raised" className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+      <SurfacePanel
+        tone="raised"
+        className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4"
+      >
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
             Join code
@@ -523,45 +686,54 @@ export default function EventDetailPage() {
       <div className="flex gap-1 overflow-x-auto rounded-lg border border-border bg-surface-card p-1 shadow-xs">
         <button
           type="button"
-          onClick={() => setActiveTab('overview')}
+          onClick={() => setActiveTab("overview")}
           className={cn(
-            'rounded-md px-3 py-2 text-sm font-medium transition-colors',
-            activeTab === 'overview'
-              ? 'bg-brand-subtle text-brand-subtle-text'
-              : 'text-ink-muted hover:bg-surface-sunken hover:text-foreground',
+            "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+            activeTab === "overview"
+              ? "bg-brand-subtle text-brand-subtle-text"
+              : "text-ink-muted hover:bg-surface-sunken hover:text-foreground",
           )}
         >
           Overview
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('polls')}
+          onClick={() => setActiveTab("polls")}
           className={cn(
-            'rounded-md px-3 py-2 text-sm font-medium transition-colors',
-            activeTab === 'polls'
-              ? 'bg-brand-subtle text-brand-subtle-text'
-              : 'text-ink-muted hover:bg-surface-sunken hover:text-foreground',
+            "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+            activeTab === "polls"
+              ? "bg-brand-subtle text-brand-subtle-text"
+              : "text-ink-muted hover:bg-surface-sunken hover:text-foreground",
           )}
         >
-          Activities ({pollActivities.length + quizActivities.length + feedbackActivities.length + wordcloudActivities.length})
+          Activities (
+          {pollActivities.length +
+            quizActivities.length +
+            feedbackActivities.length +
+            wordcloudActivities.length}
+          )
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('qa')}
+          onClick={() => setActiveTab("qa")}
           className={cn(
-            'rounded-md px-3 py-2 text-sm font-medium transition-colors',
-            activeTab === 'qa'
-              ? 'bg-brand-subtle text-brand-subtle-text'
-              : 'text-ink-muted hover:bg-surface-sunken hover:text-foreground',
+            "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+            activeTab === "qa"
+              ? "bg-brand-subtle text-brand-subtle-text"
+              : "text-ink-muted hover:bg-surface-sunken hover:text-foreground",
           )}
         >
-          Q&amp;A ({pendingQuestions.length + approvedQuestions.length + answeredQuestions.length})
+          Q&amp;A (
+          {pendingQuestions.length +
+            approvedQuestions.length +
+            answeredQuestions.length}
+          )
         </button>
       </div>
 
-      {activeTab === 'overview' && (
+      {activeTab === "overview" && (
         <div className="space-y-6">
-          {event.status === 'ended' ? (
+          {event.status === "ended" ? (
             <SurfacePanel tone="brand">
               <SectionHeader
                 eyebrow="Session complete"
@@ -582,7 +754,7 @@ export default function EventDetailPage() {
               className="border-brand/30 bg-brand-subtle/40"
               label="Live participants"
               value={liveCount}
-              description={`${liveCount === 1 ? 'person connected' : 'people connected'} - updates in real time`}
+              description={`${liveCount === 1 ? "person connected" : "people connected"} - updates in real time`}
               icon={<LiveDot />}
               trend={<ConnectionStatus />}
             />
@@ -602,7 +774,7 @@ export default function EventDetailPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 truncate rounded-md border border-border bg-surface-card px-3 py-2 text-xs text-ink-muted">
-                    {qr?.joinUrl ?? 'Generating link…'}
+                    {qr?.joinUrl ?? "Generating link…"}
                   </code>
                   <Button
                     variant="outline"
@@ -645,26 +817,35 @@ export default function EventDetailPage() {
         </div>
       )}
 
-      {activeTab === 'polls' && (
+      {activeTab === "polls" && (
         <div className="space-y-5">
           <SectionHeader
             title="Activities"
             description="Create and run polls, quizzes, feedback forms, and word clouds for this event."
             actions={
               <ActionGroup>
-                <Button variant="outline" onClick={() => openCreateBuilder('poll')}>
+                <Button
+                  variant="outline"
+                  onClick={() => openCreateBuilder("poll")}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   New poll
                 </Button>
-                <Button variant="outline" onClick={() => openCreateBuilder('feedback')}>
+                <Button
+                  variant="outline"
+                  onClick={() => openCreateBuilder("feedback")}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   New feedback
                 </Button>
-                <Button variant="outline" onClick={() => openCreateBuilder('wordcloud')}>
+                <Button
+                  variant="outline"
+                  onClick={() => openCreateBuilder("wordcloud")}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   New word cloud
                 </Button>
-                <Button onClick={() => openCreateBuilder('quiz')}>
+                <Button onClick={() => openCreateBuilder("quiz")}>
                   <Plus className="mr-2 h-4 w-4" />
                   New quiz
                 </Button>
@@ -673,7 +854,10 @@ export default function EventDetailPage() {
           />
 
           {activitiesLoading ? (
-            <LoadingSkeleton variant="card" className="h-40" />
+            <div className="space-y-3">
+              <LoadingSkeleton variant="card" className="h-44" />
+              <LoadingSkeleton variant="card" className="h-44" />
+            </div>
           ) : pollActivities.length === 0 &&
             quizActivities.length === 0 &&
             feedbackActivities.length === 0 &&
@@ -689,213 +873,53 @@ export default function EventDetailPage() {
                   icon={<BarChart3 className="h-5 w-5" />}
                   title="Poll"
                   description="Ask a question and watch the bars fill in real time."
-                  onClick={() => openCreateBuilder('poll')}
+                  onClick={() => openCreateBuilder("poll")}
                 />
                 <ActivityTile
                   type="quiz"
                   icon={<ListChecks className="h-5 w-5" />}
                   title="Quiz"
                   description="Score answers and rank your audience on a leaderboard."
-                  onClick={() => openCreateBuilder('quiz')}
+                  onClick={() => openCreateBuilder("quiz")}
                 />
                 <ActivityTile
                   type="wordcloud"
                   icon={<Cloud className="h-5 w-5" />}
                   title="Word cloud"
                   description="Collect words and let popular ones grow on screen."
-                  onClick={() => openCreateBuilder('wordcloud')}
+                  onClick={() => openCreateBuilder("wordcloud")}
                 />
                 <ActivityTile
                   type="feedback"
                   icon={<Star className="h-5 w-5" />}
                   title="Feedback"
                   description="Gather ratings and open comments after the session."
-                  onClick={() => openCreateBuilder('feedback')}
+                  onClick={() => openCreateBuilder("feedback")}
                 />
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              {pollActivities.map((activity) => (
-                <div key={activity._id} className="space-y-3">
-                  <PollRunPanel activity={activity} />
-
-                  <ActionGroup>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditBuilder(activity)}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={deleteActivity.isPending || activity.status === 'live'}
-                      onClick={() =>
-                        deleteActivity.mutate(activity._id, {
-                          onSuccess: () => {
-                            toast({ title: 'Poll deleted' });
-                          },
-                          onError: (err) => {
-                            toast({
-                              variant: 'destructive',
-                              title: 'Could not delete poll',
-                              description:
-                                err instanceof ApiError || err instanceof Error
-                                  ? err.message
-                                  : 'Unknown error',
-                            });
-                          },
-                        })
-                      }
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
-                  </ActionGroup>
-                </div>
-              ))}
-
-              {feedbackActivities.map((activity) => (
-                <div key={activity._id} className="space-y-3">
-                  <FeedbackRunPanel activity={activity} />
-
-                  <ActionGroup>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditBuilder(activity)}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={deleteActivity.isPending || activity.status === 'live'}
-                      onClick={() =>
-                        deleteActivity.mutate(activity._id, {
-                          onSuccess: () => {
-                            toast({ title: 'Feedback deleted' });
-                          },
-                          onError: (err) => {
-                            toast({
-                              variant: 'destructive',
-                              title: 'Could not delete feedback',
-                              description:
-                                err instanceof ApiError || err instanceof Error
-                                  ? err.message
-                                  : 'Unknown error',
-                            });
-                          },
-                        })
-                      }
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
-                  </ActionGroup>
-                </div>
-              ))}
-
-              {quizActivities.map((activity) => (
-                <div key={activity._id} className="space-y-3">
-                  <QuizRunPanel activity={activity} eventId={id} />
-
-                  <ActionGroup>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditBuilder(activity)}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={deleteActivity.isPending || activity.status === 'live'}
-                      onClick={() =>
-                        deleteActivity.mutate(activity._id, {
-                          onSuccess: () => {
-                            toast({ title: 'Quiz deleted' });
-                          },
-                          onError: (err) => {
-                            toast({
-                              variant: 'destructive',
-                              title: 'Could not delete quiz',
-                              description:
-                                err instanceof ApiError || err instanceof Error
-                                  ? err.message
-                                  : 'Unknown error',
-                            });
-                          },
-                        })
-                      }
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
-                  </ActionGroup>
-                </div>
-              ))}
-
-              {wordcloudActivities.map((activity) => (
-                <div key={activity._id} className="space-y-3">
-                  <WordCloudRunPanel activity={activity} />
-
-                  <ActionGroup>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditBuilder(activity)}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={deleteActivity.isPending || activity.status === 'live'}
-                      onClick={() =>
-                        deleteActivity.mutate(activity._id, {
-                          onSuccess: () => {
-                            toast({ title: 'Word cloud deleted' });
-                          },
-                          onError: (err) => {
-                            toast({
-                              variant: 'destructive',
-                              title: 'Could not delete word cloud',
-                              description:
-                                err instanceof ApiError || err instanceof Error
-                                  ? err.message
-                                  : 'Unknown error',
-                            });
-                          },
-                        })
-                      }
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
-                  </ActionGroup>
-                </div>
-              ))}
+            <div className="space-y-4">
+              {activities.map((activity) => renderActivityCard(activity))}
             </div>
           )}
         </div>
       )}
 
-      {activeTab === 'qa' && (
+      {activeTab === "qa" && (
         <QuestionModerationPanel
           pendingQuestions={pendingQuestions}
           approvedQuestions={approvedQuestions}
           answeredQuestions={answeredQuestions}
-          onApprove={(questionId) => handleModerateQuestion(questionId, 'approved')}
-          onDismiss={(questionId) => handleModerateQuestion(questionId, 'dismissed')}
-          onMarkAnswered={(questionId) => handleModerateQuestion(questionId, 'answered')}
+          onApprove={(questionId) =>
+            handleModerateQuestion(questionId, "approved")
+          }
+          onDismiss={(questionId) =>
+            handleModerateQuestion(questionId, "dismissed")
+          }
+          onMarkAnswered={(questionId) =>
+            handleModerateQuestion(questionId, "answered")
+          }
           isUpdating={isModerating}
         />
       )}
@@ -913,24 +937,24 @@ export default function EventDetailPage() {
             isSubmitting={updateEvent.isPending}
             defaultValues={{
               name: event.name,
-              description: event.description ?? '',
+              description: event.description ?? "",
               settings: event.settings,
             }}
             onCancel={() => setEditOpen(false)}
             onSubmit={(values) => {
               updateEvent.mutate(values, {
                 onSuccess: () => {
-                  toast({ title: 'Event updated' });
+                  toast({ title: "Event updated" });
                   setEditOpen(false);
                 },
                 onError: (err) => {
                   toast({
-                    variant: 'destructive',
-                    title: 'Could not update event',
+                    variant: "destructive",
+                    title: "Could not update event",
                     description:
                       err instanceof ApiError || err instanceof Error
                         ? err.message
-                        : 'Unknown error',
+                        : "Unknown error",
                   });
                 },
               });
@@ -948,65 +972,73 @@ export default function EventDetailPage() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>
-              {`${editingActivity ? 'Edit' : 'Create'} ${
-                builderType === 'quiz'
-                  ? 'quiz'
-                  : builderType === 'feedback'
-                  ? 'feedback'
-                  : builderType === 'wordcloud'
-                  ? 'word cloud'
-                  : 'poll'
+        <DialogContent className="max-h-[92vh] max-w-3xl overflow-hidden border-border bg-surface-card p-0">
+          <DialogHeader className="border-b border-border bg-surface-raised px-6 py-5">
+            <DialogTitle className="font-display text-xl">
+              {`${editingActivity ? "Edit" : "Create"} ${
+                builderType === "quiz"
+                  ? "quiz"
+                  : builderType === "feedback"
+                    ? "feedback"
+                    : builderType === "wordcloud"
+                      ? "word cloud"
+                      : "poll"
               }`}
             </DialogTitle>
-            <DialogDescription>
-              {builderType === 'quiz'
-                ? 'Configure a timed quiz with correct answers, points, and timers.'
-                : builderType === 'feedback'
-                ? 'Configure a feedback form with rating and text fields.'
-                : builderType === 'wordcloud'
-                ? 'Configure a live word cloud prompt for this event.'
-                : 'Configure a live poll for this event.'}
+            <DialogDescription className="text-ink-secondary">
+              {builderType === "quiz"
+                ? "Configure a timed quiz with correct answers, points, and timers."
+                : builderType === "feedback"
+                  ? "Configure a feedback form with rating and text fields."
+                  : builderType === "wordcloud"
+                    ? "Configure a live word cloud prompt for this event."
+                    : "Configure a live poll for this event."}
             </DialogDescription>
           </DialogHeader>
 
           {!editingActivity && (
-            <div className="flex gap-2">
+            <div className="mx-6 mt-5 grid gap-2 rounded-lg border border-border bg-surface-sunken p-1 sm:grid-cols-4">
               <Button
                 type="button"
-                variant={builderType === 'poll' ? 'default' : 'outline'}
-                onClick={() => setBuilderType('poll')}
+                variant={builderType === "poll" ? "default" : "ghost"}
+                onClick={() => setBuilderType("poll")}
+                className="justify-center"
               >
+                <BarChart3 className="h-4 w-4" />
                 Poll
               </Button>
               <Button
                 type="button"
-                variant={builderType === 'feedback' ? 'default' : 'outline'}
-                onClick={() => setBuilderType('feedback')}
+                variant={builderType === "feedback" ? "default" : "ghost"}
+                onClick={() => setBuilderType("feedback")}
+                className="justify-center"
               >
+                <Star className="h-4 w-4" />
                 Feedback
               </Button>
               <Button
                 type="button"
-                variant={builderType === 'wordcloud' ? 'default' : 'outline'}
-                onClick={() => setBuilderType('wordcloud')}
+                variant={builderType === "wordcloud" ? "default" : "ghost"}
+                onClick={() => setBuilderType("wordcloud")}
+                className="justify-center"
               >
+                <Cloud className="h-4 w-4" />
                 Word cloud
               </Button>
               <Button
                 type="button"
-                variant={builderType === 'quiz' ? 'default' : 'outline'}
-                onClick={() => setBuilderType('quiz')}
+                variant={builderType === "quiz" ? "default" : "ghost"}
+                onClick={() => setBuilderType("quiz")}
+                className="justify-center"
               >
+                <ListChecks className="h-4 w-4" />
                 Quiz
               </Button>
             </div>
           )}
 
-          <div className="max-h-[calc(90vh-10rem)] overflow-y-auto pr-1">
-            {builderType === 'quiz' ? (
+          <div className="max-h-[calc(92vh-10rem)] overflow-y-auto px-6 py-5">
+            {builderType === "quiz" ? (
               <QuizBuilder
                 eventId={id}
                 initialConfig={editingQuizConfig}
@@ -1014,7 +1046,7 @@ export default function EventDetailPage() {
                 onCancel={resetBuilderState}
                 isSaving={createActivity.isPending || updateActivity.isPending}
               />
-            ) : builderType === 'wordcloud' ? (
+            ) : builderType === "wordcloud" ? (
               <WordCloudBuilder
                 eventId={id}
                 initialConfig={editingWordCloudConfig}
@@ -1022,18 +1054,20 @@ export default function EventDetailPage() {
                 onCancel={resetBuilderState}
                 isSaving={createActivity.isPending || updateActivity.isPending}
               />
-            ) : builderType === 'feedback' ? (
+            ) : builderType === "feedback" ? (
               <div className="space-y-6">
                 <FeedbackBuilder
                   value={feedbackDraft}
                   onChange={setFeedbackDraft}
-                  disabled={createActivity.isPending || updateActivity.isPending}
+                  disabled={
+                    createActivity.isPending || updateActivity.isPending
+                  }
                 />
 
-                <ActionGroup>
+                <ActionGroup className="sticky bottom-0 -mx-1 border-t border-border bg-background/95 px-1 pt-4 backdrop-blur">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     onClick={resetBuilderState}
                   >
                     Cancel
@@ -1041,13 +1075,18 @@ export default function EventDetailPage() {
                   <Button
                     type="button"
                     onClick={handleSaveFeedback}
-                    disabled={createActivity.isPending || updateActivity.isPending}
+                    disabled={
+                      createActivity.isPending || updateActivity.isPending
+                    }
+                    loading={
+                      createActivity.isPending || updateActivity.isPending
+                    }
                   >
                     {createActivity.isPending || updateActivity.isPending
-                      ? 'Saving…'
+                      ? "Saving…"
                       : editingActivity
-                      ? 'Save changes'
-                      : 'Create feedback'}
+                        ? "Save changes"
+                        : "Create feedback"}
                   </Button>
                 </ActionGroup>
               </div>
@@ -1082,23 +1121,23 @@ export default function EventDetailPage() {
               onClick={() =>
                 deleteEvent.mutate(id, {
                   onSuccess: () => {
-                    toast({ title: 'Event deleted' });
-                    router.push('/dashboard');
+                    toast({ title: "Event deleted" });
+                    router.push("/dashboard");
                   },
                   onError: (err) => {
                     toast({
-                      variant: 'destructive',
-                      title: 'Could not delete event',
+                      variant: "destructive",
+                      title: "Could not delete event",
                       description:
                         err instanceof ApiError || err instanceof Error
                           ? err.message
-                          : 'Unknown error',
+                          : "Unknown error",
                     });
                   },
                 })
               }
             >
-              {deleteEvent.isPending ? 'Deleting…' : 'Delete'}
+              {deleteEvent.isPending ? "Deleting…" : "Delete"}
             </Button>
           </ActionGroup>
         </DialogContent>
