@@ -1,14 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Eyebrow } from '@/components/pulse';
-import { cn } from '@/lib/utils';
-import type { LiveActivity, WordCloudEntry } from '@/hooks/use-poll';
-import { WordCloud } from '@/components/wordcloud/wordcloud-cloud';
-import { limitWordCloudWords, normalizeWordCloudInput } from '@/lib/wordcloud';
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SurfacePanel } from "@/components/ui/surface-panel";
+import { Eyebrow } from "@/components/pulse";
+import { cn } from "@/lib/utils";
+import type { LiveActivity, WordCloudEntry } from "@/hooks/use-poll";
+import { WordCloud } from "@/components/wordcloud/wordcloud-cloud";
+import { limitWordCloudWords, normalizeWordCloudInput } from "@/lib/wordcloud";
 
 type WordCloudParticipantProps = {
   activity: LiveActivity;
@@ -29,16 +31,16 @@ export function WordCloudParticipant({
   wordCloudEndsAt = null,
   onSubmit,
 }: WordCloudParticipantProps) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [timeLeftMs, setTimeLeftMs] = useState(0); // Timer state
 
-  const prompt = activity.config.prompt ?? activity.title ?? 'Share your words';
+  const prompt = activity.config.prompt ?? activity.title ?? "Share your words";
   const maxWords = activity.config.maxWordsPerParticipant ?? 5;
 
   // Sync component state
   useEffect(() => {
-    setValue('');
+    setValue("");
     setSubmitting(false);
   }, [activity._id]);
 
@@ -60,7 +62,7 @@ export function WordCloudParticipant({
   }, [wordCloudEndsAt]);
 
   const timeExpired = !!wordCloudEndsAt && timeLeftMs <= 0;
-  const isClosed = activity.status === 'closed' || timeExpired;
+  const isClosed = activity.status === "closed" || timeExpired;
 
   const timeLabel = useMemo(() => {
     if (!wordCloudEndsAt) return null;
@@ -68,7 +70,7 @@ export function WordCloudParticipant({
     const seconds = Math.max(0, totalSeconds);
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   }, [timeLeftMs, wordCloudEndsAt]);
 
   const parsedWords = useMemo(() => normalizeWordCloudInput(value), [value]);
@@ -114,20 +116,26 @@ export function WordCloudParticipant({
   if (hasSubmitted || isClosed) {
     return (
       <div className="space-y-4">
-        <div className="rounded-md border border-border bg-surface-raised p-4">
+        <SurfacePanel tone="raised" className="p-4">
           {hasSubmitted ? (
-            <Badge variant="success" className="mb-2">Words submitted</Badge>
+            <Badge variant="success" className="mb-2">
+              Words submitted
+            </Badge>
           ) : timeExpired ? (
-            <Badge variant="destructive" className="mb-2">Time is up</Badge>
+            <Badge variant="destructive" className="mb-2">
+              Time is up
+            </Badge>
           ) : (
-            <Badge variant="neutral" className="mb-2">Word cloud closed</Badge>
+            <Badge variant="neutral" className="mb-2">
+              Word cloud closed
+            </Badge>
           )}
           <p className="font-display font-semibold tracking-tight text-foreground">
             {prompt}
           </p>
-        </div>
+        </SurfacePanel>
 
-        <div className="rounded-md border border-border bg-surface-raised p-4">
+        <SurfacePanel tone="raised" className="p-4">
           <Eyebrow className="mb-3">Your submission</Eyebrow>
 
           {submittedWords.length > 0 ? (
@@ -142,26 +150,34 @@ export function WordCloudParticipant({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-ink-muted">
-              {isClosed && !hasSubmitted
-                ? 'No words were submitted.'
-                : 'Your words were submitted.'}
-            </p>
+            <EmptyState
+              className="py-8"
+              title={
+                isClosed && !hasSubmitted
+                  ? "No words submitted"
+                  : "Words submitted"
+              }
+              description={
+                isClosed && !hasSubmitted
+                  ? "No words were submitted before this activity closed."
+                  : "Your words were submitted."
+              }
+            />
           )}
-        </div>
+        </SurfacePanel>
 
-        <div className="rounded-md border border-border bg-surface-raised p-4">
+        <SurfacePanel tone="raised" className="p-4">
           <Eyebrow className="mb-3">Live word cloud</Eyebrow>
           <WordCloud
             words={liveWords}
             height={280}
             emptyMessage={
               isClosed
-                ? 'No word cloud responses were received.'
-                : 'Waiting for responses…'
+                ? "No word cloud responses were received."
+                : "Waiting for responses..."
             }
           />
-        </div>
+        </SurfacePanel>
       </div>
     );
   }
@@ -174,17 +190,18 @@ export function WordCloudParticipant({
             {prompt}
           </p>
           <p className="mt-1 text-sm text-ink-secondary">
-            Enter up to {maxWords} unique word{maxWords === 1 ? '' : 's'}, separated by commas or new lines.
+            Enter up to {maxWords} unique word{maxWords === 1 ? "" : "s"},
+            separated by commas or new lines.
           </p>
         </div>
 
         {wordCloudEndsAt && timeLabel && (
           <div
             className={cn(
-              'shrink-0 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums',
+              "shrink-0 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums",
               timeExpired
-                ? 'bg-error-subtle text-destructive'
-                : 'bg-surface-sunken text-foreground',
+                ? "bg-error-subtle text-destructive"
+                : "bg-brand-subtle text-brand-subtle-text",
             )}
           >
             {timeLabel}
@@ -198,21 +215,22 @@ export function WordCloudParticipant({
         onChange={(e) => setValue(e.target.value)}
         rows={5}
         maxLength={300}
+        className="min-h-[140px] bg-surface-raised"
       />
 
       <div
         className={cn(
-          'rounded-md border p-4',
+          "rounded-lg border p-4",
           tooManyWords
-            ? 'border-destructive bg-error-subtle'
-            : 'border-border bg-surface-raised',
+            ? "border-destructive bg-error-subtle"
+            : "border-border bg-surface-raised",
         )}
       >
         <div className="flex items-center justify-between gap-3">
           <p
             className={cn(
-              'text-sm font-medium',
-              tooManyWords ? 'text-destructive' : 'text-ink-secondary',
+              "text-sm font-medium",
+              tooManyWords ? "text-destructive" : "text-ink-secondary",
             )}
           >
             {tooManyWords
@@ -242,7 +260,7 @@ export function WordCloudParticipant({
         size="lg"
         className="w-full"
       >
-        {submitting || isSubmitting ? 'Submitting…' : 'Submit your words'}
+        {submitting || isSubmitting ? "Submitting..." : "Submit your words"}
       </Button>
     </div>
   );

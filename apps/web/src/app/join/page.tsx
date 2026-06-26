@@ -1,15 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Eyebrow, Logomark } from '@/components/pulse';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SurfacePanel } from "@/components/ui/surface-panel";
+import { Eyebrow, Logomark } from "@/components/pulse";
 
 export default function JoinPage() {
-  const [eventCode, setEventCode] = useState('');
+  const [eventCode, setEventCode] = useState("");
   const router = useRouter();
 
   const handleJoin = (e: React.FormEvent) => {
@@ -22,44 +24,49 @@ export default function JoinPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-surface-canvas px-4 py-10">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-surface-canvas px-4 py-8">
       <div className="mx-auto w-full max-w-container-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Logomark size={44} className="mb-6" />
+          <div className="mb-6 rounded-2xl border border-border bg-surface-card p-3 shadow-sm">
+            <Logomark size={44} />
+          </div>
           <Eyebrow>Live session</Eyebrow>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-foreground">
+          <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Join a live session
           </h1>
-          <p className="mt-2 text-base text-ink-secondary">
+          <p className="mt-3 text-base leading-7 text-ink-secondary">
             Enter the code shown on screen to take part.
           </p>
         </div>
 
-        <form onSubmit={handleJoin} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="event-code" className="text-ink-secondary">
-              Session code
-            </Label>
-            <Input
-              id="event-code"
-              placeholder="ABC123"
-              autoComplete="off"
-              autoCapitalize="characters"
-              value={eventCode}
-              onChange={(e) => setEventCode(e.target.value.toUpperCase())}
-              className="h-16 text-center font-mono text-3xl font-bold tabular-nums tracking-code"
-              maxLength={6}
-            />
-          </div>
-          <Button
-            type="submit"
-            size="xl"
-            className="w-full"
-            disabled={!eventCode.trim()}
-          >
-            Join
-          </Button>
-        </form>
+        <SurfacePanel className="p-5 sm:p-6">
+          <form onSubmit={handleJoin} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="event-code" className="text-ink-secondary">
+                Session code
+              </Label>
+              <Input
+                id="event-code"
+                placeholder="ABC123"
+                autoComplete="off"
+                autoCapitalize="characters"
+                value={eventCode}
+                onChange={(e) => setEventCode(e.target.value.toUpperCase())}
+                className="h-16 rounded-lg bg-surface-raised text-center font-mono text-3xl font-bold uppercase tabular-nums tracking-code shadow-inner"
+                maxLength={6}
+              />
+            </div>
+            <Button
+              type="submit"
+              size="xl"
+              className="w-full"
+              disabled={!eventCode.trim()}
+            >
+              Join
+              <ArrowRight className="h-5 w-5" />
+            </Button>
+          </form>
+        </SurfacePanel>
       </div>
     </main>
   );

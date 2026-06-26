@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { SurfacePanel } from "@/components/ui/surface-panel";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 type FeedbackFieldType = "rating" | "text";
@@ -106,7 +108,10 @@ export function FeedbackParticipant({
     return Object.keys(nextErrors).length === 0;
   };
 
-  const isFormValid = useMemo(() => validate(false), [fields, ratingValues, textValues]);
+  const isFormValid = useMemo(
+    () => validate(false),
+    [fields, ratingValues, textValues],
+  );
 
   const handleSubmit = async () => {
     if (submitted || isSubmitting) return;
@@ -151,7 +156,7 @@ export function FeedbackParticipant({
   }, [timeLeftMs, submitted, isSubmitting, isFormValid]);
 
   return (
-    <div className="rounded-md border border-border bg-surface-card p-5 shadow-xs">
+    <SurfacePanel className="p-5 sm:p-6">
       <div className="mb-6 flex items-start justify-between gap-3">
         <div className="space-y-1">
           {title ? (
@@ -168,7 +173,7 @@ export function FeedbackParticipant({
               "shrink-0 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums",
               feedbackExpired
                 ? "bg-error-subtle text-destructive"
-                : "bg-surface-sunken text-foreground",
+                : "bg-brand-subtle text-brand-subtle-text",
             )}
           >
             {timeLabel}
@@ -205,10 +210,10 @@ export function FeedbackParticipant({
                         });
                       }}
                       className={cn(
-                        "inline-flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold tabular-nums transition-colors duration-fast",
+                        "inline-flex h-12 w-12 items-center justify-center rounded-lg border text-sm font-semibold tabular-nums shadow-xs transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         active
                           ? "border-brand bg-brand text-brand-foreground"
-                          : "border-border bg-surface-card text-foreground hover:bg-muted",
+                          : "border-border bg-surface-raised text-foreground hover:bg-muted",
                         isLocked ? "cursor-not-allowed opacity-60" : "",
                       )}
                     >
@@ -218,7 +223,7 @@ export function FeedbackParticipant({
                 })}
               </div>
             ) : (
-              <textarea
+              <Textarea
                 value={textValues[field.id] ?? ""}
                 onChange={(e) => {
                   const nextValue = e.target.value;
@@ -235,7 +240,7 @@ export function FeedbackParticipant({
                 disabled={isLocked}
                 rows={4}
                 placeholder="Type your response"
-                className="w-full rounded-sm border border-input bg-surface-card px-3 py-2 text-sm text-foreground outline-none transition focus-visible:ring-2 focus-visible:ring-ring placeholder:text-ink-faint disabled:cursor-not-allowed disabled:opacity-60"
+                className="min-h-[128px] bg-surface-raised"
               />
             )}
 
@@ -257,13 +262,13 @@ export function FeedbackParticipant({
           {submitted
             ? "Feedback submitted"
             : feedbackExpired
-            ? "Time is up"
-            : isSubmitting
-            ? "Submitting…"
-            : "Submit feedback"}
+              ? "Time is up"
+              : isSubmitting
+                ? "Submitting..."
+                : "Submit feedback"}
         </Button>
       </div>
-    </div>
+    </SurfacePanel>
   );
 }
 

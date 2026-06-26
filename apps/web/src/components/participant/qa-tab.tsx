@@ -1,12 +1,15 @@
-'use client';
+"use client";
 
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from "react";
+import { MessageCircle, ThumbsUp } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Eyebrow } from '@/components/pulse';
-import type { QaQuestion } from '@/lib/use-event-realtime';
-
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SurfacePanel } from "@/components/ui/surface-panel";
+import { Textarea } from "@/components/ui/textarea";
+import { Eyebrow } from "@/components/pulse";
+import type { QaQuestion } from "@/lib/use-event-realtime";
 
 type QaTabProps = {
   questions: QaQuestion[];
@@ -35,10 +38,10 @@ export function QaTab({
   onAskQuestion,
   onUpvoteQuestion,
 }: QaTabProps) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [displayName] = useState(() => {
-    if (typeof window === 'undefined') return '';
-    return localStorage.getItem('iep-display-name') ?? '';
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("iep-display-name") ?? "";
   });
 
   const sortedQuestions = useMemo(() => sortQuestions(questions), [questions]);
@@ -53,15 +56,17 @@ export function QaTab({
       text: trimmedText,
       // When anonymous QA is on, don't send a name at all.
       // The server also enforces this, but suppressing it client-side is cleaner.
-      displayName: allowAnonymousQA ? undefined : (displayName.trim() || undefined),
+      displayName: allowAnonymousQA
+        ? undefined
+        : displayName.trim() || undefined,
     });
 
-    setText('');
+    setText("");
   }
 
   return (
     <div className="mt-6 space-y-6">
-      <section className="rounded-md border border-border bg-surface-card p-5 shadow-xs">
+      <SurfacePanel className="p-5 sm:p-6">
         <div className="mb-4">
           <Eyebrow>Q&amp;A</Eyebrow>
           <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
@@ -74,15 +79,18 @@ export function QaTab({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="question-text" className="text-sm font-medium text-ink-secondary">
+            <label
+              htmlFor="question-text"
+              className="text-sm font-medium text-ink-secondary"
+            >
               Your question
             </label>
-            <textarea
+            <Textarea
               id="question-text"
               value={text}
               onChange={(event) => setText(event.target.value)}
               placeholder="Type your question here..."
-              className="min-h-[120px] w-full rounded-sm border border-input bg-surface-card px-3 py-2 text-sm text-foreground outline-none ring-offset-background placeholder:text-ink-faint focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-[128px] bg-surface-raised"
               maxLength={300}
             />
           </div>
@@ -91,18 +99,28 @@ export function QaTab({
               understand their name won't be attached to their question. */}
           {allowAnonymousQA && (
             <p className="text-xs text-ink-muted">
-              🕶 This event has anonymous Q&amp;A enabled. Your question will appear as{' '}
-              <span className="font-semibold text-ink-secondary">Anonymous</span>.
+              This event has anonymous Q&amp;A enabled. Your question will
+              appear as{" "}
+              <span className="font-semibold text-ink-secondary">
+                Anonymous
+              </span>
+              .
             </p>
           )}
 
-          <Button type="submit" size="lg" className="w-full" disabled={!text.trim()}>
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={!text.trim()}
+          >
+            <MessageCircle className="h-4 w-4" />
             Ask a question
           </Button>
         </form>
-      </section>
+      </SurfacePanel>
 
-      <section className="rounded-md border border-border bg-surface-card p-5 shadow-xs">
+      <SurfacePanel className="p-5 sm:p-6">
         <div className="mb-4">
           <Eyebrow>Approved questions</Eyebrow>
           <p className="mt-1 text-sm text-ink-secondary">
@@ -111,9 +129,11 @@ export function QaTab({
         </div>
 
         {sortedQuestions.length === 0 ? (
-          <div className="rounded-md border border-dashed border-border p-8 text-center text-sm text-ink-muted">
-            No approved questions yet.
-          </div>
+          <EmptyState
+            icon={<MessageCircle className="h-6 w-6" />}
+            title="No approved questions yet"
+            description="Questions approved by the host will appear here."
+          />
         ) : (
           <div className="space-y-3">
             {sortedQuestions.map((question) => {
@@ -122,7 +142,7 @@ export function QaTab({
               return (
                 <article
                   key={question._id}
-                  className="flex items-start justify-between gap-4 rounded-md border border-border bg-surface-raised p-4"
+                  className="flex items-start justify-between gap-4 rounded-lg border border-border bg-surface-raised p-4 shadow-xs"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium leading-6 text-foreground">
@@ -134,11 +154,14 @@ export function QaTab({
                           guard on top of the server already stripping the name. */}
                       <span>
                         {allowAnonymousQA
-                          ? 'Anonymous'
-                          : (question.authorName?.trim() || 'Anonymous')}
+                          ? "Anonymous"
+                          : question.authorName?.trim() || "Anonymous"}
                       </span>
-                      <Badge variant={question.voteCount > 0 ? 'brand' : 'neutral'}>
-                        {question.voteCount} vote{question.voteCount === 1 ? '' : 's'}
+                      <Badge
+                        variant={question.voteCount > 0 ? "brand" : "neutral"}
+                      >
+                        {question.voteCount} vote
+                        {question.voteCount === 1 ? "" : "s"}
                       </Badge>
                     </div>
                   </div>
@@ -146,19 +169,20 @@ export function QaTab({
                   <Button
                     type="button"
                     size="lg"
-                    variant={hasVoted ? 'secondary' : 'outline'}
+                    variant={hasVoted ? "secondary" : "outline"}
                     disabled={hasVoted}
                     onClick={() => onUpvoteQuestion(question._id)}
                     className="shrink-0"
                   >
-                    {hasVoted ? 'Upvoted' : 'Upvote'}
+                    {!hasVoted && <ThumbsUp className="h-4 w-4" />}
+                    {hasVoted ? "Upvoted" : "Upvote"}
                   </Button>
                 </article>
               );
             })}
           </div>
         )}
-      </section>
+      </SurfacePanel>
     </div>
   );
 }

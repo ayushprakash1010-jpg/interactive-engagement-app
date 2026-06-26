@@ -1,41 +1,43 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Eyebrow, LeaderboardRow } from '@/components/pulse';
-import { cn } from '@/lib/utils';
-import { PollResultsChart } from './poll-results-chart';
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SurfacePanel } from "@/components/ui/surface-panel";
+import { Eyebrow, LeaderboardRow } from "@/components/pulse";
+import { cn } from "@/lib/utils";
+import { PollResultsChart } from "./poll-results-chart";
 import type {
   LiveActivity,
   QuizAnswerState,
   QuizLeaderboardEntry,
   QuizQuestionState,
   UsePollReturn,
-} from '../../hooks/use-poll';
+} from "../../hooks/use-poll";
 
 interface Props {
   activity: LiveActivity;
-  tallies: UsePollReturn['tallies'];
+  tallies: UsePollReturn["tallies"];
   pollEndsAt?: number | null;
   hasSubmitted: boolean;
-  onSubmit: UsePollReturn['submitResponse'];
+  onSubmit: UsePollReturn["submitResponse"];
   quizQuestion?: QuizQuestionState | null;
   hasAnsweredQuiz?: boolean;
   quizAnswerState?: QuizAnswerState | null;
   quizLeaderboard?: QuizLeaderboardEntry[];
-  onSubmitQuizAnswer?: UsePollReturn['submitQuizAnswer'];
+  onSubmitQuizAnswer?: UsePollReturn["submitQuizAnswer"];
 }
 
 function TimerPill({ label, expired }: { label: string; expired: boolean }) {
   return (
     <div
       className={cn(
-        'shrink-0 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums',
+        "shrink-0 rounded-sm px-3 py-1.5 text-sm font-semibold tabular-nums",
         expired
-          ? 'bg-error-subtle text-destructive'
-          : 'bg-surface-sunken text-foreground',
+          ? "bg-error-subtle text-destructive"
+          : "bg-brand-subtle text-brand-subtle-text",
       )}
     >
       {label}
@@ -56,16 +58,16 @@ export function PollParticipant({
   onSubmitQuizAnswer,
 }: Props) {
   const config = activity.config;
-  const pollType = config.pollType ?? 'single';
+  const pollType = config.pollType ?? "single";
   const options = config.options ?? [];
   const ratingScale = config.ratingScale ?? 5;
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [textValue, setTextValue] = useState('');
+  const [textValue, setTextValue] = useState("");
   const [ratingValue, setRatingValue] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [selectedQuizOptionId, setSelectedQuizOptionId] = useState<string>('');
+  const [selectedQuizOptionId, setSelectedQuizOptionId] = useState<string>("");
   const [quizSubmitting, setQuizSubmitting] = useState(false);
 
   const [quizTimeLeftMs, setQuizTimeLeftMs] = useState(0);
@@ -73,19 +75,19 @@ export function PollParticipant({
 
   useEffect(() => {
     setSelectedIds([]);
-    setTextValue('');
+    setTextValue("");
     setRatingValue(null);
     setSubmitting(false);
   }, [activity._id]);
 
   useEffect(() => {
-    setSelectedQuizOptionId('');
+    setSelectedQuizOptionId("");
     setQuizSubmitting(false);
   }, [quizQuestion?.questionId]);
 
   // Quiz Timer
   useEffect(() => {
-    if (activity.type !== 'quiz' || !quizQuestion?.endsAt) {
+    if (activity.type !== "quiz" || !quizQuestion?.endsAt) {
       setQuizTimeLeftMs(0);
       return;
     }
@@ -102,7 +104,7 @@ export function PollParticipant({
 
   // Poll Timer
   useEffect(() => {
-    if (activity.type !== 'poll' || !pollEndsAt) {
+    if (activity.type !== "poll" || !pollEndsAt) {
       setPollTimeLeftMs(0);
       return;
     }
@@ -118,15 +120,15 @@ export function PollParticipant({
   }, [activity.type, pollEndsAt]);
 
   const pollExpired = !!pollEndsAt && pollTimeLeftMs <= 0;
-  const isClosed = activity.status === 'closed' || pollExpired;
+  const isClosed = activity.status === "closed" || pollExpired;
   const showResults = hasSubmitted || isClosed;
 
   const canSubmit = (() => {
     if (submitting || hasSubmitted || isClosed) return false;
-    if (pollType === 'single') return selectedIds.length === 1;
-    if (pollType === 'multiple') return selectedIds.length > 0;
-    if (pollType === 'rating') return ratingValue !== null;
-    if (pollType === 'open') return textValue.trim().length > 0;
+    if (pollType === "single") return selectedIds.length === 1;
+    if (pollType === "multiple") return selectedIds.length > 0;
+    if (pollType === "rating") return ratingValue !== null;
+    if (pollType === "open") return textValue.trim().length > 0;
     return false;
   })();
 
@@ -138,11 +140,12 @@ export function PollParticipant({
     onSubmit({
       activityId: activity._id,
       selectedOptionIds:
-        pollType === 'single' || pollType === 'multiple'
+        pollType === "single" || pollType === "multiple"
           ? selectedIds
           : undefined,
-      textValue: pollType === 'open' ? textValue.trim() : undefined,
-      ratingValue: pollType === 'rating' ? (ratingValue ?? undefined) : undefined,
+      textValue: pollType === "open" ? textValue.trim() : undefined,
+      ratingValue:
+        pollType === "rating" ? (ratingValue ?? undefined) : undefined,
     });
   };
 
@@ -161,11 +164,11 @@ export function PollParticipant({
 
   const quizExpired = quizTimeLeftMs <= 0;
   const showQuizLeaderboard =
-    activity.type === 'quiz' &&
+    activity.type === "quiz" &&
     (quizExpired || isClosed || quizLeaderboard.length > 0);
 
   const canSubmitQuiz =
-    activity.type === 'quiz' &&
+    activity.type === "quiz" &&
     !!quizQuestion &&
     !!selectedQuizOptionId &&
     !quizExpired &&
@@ -179,7 +182,7 @@ export function PollParticipant({
     const seconds = Math.max(0, totalSeconds);
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   }, [quizTimeLeftMs]);
 
   const pollTimeLabel = useMemo(() => {
@@ -188,7 +191,7 @@ export function PollParticipant({
     const seconds = Math.max(0, totalSeconds);
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   }, [pollTimeLeftMs, pollEndsAt]);
 
   const handleQuizSubmit = () => {
@@ -213,19 +216,20 @@ export function PollParticipant({
     });
   };
 
-  if (activity.type === 'quiz') {
+  if (activity.type === "quiz") {
     const locked = hasAnsweredQuiz || quizExpired || isClosed;
-    const questionText = quizQuestion?.text || config.question || 'Waiting for question…';
+    const questionText =
+      quizQuestion?.text || config.question || "Waiting for question...";
 
     return (
       <div className="space-y-5">
-        <div className="rounded-md border border-border bg-surface-raised p-4">
+        <SurfacePanel tone="raised" className="p-4">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div className="space-y-1">
               <Eyebrow>
                 {quizQuestion?.questionNumber
                   ? `Question ${quizQuestion.questionNumber}`
-                  : 'Quiz question'}
+                  : "Quiz question"}
               </Eyebrow>
               <p className="font-display text-lg font-semibold leading-snug tracking-tight text-foreground">
                 {questionText}
@@ -244,16 +248,16 @@ export function PollParticipant({
               ) : (
                 <span className="text-destructive">Incorrect</span>
               )}
-              {typeof quizAnswerState?.awardedPoints === 'number'
-                ? ` · +${quizAnswerState.awardedPoints} pts`
-                : ''}
+              {typeof quizAnswerState?.awardedPoints === "number"
+                ? ` +${quizAnswerState.awardedPoints} pts`
+                : ""}
             </p>
           )}
 
           {!hasAnsweredQuiz && quizExpired && (
             <p className="text-sm font-medium text-destructive">Time is up.</p>
           )}
-        </div>
+        </SurfacePanel>
 
         {quizQuestion?.options?.length ? (
           <div className="space-y-2">
@@ -272,10 +276,10 @@ export function PollParticipant({
                   }}
                   disabled={locked}
                   className={cn(
-                    'min-h-[3rem] w-full rounded-md border px-4 py-3 text-left text-base font-medium text-foreground transition-colors duration-fast disabled:cursor-not-allowed disabled:opacity-80',
+                    "min-h-[3.5rem] w-full rounded-lg border px-4 py-3 text-left text-base font-medium text-foreground shadow-xs transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-80",
                     isSelected
-                      ? 'border-brand bg-brand-subtle'
-                      : 'border-border bg-surface-card hover:bg-muted',
+                      ? "border-brand bg-brand-subtle ring-1 ring-brand/20"
+                      : "border-border bg-surface-raised hover:bg-muted",
                   )}
                   aria-pressed={isSelected}
                 >
@@ -285,9 +289,10 @@ export function PollParticipant({
             })}
           </div>
         ) : (
-          <p className="py-6 text-center text-sm text-ink-muted">
-            Waiting for answer options…
-          </p>
+          <EmptyState
+            title="Waiting for options"
+            description="Answer choices will appear when the host sends them."
+          />
         )}
 
         <Button
@@ -297,11 +302,13 @@ export function PollParticipant({
           size="lg"
           className="w-full"
         >
-          {quizSubmitting || hasAnsweredQuiz ? 'Answer submitted' : 'Submit answer'}
+          {quizSubmitting || hasAnsweredQuiz
+            ? "Answer submitted"
+            : "Submit answer"}
         </Button>
 
         {showQuizLeaderboard && (
-          <div className="rounded-md border border-border bg-surface-raised p-4">
+          <SurfacePanel tone="raised" className="p-4">
             <div className="mb-3">
               <Eyebrow>Leaderboard</Eyebrow>
             </div>
@@ -318,9 +325,13 @@ export function PollParticipant({
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-ink-muted">Waiting for leaderboard…</p>
+              <EmptyState
+                className="py-8"
+                title="Waiting for leaderboard"
+                description="Scores will appear as soon as they are available."
+              />
             )}
-          </div>
+          </SurfacePanel>
         )}
       </div>
     );
@@ -329,29 +340,37 @@ export function PollParticipant({
   if (showResults) {
     return (
       <div className="space-y-4">
-        <div className="rounded-md border border-border bg-surface-raised p-4">
+        <SurfacePanel tone="raised" className="p-4">
           {hasSubmitted ? (
-            <Badge variant="success" className="mb-2">Vote submitted</Badge>
+            <Badge variant="success" className="mb-2">
+              Vote submitted
+            </Badge>
           ) : pollExpired ? (
-            <Badge variant="destructive" className="mb-2">Time is up</Badge>
+            <Badge variant="destructive" className="mb-2">
+              Time is up
+            </Badge>
           ) : (
-            <Badge variant="neutral" className="mb-2">Poll closed</Badge>
+            <Badge variant="neutral" className="mb-2">
+              Poll closed
+            </Badge>
           )}
           <p className="font-display font-semibold tracking-tight text-foreground">
             {config.question}
           </p>
-        </div>
+        </SurfacePanel>
 
         {tallies ? (
           <PollResultsChart tallies={tallies} />
         ) : isClosed ? (
-          <p className="py-8 text-center text-sm text-ink-muted">
-            No responses recorded.
-          </p>
+          <EmptyState
+            title="No responses recorded"
+            description="There were no poll submissions for this activity."
+          />
         ) : (
-          <p className="py-8 text-center text-sm text-ink-muted">
-            Waiting for results…
-          </p>
+          <EmptyState
+            title="Waiting for results"
+            description="Responses will appear here once the host shares them."
+          />
         )}
       </div>
     );
@@ -369,7 +388,7 @@ export function PollParticipant({
         )}
       </div>
 
-      {pollType === 'single' && (
+      {pollType === "single" && (
         <fieldset className="space-y-2">
           {options.map((opt) => {
             const checked = selectedIds.includes(opt.id);
@@ -377,10 +396,10 @@ export function PollParticipant({
               <label
                 key={opt.id}
                 className={cn(
-                  'flex min-h-[3rem] cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors duration-fast',
+                  "flex min-h-[3.5rem] cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 shadow-xs transition-colors duration-fast focus-within:ring-2 focus-within:ring-ring",
                   checked
-                    ? 'border-brand bg-brand-subtle'
-                    : 'border-border bg-surface-card hover:bg-muted',
+                    ? "border-brand bg-brand-subtle ring-1 ring-brand/20"
+                    : "border-border bg-surface-raised hover:bg-muted",
                 )}
               >
                 <input
@@ -398,7 +417,7 @@ export function PollParticipant({
         </fieldset>
       )}
 
-      {pollType === 'multiple' && (
+      {pollType === "multiple" && (
         <fieldset className="space-y-2">
           {options.map((opt) => {
             const checked = selectedIds.includes(opt.id);
@@ -406,10 +425,10 @@ export function PollParticipant({
               <label
                 key={opt.id}
                 className={cn(
-                  'flex min-h-[3rem] cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition-colors duration-fast',
+                  "flex min-h-[3.5rem] cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 shadow-xs transition-colors duration-fast focus-within:ring-2 focus-within:ring-ring",
                   checked
-                    ? 'border-brand bg-brand-subtle'
-                    : 'border-border bg-surface-card hover:bg-muted',
+                    ? "border-brand bg-brand-subtle ring-1 ring-brand/20"
+                    : "border-border bg-surface-raised hover:bg-muted",
                 )}
               >
                 <input
@@ -432,7 +451,7 @@ export function PollParticipant({
         </fieldset>
       )}
 
-      {pollType === 'rating' && (
+      {pollType === "rating" && (
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: ratingScale }, (_, i) => i + 1).map((n) => (
             <button
@@ -440,10 +459,10 @@ export function PollParticipant({
               type="button"
               onClick={() => setRatingValue(n)}
               className={cn(
-                'h-12 w-12 rounded-md border text-base font-semibold tabular-nums transition-colors duration-fast',
+                "h-12 w-12 rounded-lg border text-base font-semibold tabular-nums shadow-xs transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 ratingValue === n
-                  ? 'border-brand bg-brand text-brand-foreground'
-                  : 'border-border bg-surface-card text-foreground hover:bg-muted',
+                  ? "border-brand bg-brand text-brand-foreground"
+                  : "border-border bg-surface-raised text-foreground hover:bg-muted",
               )}
               aria-label={`Rate ${n}`}
               aria-pressed={ratingValue === n}
@@ -454,9 +473,9 @@ export function PollParticipant({
         </div>
       )}
 
-      {pollType === 'open' && (
+      {pollType === "open" && (
         <Textarea
-          placeholder="Type your response…"
+          placeholder="Type your response..."
           value={textValue}
           onChange={(e) => setTextValue(e.target.value)}
           rows={4}
@@ -471,7 +490,7 @@ export function PollParticipant({
         size="lg"
         className="w-full"
       >
-        {submitting ? 'Submitting…' : 'Submit your vote'}
+        {submitting ? "Submitting..." : "Submit your vote"}
       </Button>
     </div>
   );
