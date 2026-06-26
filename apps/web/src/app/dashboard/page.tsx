@@ -3,23 +3,26 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Plus, Calendar, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
+  ActionGroup,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Eyebrow, JoinCode } from '@/components/pulse';
-import { EventStatusBadge } from '@/components/event-status-badge';
+  EmptyState,
+  LoadingSkeleton,
+  PageHeader,
+  SearchBar,
+  StatusBadge,
+} from '@/components/ui';
+import { JoinCode } from '@/components/pulse';
 import { useDeleteEvent, useEvents } from '@/lib/use-events';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiError } from '@/lib/events-api';
@@ -32,6 +35,21 @@ export default function DashboardPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredEvents = events?.filter((event) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return true;
+    }
+
+    return (
+      event.name.toLowerCase().includes(query) ||
+      event.eventCode.toLowerCase().includes(query) ||
+      (event.description ?? '').toLowerCase().includes(query)
+    );
+  });
 
   const handleDeleteEvent = () => {
     if (!eventToDelete) {
@@ -57,32 +75,37 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="space-y-1">
-          <Eyebrow>Your workspace</Eyebrow>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-            Your events
-          </h1>
-          <p className="text-sm text-ink-secondary">
-            Create an event, then share its code or QR with your audience.
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/dashboard/events/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Create event
-          </Link>
-        </Button>
+    <div className="space-y-7">
+      <PageHeader
+        eyebrow="Your workspace"
+        title="Events"
+        description="Create an event, then share its code or QR with your audience."
+        actions={
+          <Button asChild>
+            <Link href="/dashboard/events/new">
+              <Plus className="h-4 w-4" />
+              Create event
+            </Link>
+          </Button>
+        }
+      />
+
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-card p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <SearchBar
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search events, descriptions, or codes"
+          wrapperClassName="w-full sm:max-w-md"
+        />
+        <p className="text-sm text-ink-muted">
+          {events?.length ?? 0} {events?.length === 1 ? 'event' : 'events'}
+        </p>
       </div>
 
       {isLoading && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-32 animate-pulse rounded-lg border border-border bg-surface-sunken"
-            />
+            <LoadingSkeleton key={i} variant="card" className="h-40" />
           ))}
         </div>
       )}
@@ -101,44 +124,48 @@ export default function DashboardPage() {
       )}
 
       {!isLoading && !isError && events?.length === 0 && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand-subtle text-brand">
-              <Calendar className="h-6 w-6" />
-            </span>
-            <div className="space-y-1">
-              <p className="font-display text-lg font-semibold text-foreground">
-                No events yet
-              </p>
-              <p className="text-sm text-ink-secondary">
-                Create your first event to get a join code and QR.
-              </p>
-            </div>
+        <EmptyState
+          tone="brand"
+          icon={<Calendar className="h-6 w-6" />}
+          title="No events yet"
+          description="Create your first event to get a join code and QR."
+          action={
             <Button asChild>
               <Link href="/dashboard/events/new">
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 Create event
               </Link>
             </Button>
-          </CardContent>
-        </Card>
+          }
+        />
       )}
 
-      {!isLoading && !isError && events && events.length > 0 && (
+      {!isLoading &&
+        !isError &&
+        events &&
+        events.length > 0 &&
+        filteredEvents?.length === 0 && (
+          <EmptyState
+            title="No matching events"
+            description="Try a different event name, description, or join code."
+          />
+        )}
+
+      {!isLoading && !isError && filteredEvents && filteredEvents.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((event) => (
+          {filteredEvents.map((event) => (
             <Card
               key={event._id}
-              className="h-full transition-all duration-base ease-standard hover:-translate-y-0.5 hover:border-brand hover:shadow-md"
+              className="group flex h-full flex-col overflow-hidden transition-all duration-base ease-standard hover:-translate-y-0.5 hover:border-brand hover:shadow-md"
             >
-              <Link href={`/dashboard/events/${event._id}`}>
-                <CardHeader>
+              <Link href={`/dashboard/events/${event._id}`} className="flex flex-1 flex-col">
+                <CardHeader className="space-y-4">
                   <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="font-display text-lg">
+                    <CardTitle className="line-clamp-2 font-display text-lg leading-tight transition-colors group-hover:text-brand">
                       {event.name}
                     </CardTitle>
                     <div className="flex shrink-0 items-center gap-2">
-                      <EventStatusBadge status={event.status} />
+                      <StatusBadge status={event.status} className="capitalize" />
                     </div>
                   </div>
                   {event.description && (
@@ -147,8 +174,8 @@ export default function DashboardPage() {
                     </CardDescription>
                   )}
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between gap-2 rounded-md bg-surface-sunken px-3 py-2">
+                <CardContent className="mt-auto">
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-surface-sunken px-3 py-2">
                     <span className="text-2xs font-semibold uppercase tracking-wider text-ink-muted">
                       Join code
                     </span>
@@ -156,12 +183,11 @@ export default function DashboardPage() {
                   </div>
                 </CardContent>
               </Link>
-              <div className="px-6 pb-6">
+              <ActionGroup className="border-t border-border px-6 py-4" align="end">
                 <Button
                   type="button"
                   variant="destructive"
                   size="sm"
-                  className="w-full"
                   disabled={deleteEvent.isPending}
                   onClick={() =>
                     setEventToDelete({ id: event._id, name: event.name })
@@ -170,7 +196,7 @@ export default function DashboardPage() {
                   <Trash2 className="h-4 w-4" />
                   Delete
                 </Button>
-              </div>
+              </ActionGroup>
             </Card>
           ))}
         </div>
@@ -192,7 +218,7 @@ export default function DashboardPage() {
               cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2">
+          <ActionGroup>
             <Button
               variant="outline"
               onClick={() => setEventToDelete(null)}
@@ -207,7 +233,7 @@ export default function DashboardPage() {
             >
               {deleteEvent.isPending ? 'Deleting...' : 'Delete'}
             </Button>
-          </div>
+          </ActionGroup>
         </DialogContent>
       </Dialog>
     </div>

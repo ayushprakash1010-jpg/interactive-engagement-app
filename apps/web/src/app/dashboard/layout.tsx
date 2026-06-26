@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DashboardShell } from '@/components/layout';
 import { Wordmark, AIBadge } from '@/components/pulse';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/use-auth';
@@ -22,6 +23,41 @@ export default function DashboardLayout({
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+
+  if (pathname === '/dashboard') {
+    return (
+      <DashboardShell
+        breadcrumbs={[
+          { label: 'Workspace', href: '/dashboard' },
+          { label: 'Events' },
+        ]}
+        topActions={
+          <>
+            {user?.name && (
+              <span className="hidden max-w-48 truncate text-sm text-ink-muted sm:inline">
+                {user.name}
+              </span>
+            )}
+            <Button asChild variant="outline" size="sm">
+              <a href={logoutUrl}>Log out</a>
+            </Button>
+          </>
+        }
+        sidebarFooter={
+          user?.name ? (
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-foreground">
+                {user.name}
+              </p>
+              <p className="text-xs text-ink-muted">Signed in</p>
+            </div>
+          ) : undefined
+        }
+      >
+        {children}
+      </DashboardShell>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface-canvas">
