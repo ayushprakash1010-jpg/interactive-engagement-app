@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, Calendar } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Calendar, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -10,12 +11,50 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Eyebrow, JoinCode } from '@/components/pulse';
 import { EventStatusBadge } from '@/components/event-status-badge';
-import { useEvents } from '@/lib/use-events';
+import { useDeleteEvent, useEvents } from '@/lib/use-events';
+import { useToast } from '@/components/ui/use-toast';
+import { ApiError } from '@/lib/events-api';
 
 export default function DashboardPage() {
   const { data: events, isLoading, isError, error } = useEvents();
+  const deleteEvent = useDeleteEvent();
+  const { toast } = useToast();
+  const [eventToDelete, setEventToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const handleDeleteEvent = () => {
+    if (!eventToDelete) {
+      return;
+    }
+
+    deleteEvent.mutate(eventToDelete.id, {
+      onSuccess: () => {
+        toast({ title: 'Event deleted' });
+        setEventToDelete(null);
+      },
+      onError: (err) => {
+        toast({
+          variant: 'destructive',
+          title: 'Could not delete event',
+          description:
+            err instanceof ApiError || err instanceof Error
+              ? err.message
+              : 'Unknown error',
+        });
+      },
+    });
+  };
 
   return (
     <div className="space-y-8">
@@ -88,14 +127,19 @@ export default function DashboardPage() {
       {!isLoading && !isError && events && events.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((event) => (
-            <Link key={event._id} href={`/dashboard/events/${event._id}`}>
-              <Card className="h-full transition-all duration-base ease-standard hover:-translate-y-0.5 hover:border-brand hover:shadow-md">
+            <Card
+              key={event._id}
+              className="h-full transition-all duration-base ease-standard hover:-translate-y-0.5 hover:border-brand hover:shadow-md"
+            >
+              <Link href={`/dashboard/events/${event._id}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
                     <CardTitle className="font-display text-lg">
                       {event.name}
                     </CardTitle>
-                    <EventStatusBadge status={event.status} />
+                    <div className="flex shrink-0 items-center gap-2">
+                      <EventStatusBadge status={event.status} />
+                    </div>
                   </div>
                   {event.description && (
                     <CardDescription className="line-clamp-2">
@@ -111,11 +155,61 @@ export default function DashboardPage() {
                     <JoinCode code={event.eventCode} size="sm" />
                   </div>
                 </CardContent>
-              </Card>
-            </Link>
+              </Link>
+              <div className="px-6 pb-6">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="w-full"
+                  disabled={deleteEvent.isPending}
+                  onClick={() =>
+                    setEventToDelete({ id: event._id, name: event.name })
+                  }
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </Button>
+              </div>
+            </Card>
           ))}
         </div>
       )}
+
+      <Dialog
+        open={eventToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEventToDelete(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete event?</DialogTitle>
+            <DialogDescription>
+              This permanently deletes &ldquo;{eventToDelete?.name}&rdquo;. This
+              cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEventToDelete(null)}
+              disabled={deleteEvent.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteEvent.isPending}
+              onClick={handleDeleteEvent}
+            >
+              {deleteEvent.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

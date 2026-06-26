@@ -220,6 +220,11 @@ function QuizLeaderboard({
           (entry as any).participantAnonId ??
           (entry as any).anonId ??
           'anonymous';
+        const displayName = (entry as any).displayName;
+        const participantName =
+          typeof displayName === 'string' && displayName.trim().length > 0
+            ? displayName.trim()
+            : `Participant ${String(anonId).slice(0, 6)}`;
         const points = (entry as any).totalPoints ?? (entry as any).points ?? 0;
 
         return (
@@ -231,8 +236,8 @@ function QuizLeaderboard({
               <span className="w-5 text-muted-foreground tabular-nums">
                 {i + 1}.
               </span>
-              <span className="font-mono text-xs text-muted-foreground">
-                {String(anonId).slice(0, 8)}…
+              <span className="font-medium text-foreground">
+                {participantName}
               </span>
             </span>
             <span className="font-semibold tabular-nums">{points} pts</span>

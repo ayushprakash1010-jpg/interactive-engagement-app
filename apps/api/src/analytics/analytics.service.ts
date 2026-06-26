@@ -77,9 +77,6 @@ export class AnalyticsService {
 
     const analytics = await this.generateReport(eventId);
 
-    // Ended events: cache permanently (no TTL) so the report is always
-    // available on re-open days or weeks later.
-    // Live/draft events: cache for 1 hour so live data stays reasonably fresh.
     const eventStatus = (event as EventWithTimestamps & { status?: string }).status;
     if (eventStatus === 'ended') {
       await this.cacheFinalReport(eventId, analytics);
@@ -95,11 +92,6 @@ export class AnalyticsService {
     return analytics;
   }
 
-  /**
-   * Deletes the analytics cache only if the event is still live.
-   * Use this from socket event handlers so that in-flight participant
-   * responses arriving after SESSION_END do not wipe the final report.
-   */
   async invalidateCacheIfLive(eventId: string): Promise<void> {
     if (!Types.ObjectId.isValid(eventId)) return;
 
@@ -108,7 +100,6 @@ export class AnalyticsService {
       .lean()
       .exec();
 
-    // If the event is ended (or not found), do not touch the cache.
     if (!event || (event as any).status === 'ended') {
       return;
     }
@@ -116,21 +107,12 @@ export class AnalyticsService {
     await this.redisService.client.del(this.cacheKey(eventId));
   }
 
-  /**
-   * @deprecated Use invalidateCacheIfLive() from socket handlers.
-   * Kept for internal use only where the caller is certain the event is live.
-   */
+  /** @deprecated Use invalidateCacheIfLive() from socket handlers. */
   async invalidateCache(eventId: string): Promise<void> {
     await this.redisService.client.del(this.cacheKey(eventId));
   }
 
-  /**
-   * Stores the final analytics report in Redis with no TTL.
-   * Called when a session ends. The report must survive indefinitely
-   * because ended event data never changes.
-   */
   async cacheFinalReport(eventId: string, report: unknown): Promise<void> {
-    // Intentionally no EX/PX — permanent storage for ended events.
     await this.redisService.client.set(
       this.cacheKey(eventId),
       JSON.stringify(report),
@@ -350,6 +332,20 @@ export class AnalyticsService {
       .lean()
       .exec();
 
+    // Pre-load all participant display names for this event once,
+    // so every quiz activity can resolve anonId → displayName.
+    const participants = await this.participantModel
+      .find({ eventId }, { anonId: 1, displayName: 1 })
+      .lean()
+      .exec();
+
+    const nameMap = new Map<string, string>();
+    for (const p of participants) {
+      if (p.displayName) {
+        nameMap.set(p.anonId, p.displayName);
+      }
+    }
+
     return Promise.all(
       quizActivities.map(async (activity) => {
         const responses = await this.responseModel
@@ -362,6 +358,8 @@ export class AnalyticsService {
           .exec();
 
         const scoreMap = new Map<string, number>();
+        const correctCountMap = new Map<string, number>();
+        const incorrectCountMap = new Map<string, number>();
         const questionAttemptMap = new Map<
           string,
           { total: number; correct: number }
@@ -373,6 +371,12 @@ export class AnalyticsService {
             anonId,
             (scoreMap.get(anonId) ?? 0) + (response.awardedPoints ?? 0),
           );
+
+          if (response.isCorrect) {
+            correctCountMap.set(anonId, (correctCountMap.get(anonId) ?? 0) + 1);
+          } else {
+            incorrectCountMap.set(anonId, (incorrectCountMap.get(anonId) ?? 0) + 1);
+          }
 
           if (response.quizQuestionId) {
             const current = questionAttemptMap.get(response.quizQuestionId) ?? {
@@ -387,19 +391,6 @@ export class AnalyticsService {
           }
         }
 
-        const participantScores = Array.from(scoreMap.entries())
-          .map(([participantAnonId, totalPoints]) => ({
-            participantAnonId,
-            totalPoints,
-          }))
-          .sort(
-            (a, b) =>
-              b.totalPoints - a.totalPoints ||
-              a.participantAnonId.localeCompare(b.participantAnonId),
-          );
-
-        const leaderboard = participantScores.slice(0, 10);
-
         const config = activity.config as {
           questions?: Array<{ id: string; text: string }>;
         };
@@ -407,6 +398,34 @@ export class AnalyticsService {
         const configuredQuestions = Array.isArray(config?.questions)
           ? config.questions
           : [];
+
+        const totalQuestions = configuredQuestions.length;
+
+        const participantScores = Array.from(scoreMap.entries())
+          .map(([participantAnonId, totalPoints]) => {
+            const correct = correctCountMap.get(participantAnonId) ?? 0;
+            const incorrect = incorrectCountMap.get(participantAnonId) ?? 0;
+            const percentage =
+              totalQuestions === 0
+                ? 0
+                : Number(((correct / totalQuestions) * 100).toFixed(1));
+
+            return {
+              participantAnonId,
+              displayName: nameMap.get(participantAnonId) ?? null,
+              totalPoints,
+              correct,
+              incorrect,
+              percentage,
+            };
+          })
+          .sort(
+            (a, b) =>
+              b.totalPoints - a.totalPoints ||
+              a.participantAnonId.localeCompare(b.participantAnonId),
+          );
+
+        const leaderboard = participantScores.slice(0, 10);
 
         const questionStats = configuredQuestions.map((question) => {
           const stat = questionAttemptMap.get(question.id) ?? {
@@ -419,6 +438,7 @@ export class AnalyticsService {
             text: question.text,
             total: stat.total,
             correct: stat.correct,
+            incorrect: stat.total - stat.correct,
             correctPct:
               stat.total === 0
                 ? 0
@@ -426,12 +446,41 @@ export class AnalyticsService {
           };
         });
 
+        // Summary stats for scorecard
+        const allScores = participantScores.map((p) => p.totalPoints);
+        const highestScore = allScores.length > 0 ? Math.max(...allScores) : 0;
+        const averageScore =
+          allScores.length > 0
+            ? Number(
+                (allScores.reduce((s, v) => s + v, 0) / allScores.length).toFixed(1),
+              )
+            : 0;
+        const completionRate =
+          totalQuestions === 0 || participantScores.length === 0
+            ? 0
+            : Number(
+                (
+                  (participantScores.filter(
+                    (p) => p.correct + p.incorrect === totalQuestions,
+                  ).length /
+                    participantScores.length) *
+                  100
+                ).toFixed(1),
+              );
+
         return {
           activityId: activity._id.toString(),
           title: activity.title,
           leaderboard,
           participantScores,
           questionStats,
+          summaryStats: {
+            totalParticipants: participantScores.length,
+            totalResponses: responses.length,
+            averageScore,
+            highestScore,
+            completionRate,
+          },
         };
       }),
     );

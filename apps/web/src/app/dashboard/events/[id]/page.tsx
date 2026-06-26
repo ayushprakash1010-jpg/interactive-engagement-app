@@ -579,7 +579,7 @@ export default function EventDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-center rounded-lg bg-surface-sunken py-8">
-                  <JoinCode code={event.eventCode} size="xl" />
+                  <JoinCode code={event.eventCode} size="lg" />
                 </div>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 truncate rounded-md border border-border bg-surface-card px-3 py-2 text-xs text-ink-muted">
@@ -779,7 +779,7 @@ export default function EventDetailPage() {
 
               {quizActivities.map((activity) => (
                 <div key={activity._id} className="space-y-3">
-                  <QuizRunPanel activity={activity} />
+                  <QuizRunPanel activity={activity} eventId={id} />
 
                   <div className="flex justify-end gap-2">
                     <Button

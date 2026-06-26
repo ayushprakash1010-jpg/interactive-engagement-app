@@ -63,6 +63,7 @@ export default function EventPage() {
     count,
     error,
     approvedQuestions,
+    allowAnonymousQA,
     askQuestion,
     upvoteQuestion,
   } = useEventRealtime(code, 'participant');
@@ -425,6 +426,7 @@ export default function EventPage() {
           <QaTab
             questions={sortedApprovedQuestions}
             votedQuestionIds={votedQuestionIds}
+            allowAnonymousQA={allowAnonymousQA}
             onAskQuestion={handleAskQuestion}
             onUpvoteQuestion={handleUpvoteQuestion}
           />

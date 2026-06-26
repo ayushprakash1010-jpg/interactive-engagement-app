@@ -35,6 +35,7 @@ export type PollAnalytic = {
 
 export type QuizLeaderboardEntry = {
   participantAnonId: string;
+  displayName?: string | null;
   totalPoints: number;
 };
 
