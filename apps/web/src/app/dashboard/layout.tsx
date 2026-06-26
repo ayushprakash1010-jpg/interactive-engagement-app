@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Sparkles } from 'lucide-react';
+import { CircleUserRound, LayoutDashboard, LogOut, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardShell } from '@/components/layout';
 import { Wordmark, AIBadge } from '@/components/pulse';
@@ -25,8 +25,9 @@ export default function DashboardLayout({
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
   const eventDetailMatch = pathname.match(/^\/dashboard\/events\/([^/]+)$/);
+  const isAccountPage = pathname === '/dashboard/account';
 
-  if (pathname === '/dashboard' || eventDetailMatch) {
+  if (pathname === '/dashboard' || isAccountPage || eventDetailMatch) {
     const eventId = eventDetailMatch?.[1];
 
     return (
@@ -39,6 +40,11 @@ export default function DashboardLayout({
                 { label: 'Events', href: '/dashboard' },
                 { label: 'Event detail' },
               ]
+            : isAccountPage
+              ? [
+                  { label: 'Workspace', href: '/dashboard' },
+                  { label: 'Account' },
+                ]
             : [
                 { label: 'Workspace', href: '/dashboard' },
                 { label: 'Events' },
@@ -57,14 +63,22 @@ export default function DashboardLayout({
           </>
         }
         sidebarFooter={
-          user?.name ? (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">
-                {user.name}
-              </p>
-              <p className="text-xs text-ink-muted">Signed in</p>
-            </div>
-          ) : undefined
+          <div className="space-y-1">
+            <Link
+              href="/dashboard/account"
+              className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-sunken"
+            >
+              <CircleUserRound className="h-5 w-5 shrink-0 text-ink-muted" />
+              <span className="truncate">Account</span>
+            </Link>
+            <a
+              href={logoutUrl}
+              className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-sunken"
+            >
+              <LogOut className="h-5 w-5 shrink-0 text-ink-muted" />
+              <span className="truncate">Sign out</span>
+            </a>
+          </div>
         }
       >
         {children}
