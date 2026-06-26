@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Activity,
   BarChart2,
+  Sparkles,
 } from 'lucide-react';
 import {
   BarChart,
@@ -23,17 +24,23 @@ import {
   CartesianGrid,
   Cell,
 } from 'recharts';
-import { Button } from '@/components/ui/button';
 import {
+  ActionGroup,
+  BackLink as SharedBackLink,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+  LoadingSkeleton,
+  MetricCard,
+  PageHeader,
+  StatusBadge,
+} from '@/components/ui';
 import { useAnalytics, downloadReport } from '@/hooks/use-analytics';
 import { useEvent } from '@/lib/use-events';
-import { Eyebrow, Stat } from '@/components/pulse';
+import { Eyebrow } from '@/components/pulse';
 
 const CHART_COLORS = [
   '#01696f',
@@ -46,31 +53,6 @@ const CHART_COLORS = [
 
 function formatPercentFromRatio(value: number | null | undefined) {
   return `${(value ?? 0).toFixed(1)}%`;
-}
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <Stat
-          label={label}
-          value={value}
-          sub={sub}
-          icon={<Icon className="h-4 w-4" />}
-        />
-      </CardContent>
-    </Card>
-  );
 }
 
 function PollChart({
@@ -363,22 +345,16 @@ function EngagementTimeline({
 function AnalyticsSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="h-6 w-40 animate-pulse rounded-md bg-muted" />
+      <LoadingSkeleton variant="text" className="h-5 w-40" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-24 animate-pulse rounded-lg border bg-muted/40"
-          />
+          <LoadingSkeleton key={i} variant="card" className="h-24" />
         ))}
       </div>
-      <div className="h-48 animate-pulse rounded-lg border bg-muted/40" />
+      <LoadingSkeleton variant="card" className="h-48" />
       <div className="grid gap-6 md:grid-cols-2">
         {[0, 1].map((i) => (
-          <div
-            key={i}
-            className="h-40 animate-pulse rounded-lg border bg-muted/40"
-          />
+          <LoadingSkeleton key={i} variant="card" className="h-40" />
         ))}
       </div>
     </div>
@@ -417,7 +393,7 @@ const [isGeneratingInsights, setIsGeneratingInsights] =
   if (isError || !report) {
     return (
       <div className="space-y-4">
-        <BackLink id={id} />
+        <SharedBackLink href={`/dashboard/events/${id}`}>Back to event</SharedBackLink>
         <Card className="border-destructive/40">
           <CardHeader>
             <CardTitle className="text-base text-destructive">
@@ -530,7 +506,59 @@ Polls: ${pollAnalytics?.length ?? 0}
 
   return (
     <div className="space-y-8">
-      <div>
+      <PageHeader
+        leading={<SharedBackLink href={`/dashboard/events/${id}`}>Back to event</SharedBackLink>}
+        eyebrow="Session report"
+        title={`${event?.name ?? 'Event'} analytics`}
+        description={`Generated ${new Date(report.generatedAt).toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          dateStyle: 'medium',
+          timeStyle: 'medium',
+        })}`}
+        badge={<StatusBadge status={event?.status ?? 'ended'} className="capitalize" />}
+        actions={
+          <ActionGroup>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isGeneratingSummary}
+              onClick={handleGenerateSummary}
+            >
+              <Sparkles className="mr-2 h-4 w-4 text-ai" />
+              {isGeneratingSummary ? 'Generating...' : 'AI Summary'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isGeneratingInsights}
+              onClick={handleGenerateInsights}
+            >
+              <Sparkles className="mr-2 h-4 w-4 text-ai" />
+              {isGeneratingInsights ? 'Generating...' : 'AI Insights'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={downloading === 'csv'}
+              onClick={() => handleDownload('csv')}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {downloading === 'csv' ? 'Exporting...' : 'CSV'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={downloading === 'pdf'}
+              onClick={() => handleDownload('pdf')}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {downloading === 'pdf' ? 'Exporting...' : 'PDF'}
+            </Button>
+          </ActionGroup>
+        }
+      />
+
+      <div className="hidden">
         <BackLink id={id} />
         <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
@@ -621,27 +649,27 @@ Polls: ${pollAnalytics?.length ?? 0}
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={Users}
+        <MetricCard
           label="Participants"
           value={headlineStats.totalParticipants}
+          icon={<Users className="h-4 w-4" />}
         />
-        <StatCard
-          icon={Activity}
+        <MetricCard
           label="Participation rate"
           value={formatPercentFromRatio(headlineStats.participationRate)}
-          sub={`${headlineStats.uniqueResponders} of ${headlineStats.totalParticipants} responded`}
+          description={`${headlineStats.uniqueResponders} of ${headlineStats.totalParticipants} responded`}
+          icon={<Activity className="h-4 w-4" />}
         />
-        <StatCard
-          icon={BarChart2}
+        <MetricCard
           label="Total responses"
           value={headlineStats.totalResponses}
+          icon={<BarChart2 className="h-4 w-4" />}
         />
-        <StatCard
-          icon={MessageSquare}
+        <MetricCard
           label="Questions asked"
           value={qaAnalytics.totalQuestions}
-          sub={`${qaAnalytics.answeredQuestions} answered`}
+          description={`${qaAnalytics.answeredQuestions} answered`}
+          icon={<MessageSquare className="h-4 w-4" />}
         />
       </div>
 
