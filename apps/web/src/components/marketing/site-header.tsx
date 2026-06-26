@@ -21,7 +21,7 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-surface-canvas/80 backdrop-blur supports-[backdrop-filter]:bg-surface-canvas/60">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-surface-canvas/85 backdrop-blur-xl supports-[backdrop-filter]:bg-surface-canvas/70">
       <div className="mx-auto flex h-16 max-w-container-xl items-center justify-between px-6">
         <Link href="/" aria-label="Pulse home" className="flex items-center">
           <Wordmark width={116} />
@@ -32,7 +32,7 @@ export function SiteHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-ink-muted transition-colors hover:text-foreground"
+              className="rounded-sm px-1 py-2 text-sm font-medium text-ink-muted transition-colors hover:text-foreground"
             >
               {link.label}
             </Link>
@@ -57,16 +57,22 @@ export function SiteHeader() {
         </div>
 
         <button
-          className="inline-flex h-9 w-9 items-center justify-center rounded-sm text-ink-secondary md:hidden"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-sm text-ink-secondary transition-colors hover:bg-muted hover:text-foreground md:hidden"
           onClick={() => setMobileOpen((o) => !o)}
           aria-label="Toggle menu"
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {/* Mobile menu */}
-      <div className={cn('border-t border-border md:hidden', mobileOpen ? 'block' : 'hidden')}>
+      <div
+        className={cn(
+          'border-t border-border bg-surface-canvas/95 shadow-lg md:hidden',
+          mobileOpen ? 'block' : 'hidden',
+        )}
+      >
         <nav className="mx-auto flex max-w-container-xl flex-col gap-1 px-6 py-3">
           {NAV_LINKS.map((link) => (
             <Link

@@ -3,9 +3,12 @@ import {
   ArrowRight,
   BarChart3,
   Check,
+  CheckCircle2,
   Cloud,
+  Download,
   LineChart,
   MessagesSquare,
+  Play,
   QrCode,
   Sparkles,
   Star,
@@ -18,7 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { SiteFooter } from '@/components/marketing/site-footer';
 import { AIShowcase } from '@/components/marketing/ai-showcase';
-import { AIBadge, Eyebrow, LiveDot } from '@/components/pulse';
+import { AIBadge, Eyebrow, JoinCode, LiveDot } from '@/components/pulse';
 
 const SIGNUP_HREF = '/api/auth/signup?returnTo=/dashboard';
 
@@ -46,7 +49,7 @@ const FEATURES = [
   {
     icon: Star,
     title: 'Feedback forms',
-    body: 'Rating and open-text feedback captured during or after a session — structured and exportable.',
+    body: 'Rating and open-text feedback captured during or after a session - structured and exportable.',
   },
   {
     icon: LineChart,
@@ -59,12 +62,12 @@ const STEPS = [
   {
     icon: Zap,
     title: 'Create an event',
-    body: 'Sign in and spin up an event in seconds — or let Pulse draft it. Build polls, quizzes, and more before you go live.',
+    body: 'Sign in and spin up an event in seconds - or let Pulse draft it. Build polls, quizzes, and more before you go live.',
   },
   {
     icon: QrCode,
     title: 'Share the code or QR',
-    body: 'Your audience joins instantly from any device — no app, no account, no friction.',
+    body: 'Your audience joins instantly from any device - no app, no account, no friction.',
   },
   {
     icon: Users,
@@ -125,80 +128,247 @@ const PLANS = [
   },
 ];
 
+const SHOWCASE_ACTIVITIES = [
+  { label: 'Pulse check', type: 'Poll', value: '84%', tone: 'bg-brand' },
+  { label: 'Leadership Q&A', type: 'Questions', value: '37', tone: 'bg-ai' },
+  { label: 'Product quiz', type: 'Quiz', value: '#1', tone: 'bg-data-3' },
+];
+
+function ProductPreview() {
+  return (
+    <div className="relative mx-auto mt-16 max-w-6xl">
+      <div className="absolute -inset-x-6 top-10 h-72 rounded-full bg-brand/10 blur-3xl" />
+      <div className="relative overflow-hidden rounded-xl border border-border bg-surface-card shadow-xl">
+        <div className="flex h-12 items-center justify-between border-b border-border bg-surface-raised px-4">
+          <div className="flex items-center gap-2" aria-hidden="true">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
+            <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
+            <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
+          </div>
+          <div className="hidden rounded-sm border border-border bg-surface-card px-3 py-1 text-xs text-ink-muted sm:block">
+            pulse.app/dashboard/events/all-hands
+          </div>
+          <div className="flex items-center gap-2 text-xs font-medium text-ink-muted">
+            <LiveDot sizeClass="h-1.5 w-1.5" />
+            Live
+          </div>
+        </div>
+
+        <div className="grid gap-0 lg:grid-cols-[260px_1fr]">
+          <aside className="hidden border-r border-border bg-surface-raised p-5 lg:block">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              Workspace
+            </div>
+            <div className="mt-4 space-y-2">
+              {['Events', 'Activities', 'Analytics', 'AI Studio'].map((item, index) => (
+                <div
+                  key={item}
+                  className={
+                    index === 0
+                      ? 'rounded-md bg-brand-subtle px-3 py-2 text-sm font-semibold text-brand-subtle-text'
+                      : 'rounded-md px-3 py-2 text-sm text-ink-muted'
+                  }
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          <div className="p-4 sm:p-6 lg:p-7">
+            <div className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-border bg-surface-raised px-2.5 py-1 text-xs font-medium text-ink-muted">
+                    Live event
+                  </span>
+                  <span className="rounded-full bg-success-subtle px-2.5 py-1 text-xs font-semibold text-success">
+                    328 joined
+                  </span>
+                </div>
+                <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                  Quarterly all-hands
+                </h2>
+                <p className="mt-2 max-w-xl text-sm text-ink-muted">
+                  Polls, Q&A, quiz rounds, and feedback stay in one host view while the room joins
+                  from any device.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-raised px-4 py-3">
+                <div className="grid h-12 w-12 place-items-center rounded-md bg-surface-card text-brand shadow-xs">
+                  <QrCode className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-ink-muted">Join code</div>
+                  <JoinCode code="QZ7K2P" size="sm" />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {SHOWCASE_ACTIVITIES.map((activity) => (
+                <div
+                  key={activity.label}
+                  className="rounded-lg border border-border bg-surface-card p-4 shadow-xs transition duration-base hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-medium text-ink-muted">{activity.type}</span>
+                    <span className={`h-2.5 w-2.5 rounded-full ${activity.tone}`} />
+                  </div>
+                  <div className="mt-3 text-sm font-semibold">{activity.label}</div>
+                  <div className="mt-4 flex items-end justify-between">
+                    <span className="font-display text-3xl font-bold tabular-nums">
+                      {activity.value}
+                    </span>
+                    <span className="text-xs text-ink-muted">live now</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+              <div className="rounded-lg border border-border bg-surface-raised p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold">Engagement timeline</h3>
+                  <span className="text-xs text-ink-muted">Last 12 min</span>
+                </div>
+                <div className="mt-6 flex h-36 items-end gap-2">
+                  {[42, 64, 48, 88, 58, 72, 96, 68, 82, 74, 90, 78].map((height, index) => (
+                    <span
+                      key={`${height}-${index}`}
+                      className="flex-1 rounded-t-sm bg-brand/80"
+                      style={{ height: `${height}%` }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border bg-surface-raised p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold">Question queue</h3>
+                  <MessagesSquare className="h-4 w-4 text-brand" />
+                </div>
+                <div className="mt-4 space-y-3">
+                  {[
+                    'What should teams focus on next?',
+                    'Can we see adoption by region?',
+                    'Will slides be shared after this?',
+                  ].map((question, index) => (
+                    <div key={question} className="rounded-md bg-surface-card p-3 text-sm shadow-xs">
+                      <div className="flex items-start justify-between gap-3">
+                        <span>{question}</span>
+                        <span className="shrink-0 rounded-full bg-brand-subtle px-2 py-0.5 text-xs font-semibold text-brand-subtle-text">
+                          {12 - index * 3}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-surface-canvas">
       <SiteHeader />
 
       <main className="flex-1">
-        {/* Hero */}
-        <section className="relative overflow-hidden border-b border-border">
-          <div className="absolute inset-0 -z-10 bg-gradient-to-b from-brand/10 via-surface-canvas to-surface-canvas" />
-          <div className="mx-auto max-w-container-xl px-6 py-24 text-center">
-            <div className="mx-auto mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-surface-card px-3 py-1 text-xs font-medium text-ink-muted">
+        <section className="relative isolate overflow-hidden border-b border-border">
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,var(--brand-subtle)_0%,transparent_46%),linear-gradient(180deg,var(--surface-raised)_0%,var(--surface-canvas)_72%)]" />
+          <div className="absolute left-1/2 top-0 -z-10 h-px w-[min(760px,80vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-brand/40 to-transparent" />
+          <div className="mx-auto max-w-container-xl px-6 pb-16 pt-20 text-center sm:pt-24 lg:pb-24">
+            <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-surface-card/90 px-3 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-xs">
               <LiveDot sizeClass="h-1.5 w-1.5" />
-              Real-time audience engagement
+              Real-time audience engagement for every room
             </div>
-            <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
               Turn any audience into a conversation
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-ink-muted">
-              Pulse runs live polls, Q&amp;A, quizzes, word clouds, and feedback for meetings,
-              webinars, and classrooms. Your audience joins with a code or QR — no app, no login.
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-ink-muted sm:text-xl">
+              Pulse runs live polls, Q&A, quizzes, word clouds, and feedback for meetings,
+              webinars, and classrooms. Your audience joins with a code or QR - no app, no login.
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild size="xl">
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button asChild size="xl" className="shadow-glow-brand">
                 <a href={SIGNUP_HREF}>
-                  Start here — it&apos;s free
+                  Start here - it&apos;s free
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>
               <Button asChild size="xl" variant="outline">
-                <Link href="/join">Join an event</Link>
+                <Link href="/join">
+                  <Play className="h-4 w-4" />
+                  Join an event
+                </Link>
               </Button>
             </div>
-            <p className="mt-4 text-xs text-ink-muted">
-              No credit card required. Email or Google sign-up.
-            </p>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                No credit card required
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                Email or Google sign-up
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                Participants never need accounts
+              </span>
+            </div>
+
+            <ProductPreview />
           </div>
         </section>
 
-        {/* Stats */}
-        <section className="border-b border-border bg-surface-raised">
-          <div className="mx-auto grid max-w-container-xl grid-cols-2 gap-8 px-6 py-12 md:grid-cols-4">
+        <section className="border-b border-border bg-surface-card">
+          <div className="mx-auto grid max-w-container-xl grid-cols-1 gap-3 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
             {STATS.map((stat) => (
-              <div key={stat.label} className="text-center">
+              <div
+                key={stat.label}
+                className="rounded-lg border border-border bg-surface-raised p-5 shadow-xs transition duration-base hover:-translate-y-0.5 hover:bg-surface-card hover:shadow-md"
+              >
                 <div className="font-display text-3xl font-bold tracking-tight tabular-nums">
                   {stat.value}
                 </div>
-                <div className="mt-1 text-sm text-ink-muted">{stat.label}</div>
+                <div className="mt-1 text-sm font-medium text-ink-muted">{stat.label}</div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Features */}
         <section id="features" className="scroll-mt-20">
           <div className="mx-auto max-w-container-xl px-6 py-24">
-            <div className="mx-auto max-w-2xl text-center">
-              <Eyebrow className="mb-3">Everything in one place</Eyebrow>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Everything you need to engage live
-              </h2>
-              <p className="mt-4 text-ink-muted">
-                One platform for every interactive moment — built for the big screen and every phone
-                in the room.
+            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+              <div>
+                <Eyebrow className="mb-3">Everything in one place</Eyebrow>
+                <h2 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
+                  Every interaction your session needs, in one polished workflow
+                </h2>
+              </div>
+              <p className="max-w-2xl text-base leading-7 text-ink-muted lg:justify-self-end">
+                One platform for every interactive moment - built for the big screen, the host
+                desk, and every phone in the room.
               </p>
             </div>
-            <div className="mt-16 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((feature) => (
-                <Card key={feature.title} className="h-full rounded-xl">
-                  <CardContent className="space-y-3 p-6">
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-brand-subtle text-brand">
+                <Card
+                  key={feature.title}
+                  className="group h-full rounded-lg border-border bg-surface-card shadow-xs transition duration-base hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg"
+                >
+                  <CardContent className="p-6">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-brand-subtle text-brand transition duration-base group-hover:bg-brand group-hover:text-brand-foreground">
                       <feature.icon className="h-5 w-5" />
                     </span>
-                    <h3 className="text-lg font-semibold">{feature.title}</h3>
-                    <p className="text-sm text-ink-muted">{feature.body}</p>
+                    <h3 className="mt-5 text-lg font-semibold">{feature.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-ink-muted">{feature.body}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -206,28 +376,36 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* AI Studio */}
         <section id="ai" className="scroll-mt-20 border-y border-border bg-surface-raised">
           <div className="mx-auto max-w-container-xl px-6 py-24">
-            <div className="mx-auto max-w-2xl text-center">
-              <div className="mb-3 flex justify-center">
+            <div className="grid gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
+              <div>
                 <AIBadge label="AI Studio" />
+                <h2 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
+                  Describe your session. Pulse drafts the first version.
+                </h2>
+                <p className="mt-4 text-base leading-7 text-ink-muted">
+                  Generate a runnable agenda in seconds, then let Pulse summarize open responses
+                  and cluster Q&A themes live. AI is a fast first draft you own - never autonomous.
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {['Agenda drafts', 'Answer summaries', 'Theme clustering'].map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-ai-border bg-ai-subtle px-3 py-1 text-xs font-semibold text-ai-subtle-text"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Describe your session, Pulse drafts it
-              </h2>
-              <p className="mt-4 text-ink-muted">
-                Generate a runnable agenda in seconds, then let Pulse summarize open responses and
-                cluster Q&amp;A themes live. AI is a fast first draft you own — never autonomous.
-              </p>
-            </div>
-            <div className="mx-auto mt-12 max-w-4xl">
-              <AIShowcase />
+              <div className="rounded-xl border border-ai-border bg-surface-card p-3 shadow-glow-ai">
+                <AIShowcase />
+              </div>
             </div>
           </div>
         </section>
 
-        {/* How it works */}
         <section id="how-it-works" className="scroll-mt-20">
           <div className="mx-auto max-w-container-xl px-6 py-24">
             <div className="mx-auto max-w-2xl text-center">
@@ -235,24 +413,27 @@ export default function LandingPage() {
               <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Live in three steps</h2>
               <p className="mt-4 text-ink-muted">From idea to interactive in minutes.</p>
             </div>
-            <div className="mt-16 grid gap-8 md:grid-cols-3">
+            <div className="relative mt-16 grid gap-5 md:grid-cols-3">
+              <div className="absolute left-[16.5%] right-[16.5%] top-8 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block" />
               {STEPS.map((step, i) => (
-                <div key={step.title} className="relative text-center">
-                  <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand text-brand-foreground">
+                <div
+                  key={step.title}
+                  className="relative rounded-lg border border-border bg-surface-card p-6 shadow-xs transition duration-base hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-glow-brand">
                     <step.icon className="h-5 w-5" />
                   </span>
-                  <div className="mt-3 font-mono text-xs font-semibold uppercase tracking-wider text-brand">
+                  <div className="mt-5 font-mono text-xs font-semibold uppercase tracking-wider text-brand">
                     Step {i + 1}
                   </div>
                   <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>
-                  <p className="mx-auto mt-2 max-w-xs text-sm text-ink-muted">{step.body}</p>
+                  <p className="mt-2 text-sm leading-6 text-ink-muted">{step.body}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Pricing */}
         <section id="pricing" className="scroll-mt-20 border-t border-border bg-surface-raised">
           <div className="mx-auto max-w-container-xl px-6 py-24">
             <div className="mx-auto max-w-2xl text-center">
@@ -262,27 +443,29 @@ export default function LandingPage() {
               </h2>
               <p className="mt-4 text-ink-muted">Start free. Upgrade when your audience grows.</p>
             </div>
-            <div className="mt-16 grid gap-6 lg:grid-cols-3">
+            <div className="mt-14 grid gap-5 lg:grid-cols-3 lg:items-stretch">
               {PLANS.map((plan) => (
                 <Card
                   key={plan.name}
                   className={
                     plan.highlighted
-                      ? 'relative rounded-xl border-2 border-brand shadow-lg lg:scale-105'
-                      : 'relative rounded-xl'
+                      ? 'relative rounded-lg border-2 border-brand bg-surface-card shadow-xl'
+                      : 'relative rounded-lg border-border bg-surface-card shadow-xs'
                   }
                 >
                   {plan.highlighted && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-brand-foreground">
+                    <span className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-brand-foreground shadow-sm">
                       Most popular
                     </span>
                   )}
-                  <CardContent className="space-y-6 p-6">
+                  <CardContent className="flex h-full flex-col p-6">
                     <div>
-                      <h3 className="text-lg font-semibold">{plan.name}</h3>
-                      <p className="text-sm text-ink-muted">{plan.blurb}</p>
+                      <h3 className="text-xl font-semibold">{plan.name}</h3>
+                      <p className="mt-2 min-h-10 text-sm leading-6 text-ink-muted">
+                        {plan.blurb}
+                      </p>
                     </div>
-                    <div className="flex items-baseline gap-1">
+                    <div className="mt-6 flex items-baseline gap-2">
                       <span className="font-display text-4xl font-bold tracking-tight">
                         {plan.price}
                       </span>
@@ -290,13 +473,13 @@ export default function LandingPage() {
                     </div>
                     <Button
                       asChild
-                      className="w-full"
+                      className="mt-6 w-full"
                       size="lg"
                       variant={plan.highlighted ? 'default' : 'outline'}
                     >
                       <a href={plan.href}>{plan.cta}</a>
                     </Button>
-                    <ul className="space-y-2">
+                    <ul className="mt-6 space-y-3">
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2 text-sm">
                           <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
@@ -311,37 +494,44 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Final CTA */}
         <section className="border-t border-border">
-          <div className="mx-auto max-w-4xl px-6 py-24">
-            <div className="relative overflow-hidden rounded-2xl bg-brand px-8 py-16 text-center text-brand-foreground">
-              <div className="pointer-events-none absolute inset-0 -z-0 opacity-20 [background:var(--ai-gradient)]" />
-              <div className="relative">
-                <div className="mb-4 flex justify-center text-brand-foreground/90">
-                  <Sparkles className="h-6 w-6" />
-                </div>
-                <h2 className="text-3xl font-bold tracking-tight text-brand-foreground sm:text-4xl">
-                  Ready to make your next session interactive?
-                </h2>
-                <p className="mx-auto mt-4 max-w-xl text-brand-foreground/80">
-                  Create your first event in minutes. Your audience just needs a code.
-                </p>
-                <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Button asChild size="xl" variant="secondary">
-                    <a href={SIGNUP_HREF}>
-                      Start here
-                      <ArrowRight className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button
-                    asChild
-                    size="xl"
-                    variant="outline"
-                    className="border-brand-foreground/30 bg-transparent text-brand-foreground hover:bg-brand-foreground/10 hover:text-brand-foreground"
-                  >
-                    <Link href="/login">Log in</Link>
-                  </Button>
-                </div>
+          <div className="mx-auto max-w-container-xl px-6 py-24">
+            <div className="pulse-stage relative isolate overflow-hidden rounded-xl border border-border px-6 py-16 text-center shadow-xl sm:px-10">
+              <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,rgba(122,57,187,0.28),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(79,152,163,0.34),transparent_30%)]" />
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-card text-brand shadow-lg">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-bold tracking-tight text-ink-on-dark sm:text-4xl">
+                Ready to make your next session interactive?
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-ink-muted">
+                Create your first event in minutes. Your audience just needs a code.
+              </p>
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Button asChild size="xl">
+                  <a href={SIGNUP_HREF}>
+                    Start here
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </Button>
+                <Button
+                  asChild
+                  size="xl"
+                  variant="outline"
+                  className="border-border bg-transparent text-ink-on-dark hover:bg-surface-card/10 hover:text-ink-on-dark"
+                >
+                  <Link href="/login">Log in</Link>
+                </Button>
+              </div>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-5 text-sm text-ink-muted">
+                <span className="inline-flex items-center gap-2">
+                  <QrCode className="h-4 w-4" />
+                  Code or QR join
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  CSV and PDF reports
+                </span>
               </div>
             </div>
           </div>

@@ -11,7 +11,7 @@ const SUGGESTIONS = [
 
 /**
  * Marketing demo of the "describe it, Pulse drafts it" AI flow. The summary
- * is a static mock — the design is wired, the model is not (see DS caveats).
+ * is a static mock - the design is wired, the model is not (see DS caveats).
  */
 export function AIShowcase() {
   const [value, setValue] = React.useState('');
@@ -42,23 +42,23 @@ export function AIShowcase() {
         <AISummaryCard
           title="Pulse drafted 4 activities"
           themes={[
-            { label: 'Icebreaker poll — “Where are you joining from?”' },
-            { label: 'Word cloud — one word for today’s goal' },
+            { label: 'Icebreaker poll - "Where are you joining from?"' },
+            { label: "Word cloud - one word for today's goal" },
             { label: 'Live Q&A with upvoting' },
             { label: 'Closing pulse-check rating' },
           ]}
-          footnote="A first draft you own — edit, reorder, or remove anything before you go live."
+          footnote="A first draft you own - edit, reorder, or remove anything before you go live."
         />
       ) : (
         <AISummaryCard
-          title="What you’ll get"
-          body="Describe your session and Pulse drafts a runnable agenda — polls, a word cloud, Q&A, and a closing rating — ready to edit before you go live."
+          title="What you'll get"
+          body="Describe your session and Pulse drafts a runnable agenda - polls, a word cloud, Q&A, and a closing rating - ready to edit before you go live."
           themes={[
             { label: 'Live answer summaries', count: undefined },
             { label: 'Theme clustering for open text' },
             { label: 'Suggested follow-up questions' },
           ]}
-          footnote="AI is a fast first draft you own — never autonomous."
+          footnote="AI is a fast first draft you own - never autonomous."
         />
       )}
     </div>
