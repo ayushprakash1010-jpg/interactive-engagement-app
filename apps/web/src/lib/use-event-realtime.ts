@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ClientEvents, ServerEvents } from '@iep/types';
 
 import { socket } from './socket';
 import { apiFetch } from './events-api';
 import { getAnonId, getDisplayName } from './anon-id';
+import { notify } from './notification-store';
 
 export type QaQuestion = {
   _id: string;
@@ -90,6 +91,12 @@ function mergeQuestions(current: QaQuestion[], incoming: QaQuestion[]): QaQuesti
   return sortAllQuestions(Array.from(map.values()));
 }
 
+function getParticipantMilestone(count: number): number | null {
+  if ([10, 25, 50].includes(count)) return count;
+  if (count >= 100 && count % 100 === 0) return count;
+  return null;
+}
+
 export function useEventRealtime(
   eventCode: string | undefined,
   mode: 'participant' | 'observe',
@@ -102,6 +109,7 @@ export function useEventRealtime(
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [sessionEndError, setSessionEndError] = useState<string | null>(null);
+  const previousCountRef = useRef<number | null>(null);
   // Default true: when we don't yet know the setting, treat Q&A as anonymous
   // so names are never accidentally shown before the snapshot arrives.
   const [allowAnonymousQA, setAllowAnonymousQA] = useState(true);
@@ -129,7 +137,34 @@ export function useEventRealtime(
       }
     };
 
-    const onCount = (payload: { count: number }) => setCount(payload.count);
+    const onCount = (payload: { count: number }) => {
+      const nextCount = payload.count;
+      const previousCount = previousCountRef.current;
+
+      setCount(nextCount);
+      previousCountRef.current = nextCount;
+
+      if (mode !== 'observe' || previousCount === null || nextCount <= previousCount) {
+        return;
+      }
+
+      const milestone = getParticipantMilestone(nextCount);
+
+      if (milestone) {
+        notify({
+          type: 'participant-milestone',
+          description: `${milestone} participants have joined the session.`,
+          href: eventId ? `/dashboard/events/${eventId}` : undefined,
+        });
+        return;
+      }
+
+      notify({
+        type: 'participant-joined',
+        description: 'A new participant joined the session.',
+        href: eventId ? `/dashboard/events/${eventId}` : undefined,
+      });
+    };
 
     const onSnapshot = (payload: SessionSnapshot) => {
       setSnapshot(payload);
@@ -195,7 +230,7 @@ export function useEventRealtime(
       socket.off(ServerEvents.ERROR, onError);
       socket.off('connect', join);
     };
-  }, [eventCode, mode, isEndingSession]);
+  }, [eventCode, mode, isEndingSession, eventId]);
 
   useEffect(() => {
     if (mode !== 'observe' || !eventId) {

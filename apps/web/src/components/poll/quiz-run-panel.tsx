@@ -5,6 +5,7 @@ import { ClientEvents } from '@iep/types';
 import { Button } from '@/components/ui/button';
 import { socket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notification-store';
 import { Badge } from '@/components/ui/badge';
 import { usePoll } from '@/hooks/use-poll';
 import type { Activity, QuizConfig } from '@/hooks/use-activities';
@@ -50,10 +51,20 @@ export function QuizRunPanel({ activity, eventId }: Props) {
 
   const launch = () => {
     socket.emit(ClientEvents.ACTIVITY_LAUNCH, { activityId: activity._id });
+    notify({
+      type: 'quiz-launched',
+      description: `${activity.title} is now live.`,
+      href: `/dashboard/events/${activity.eventId}`,
+    });
   };
 
   const close = () => {
     socket.emit(ClientEvents.ACTIVITY_CLOSE, { activityId: activity._id });
+    notify({
+      type: 'quiz-finished',
+      description: `${activity.title} was closed.`,
+      href: `/dashboard/events/${activity.eventId}`,
+    });
   };
 
   const nextQuestion = () => {

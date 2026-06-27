@@ -5,6 +5,7 @@ import { ClientEvents } from '@iep/types';
 import { Button } from '@/components/ui/button';
 import { socket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notification-store';
 import { Badge } from '@/components/ui/badge';
 import { usePoll } from '@/hooks/use-poll';
 import type { Activity, PollConfig } from '@/hooks/use-activities';
@@ -70,10 +71,20 @@ export function PollRunPanel({ activity }: Props) {
 
   const launch = () => {
     socket.emit(ClientEvents.ACTIVITY_LAUNCH, { activityId: activity._id });
+    notify({
+      type: 'poll-launched',
+      description: `${pollConfig?.question ?? activity.title} is now live.`,
+      href: `/dashboard/events/${activity.eventId}`,
+    });
   };
 
   const close = () => {
     socket.emit(ClientEvents.ACTIVITY_CLOSE, { activityId: activity._id });
+    notify({
+      type: 'poll-closed',
+      description: `${pollConfig?.question ?? activity.title} was closed.`,
+      href: `/dashboard/events/${activity.eventId}`,
+    });
   };
 
   return (

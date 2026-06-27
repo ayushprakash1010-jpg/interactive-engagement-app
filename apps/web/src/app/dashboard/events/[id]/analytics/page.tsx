@@ -39,6 +39,7 @@ import {
 import { useAnalytics, downloadReport } from "@/hooks/use-analytics";
 import { useEvent } from "@/lib/use-events";
 import { apiFetch } from "@/lib/events-api";
+import { notify } from "@/lib/notification-store";
 
 const CHART_COLORS = [
   "var(--data-1)",
@@ -426,8 +427,24 @@ export default function AnalyticsPage() {
     if (!id) return;
 
     setDownloading(format);
+    notify({
+      type: "analytics-export-started",
+      description: `${format.toUpperCase()} analytics export started.`,
+      href: `/dashboard/events/${id}/analytics`,
+    });
     try {
       await downloadReport(id, format);
+      notify({
+        type: "analytics-export-completed",
+        title: `${format.toUpperCase()} Report Ready`,
+        description: "Your analytics report has been generated.",
+        href: `/dashboard/events/${id}/analytics`,
+        download: {
+          path: `events/${id}/report.${format}`,
+          filename: `event-report-${id}.${format}`,
+        },
+        groupKey: `analytics-export-completed-${format}`,
+      });
     } finally {
       setDownloading(null);
     }
@@ -490,6 +507,11 @@ Polls: ${pollAnalytics?.length ?? 0}
         },
       );
       setSummary(result.summary ?? "");
+      notify({
+        type: "ai-summary-completed",
+        description: "AI completed the session summary.",
+        href: `/dashboard/events/${id}/analytics`,
+      });
     } catch (error) {
       console.error(error);
       alert("Failed to generate AI summary");

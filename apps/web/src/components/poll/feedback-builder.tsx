@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch } from "@/lib/events-api";
+import { notify } from "@/lib/notification-store";
 
 type FeedbackFieldType = "rating" | "text";
 
@@ -113,6 +114,11 @@ export function FeedbackBuilder({
         ],
       });
 
+      notify({
+        type: "ai-feedback-generated",
+        description: "AI generated a feedback prompt successfully.",
+        href: window.location.pathname,
+      });
       setAiTopic("");
       setShowAiModal(false);
     } catch (error) {

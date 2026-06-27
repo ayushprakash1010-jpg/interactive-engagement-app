@@ -15,6 +15,7 @@ import { Eyebrow } from '@/components/pulse';
 import { useCreateEvent } from '@/lib/use-events';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiError } from '@/lib/events-api';
+import { notify } from '@/lib/notification-store';
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -48,6 +49,11 @@ export default function NewEventPage() {
               createEvent.mutate(values, {
                 onSuccess: (created) => {
                   toast({ title: 'Event created', description: created.name });
+                  notify({
+                    type: 'event-created',
+                    description: `${created.name} was created.`,
+                    href: `/dashboard/events/${created._id}`,
+                  });
                   router.push(`/dashboard/events/${created._id}`);
                 },
                 onError: (err) => {

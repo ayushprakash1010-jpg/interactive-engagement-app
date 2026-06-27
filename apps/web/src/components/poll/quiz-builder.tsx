@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { apiFetch } from "@/lib/events-api";
+import { notify } from "@/lib/notification-store";
 import type {
   QuizConfig,
   QuizQuestion,
@@ -280,6 +281,11 @@ export function QuizBuilder({
         setTitle(`${topic} Quiz`);
       }
 
+      notify({
+        type: "ai-quiz-generated",
+        description: "AI generated a quiz successfully.",
+        href: window.location.pathname,
+      });
       setAiTopic("");
       setShowAiModal(false);
     } catch (error) {

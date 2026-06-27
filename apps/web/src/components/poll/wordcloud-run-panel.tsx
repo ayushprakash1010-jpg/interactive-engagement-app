@@ -5,6 +5,7 @@ import { ClientEvents } from '@iep/types';
 import { Button } from '@/components/ui/button';
 import { socket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
+import { notify } from '@/lib/notification-store';
 import { Badge } from '@/components/ui/badge';
 import { usePoll } from '@/hooks/use-poll';
 import type { Activity, WordCloudConfig } from '@/hooks/use-activities';
@@ -78,6 +79,11 @@ export function WordCloudRunPanel({ activity }: Props) {
 
   const launch = () => {
     socket.emit(ClientEvents.ACTIVITY_LAUNCH, { activityId: activity._id });
+    notify({
+      type: 'wordcloud-launched',
+      description: `${activity.title} is now live.`,
+      href: `/dashboard/events/${activity.eventId}`,
+    });
   };
 
   const close = () => {

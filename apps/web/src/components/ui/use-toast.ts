@@ -3,6 +3,7 @@
 // Lightweight toast store adapted from the shadcn/ui reference implementation.
 import * as React from 'react';
 import type { ToastActionElement, ToastProps } from './toast';
+import { notifyFromToast } from '@/lib/notification-store';
 
 const TOAST_LIMIT = 3;
 const TOAST_REMOVE_DELAY = 5000;
@@ -65,6 +66,12 @@ type ToastInput = Omit<ToasterToast, 'id'>;
 function toast(props: ToastInput) {
   const id = genId();
   const dismiss = () => dispatch({ type: 'DISMISS', toastId: id });
+
+  notifyFromToast({
+    title: props.title,
+    description: props.description,
+    variant: props.variant,
+  });
 
   dispatch({
     type: 'ADD',

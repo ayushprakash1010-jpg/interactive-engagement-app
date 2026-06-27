@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/lib/events-api';
+import { notify } from '@/lib/notification-store';
 import type { QaQuestion } from '@/lib/use-event-realtime';
 
 type QuestionModerationPanelProps = {
@@ -98,6 +99,11 @@ function AiReplyDialog({
       });
 
       setAnswer(result.answer?.trim() ?? '');
+      notify({
+        type: 'ai-reply-generated',
+        description: 'AI generated a reply successfully.',
+        href: window.location.pathname,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'AI could not generate a reply right now.');
     } finally {

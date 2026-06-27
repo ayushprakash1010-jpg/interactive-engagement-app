@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { CircleUserRound, LayoutDashboard, LogOut, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardShell } from '@/components/layout';
+import { NotificationCenter } from '@/components/notifications';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Wordmark, AIBadge } from '@/components/pulse';
 import { cn } from '@/lib/utils';
@@ -93,6 +94,7 @@ export default function DashboardLayout({
                 {user.name}
               </span>
             )}
+            <NotificationCenter />
             <ThemeToggle />
             <Button asChild variant="outline" size="sm">
               <a href={logoutUrl}>Log out</a>
@@ -173,6 +175,7 @@ export default function DashboardLayout({
             {user?.name && (
               <span className="hidden text-ink-muted sm:inline">{user.name}</span>
             )}
+            <NotificationCenter />
             <ThemeToggle />
 
             <Button asChild variant="outline" size="sm">

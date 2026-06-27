@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { apiFetch } from "@/lib/events-api";
+import { notify } from "@/lib/notification-store";
 import type {
   PollConfig,
   CreateActivityPayload,
@@ -153,6 +154,11 @@ export function PollBuilder({
         setTitle(`${topic} Poll`);
       }
 
+      notify({
+        type: "ai-poll-generated",
+        description: "AI generated a poll successfully.",
+        href: window.location.pathname,
+      });
       setAiTopic("");
       setShowAiModal(false);
     } catch (error) {
