@@ -7,6 +7,9 @@ export type ResolvedTheme = 'light' | 'dark';
 
 const STORAGE_KEY = 'iep-theme';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+const THEME_TRANSITION_CLASS = 'theme-transitioning';
+const THEME_TRANSITION_MS = 260;
+let themeTransitionTimeout: number | undefined;
 const ThemeContext = React.createContext<{
   theme: Theme;
   resolvedTheme: ResolvedTheme;
@@ -40,6 +43,32 @@ function applyTheme(theme: Theme, systemTheme = getSystemTheme()) {
   return resolvedTheme;
 }
 
+function withThemeTransition(updateTheme: () => ResolvedTheme) {
+  const root = document.documentElement;
+  const reduceMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  ).matches;
+
+  if (reduceMotion) {
+    root.classList.remove(THEME_TRANSITION_CLASS);
+    return updateTheme();
+  }
+
+  if (themeTransitionTimeout) {
+    window.clearTimeout(themeTransitionTimeout);
+  }
+
+  root.classList.add(THEME_TRANSITION_CLASS);
+  const resolvedTheme = updateTheme();
+
+  themeTransitionTimeout = window.setTimeout(() => {
+    root.classList.remove(THEME_TRANSITION_CLASS);
+    themeTransitionTimeout = undefined;
+  }, THEME_TRANSITION_MS);
+
+  return resolvedTheme;
+}
+
 function persistTheme(theme: Theme) {
   window.localStorage.setItem(STORAGE_KEY, theme);
   document.cookie = `${STORAGE_KEY}=${theme}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
@@ -68,7 +97,11 @@ export function ThemeProvider({
   React.useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
-      setResolvedTheme(applyTheme(getStoredTheme(initialTheme), getSystemTheme()));
+      setResolvedTheme(
+        withThemeTransition(() =>
+          applyTheme(getStoredTheme(initialTheme), getSystemTheme()),
+        ),
+      );
     };
 
     media.addEventListener('change', handleChange);
@@ -78,7 +111,7 @@ export function ThemeProvider({
   const setTheme = React.useCallback((nextTheme: Theme) => {
     persistTheme(nextTheme);
     setThemeState(nextTheme);
-    setResolvedTheme(applyTheme(nextTheme));
+    setResolvedTheme(withThemeTransition(() => applyTheme(nextTheme)));
   }, []);
 
   const value = React.useMemo(

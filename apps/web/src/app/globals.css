@@ -27,6 +27,34 @@
   :root {
     --radius: var(--radius-md);
   }
+
+  :root.theme-transitioning,
+  :root.theme-transitioning body,
+  :root.theme-transitioning body *,
+  :root.theme-transitioning body *::before,
+  :root.theme-transitioning body *::after {
+    transition-duration: var(--dur-base);
+    transition-property:
+      background-color,
+      border-color,
+      box-shadow,
+      caret-color,
+      color,
+      fill,
+      outline-color,
+      stroke;
+    transition-timing-function: var(--ease-standard);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root.theme-transitioning,
+    :root.theme-transitioning body,
+    :root.theme-transitioning body *,
+    :root.theme-transitioning body *::before,
+    :root.theme-transitioning body *::after {
+      transition-duration: 0ms;
+    }
+  }
 }
 
 /* ------------------------------------------------------------
