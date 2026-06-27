@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Wordmark } from '@/components/pulse';
 import { useAuth } from '@/lib/use-auth';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle />
           {!isLoading && isAuthenticated ? (
             <Button asChild>
               <Link href="/dashboard">Go to dashboard</Link>
@@ -85,6 +87,10 @@ export function SiteHeader() {
             </Link>
           ))}
           <div className="mt-2 flex flex-col gap-2">
+            <div className="flex items-center justify-between rounded-md border border-border bg-surface-card px-2 py-2">
+              <span className="text-sm font-medium text-ink-muted">Theme</span>
+              <ThemeToggle />
+            </div>
             {!isLoading && isAuthenticated ? (
               <Button asChild>
                 <Link href="/dashboard">Go to dashboard</Link>

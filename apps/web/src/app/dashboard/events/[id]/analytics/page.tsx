@@ -41,13 +41,22 @@ import { useEvent } from "@/lib/use-events";
 import { apiFetch } from "@/lib/events-api";
 
 const CHART_COLORS = [
-  "#01696f",
-  "#437a22",
-  "#006494",
-  "#d19900",
-  "#da7101",
-  "#7a39bb",
+  "var(--data-1)",
+  "var(--data-2)",
+  "var(--data-3)",
+  "var(--data-4)",
+  "var(--data-5)",
+  "var(--data-6)",
 ];
+
+const chartAxisTick = { fontSize: 11, fill: "var(--text-muted)" };
+const chartSmallAxisTick = { fontSize: 10, fill: "var(--text-muted)" };
+const chartTooltipStyle = {
+  background: "var(--surface-card)",
+  border: "1px solid var(--border-default)",
+  borderRadius: 8,
+  color: "var(--text-primary)",
+} as const;
 
 function formatPercentFromRatio(value: number | null | undefined) {
   return `${(value ?? 0).toFixed(1)}%`;
@@ -103,13 +112,30 @@ function PollChart({
             data={data}
             margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
           >
-            <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="var(--border-default)"
+            />
+            <XAxis
+              dataKey="name"
+              tick={chartAxisTick}
+              tickLine={false}
+              axisLine={{ stroke: "var(--border-default)" }}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={chartAxisTick}
+              tickLine={false}
+              axisLine={{ stroke: "var(--border-default)" }}
+            />
             <Tooltip
               formatter={(value) => [
                 `${Array.isArray(value) ? value.join(", ") : (value ?? 0)} responses`,
                 "Count",
               ]}
+              cursor={{ fill: "var(--surface-offset)" }}
+              contentStyle={chartTooltipStyle}
             />
             <Bar dataKey="count" fill={CHART_COLORS[0]} radius={[3, 3, 0, 0]} />
           </BarChart>
@@ -132,11 +158,24 @@ function PollChart({
         layout="vertical"
         margin={{ top: 0, right: 30, left: 8, bottom: 0 }}
       >
-        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+        <CartesianGrid
+          strokeDasharray="3 3"
+          horizontal={false}
+          stroke="var(--border-default)"
+        />
+        <XAxis
+          type="number"
+          allowDecimals={false}
+          tick={chartAxisTick}
+          tickLine={false}
+          axisLine={{ stroke: "var(--border-default)" }}
+        />
         <YAxis
           type="category"
           dataKey="name"
-          tick={{ fontSize: 11 }}
+          tick={chartAxisTick}
+          tickLine={false}
+          axisLine={{ stroke: "var(--border-default)" }}
           width={120}
         />
         <Tooltip
@@ -145,6 +184,8 @@ function PollChart({
             "Responses",
           ]}
           labelFormatter={(_, payload) => payload?.[0]?.payload?.fullName ?? ""}
+          cursor={{ fill: "var(--surface-offset)" }}
+          contentStyle={chartTooltipStyle}
         />
         <Bar dataKey="count" radius={[0, 3, 3, 0]}>
           {data.map((_, i) => (
@@ -316,14 +357,24 @@ function EngagementTimeline({
         data={chartData}
         margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border, #e2e8f0)" />
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
         <XAxis
           dataKey="time"
-          tick={{ fontSize: 10 }}
+          tick={chartSmallAxisTick}
+          tickLine={false}
+          axisLine={{ stroke: "var(--border-default)" }}
           interval="preserveStartEnd"
         />
-        <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
-        <Tooltip />
+        <YAxis
+          allowDecimals={false}
+          tick={chartSmallAxisTick}
+          tickLine={false}
+          axisLine={{ stroke: "var(--border-default)" }}
+        />
+        <Tooltip
+          cursor={{ stroke: "var(--border-strong)" }}
+          contentStyle={chartTooltipStyle}
+        />
         <Line
           type="monotone"
           dataKey="responses"

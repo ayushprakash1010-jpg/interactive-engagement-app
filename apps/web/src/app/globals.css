@@ -107,6 +107,28 @@
  * Pulse helpers used across surfaces.
  * ---------------------------------------------------------- */
 @layer components {
+  .theme-wordmark-dark {
+    display: none;
+  }
+
+  .dark .theme-wordmark-light {
+    display: none;
+  }
+
+  .dark .theme-wordmark-dark {
+    display: block;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme='system'] .theme-wordmark-light {
+      display: none;
+    }
+
+    :root[data-theme='system'] .theme-wordmark-dark {
+      display: block;
+    }
+  }
+
   /* The on-air live dot. */
   .pulse-dot {
     position: relative;

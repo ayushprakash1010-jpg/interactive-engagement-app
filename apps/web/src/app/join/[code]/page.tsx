@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SurfacePanel } from "@/components/ui/surface-panel";
@@ -25,6 +26,10 @@ export default function JoinCodePage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-surface-canvas px-4 py-8">
+      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
+        <ThemeToggle />
+      </div>
+
       <div className="mx-auto w-full max-w-container-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="mb-6 rounded-lg border border-border bg-surface-card p-3 shadow-sm">

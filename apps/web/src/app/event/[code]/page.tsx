@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { HelpCircle, MessageCircle, Radio, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { SurfacePanel } from "@/components/ui/surface-panel";
@@ -115,7 +116,10 @@ export default function EventPage() {
               <Logomark size={28} />
               <JoinCode code={code} size="sm" />
             </div>
-            <ConnectionStatus />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <ConnectionStatus />
+            </div>
           </header>
 
           <SurfacePanel className="mt-6 space-y-4">
@@ -248,7 +252,10 @@ export default function EventPage() {
             <Logomark size={28} />
             <JoinCode code={code} size="sm" />
           </div>
-          <ConnectionStatus />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <ConnectionStatus />
+          </div>
         </header>
 
         <SurfacePanel className="mt-4 flex items-center justify-between gap-3 px-4 py-3">

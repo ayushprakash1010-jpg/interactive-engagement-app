@@ -16,7 +16,7 @@ const badgeVariants = cva(
         neutral: 'bg-secondary text-secondary-foreground',
         brand: 'bg-brand-subtle text-brand-subtle-text',
         success: 'bg-success-subtle text-success',
-        warning: 'bg-warning-subtle text-[#8a6500]',
+        warning: 'bg-warning-subtle text-[var(--warning-text)]',
         destructive: 'bg-error-subtle text-destructive',
         info: 'bg-info-subtle text-info',
         ai: 'bg-ai-subtle text-ai-subtle-text',

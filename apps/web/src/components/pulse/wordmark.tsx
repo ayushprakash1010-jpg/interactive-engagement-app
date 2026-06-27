@@ -14,10 +14,34 @@ export function Wordmark({
   className?: string;
   width?: number;
 }) {
-  const src = dark ? '/brand/pulse-wordmark-dark.svg' : '/brand/pulse-wordmark.svg';
+  if (!dark) {
+    return (
+      <>
+        <Image
+          src="/brand/pulse-wordmark.svg"
+          alt="Pulse"
+          width={width}
+          height={Math.round((width / 208) * 56)}
+          priority
+          unoptimized
+          className={cn('theme-wordmark-light select-none', className)}
+        />
+        <Image
+          src="/brand/pulse-wordmark-dark.svg"
+          alt="Pulse"
+          width={width}
+          height={Math.round((width / 208) * 56)}
+          priority
+          unoptimized
+          className={cn('theme-wordmark-dark select-none', className)}
+        />
+      </>
+    );
+  }
+
   return (
     <Image
-      src={src}
+      src="/brand/pulse-wordmark-dark.svg"
       alt="Pulse"
       width={width}
       height={Math.round((width / 208) * 56)}
