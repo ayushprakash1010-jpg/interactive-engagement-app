@@ -45,6 +45,17 @@ export function ProjectorQaView({ questions }: ProjectorQaViewProps) {
                     {question.text}
                   </p>
 
+                  {question.status === 'answered' && question.answerText?.trim() && (
+                    <div className="rounded-lg border border-border bg-surface-sunken/80 px-4 py-3">
+                      <p className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
+                        Host reply
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-xl leading-relaxed text-foreground">
+                        {question.answerText}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap items-center gap-3 text-base text-ink-muted">
                     <span>{question.authorName?.trim() || 'Anonymous'}</span>
                     {question.status === 'answered' && (

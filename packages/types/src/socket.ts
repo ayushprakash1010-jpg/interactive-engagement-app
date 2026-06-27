@@ -27,6 +27,7 @@ export const ClientEvents = {
   WORDCLOUD_SUBMIT: 'wordcloud:submit',
   QA_ASK: 'qa:ask',
   QA_UPVOTE: 'qa:upvote',
+  QA_REPLY: 'qa:reply',
   ACTIVITY_LAUNCH: 'activity:launch',
   ACTIVITY_CLOSE: 'activity:close',
   QA_MODERATE: 'qa:moderate',

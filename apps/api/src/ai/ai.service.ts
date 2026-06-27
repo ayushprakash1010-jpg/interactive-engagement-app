@@ -63,7 +63,10 @@ export class AiService {
   }
 
   private cleanJsonResponse(text: string): string {
-    return text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return text
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
   }
 
   private getErrorMessage(err: unknown): string {
@@ -96,6 +99,27 @@ export class AiService {
     featureName: string,
     options?: { retries?: number },
   ): Promise<T> {
+    const text = await this.generateText(contents, featureName, options);
+    const cleaned = this.cleanJsonResponse(text);
+
+    if (!cleaned) {
+      throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+    }
+
+    try {
+      return JSON.parse(cleaned) as T;
+    } catch (err) {
+      const message = this.getErrorMessage(err);
+      this.logger.error(`${featureName} returned invalid JSON: ${message}`, err as Error);
+      throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+    }
+  }
+
+  private async generateText(
+    contents: string,
+    featureName: string,
+    options?: { retries?: number },
+  ): Promise<string> {
     const retries = options?.retries ?? 1;
     let lastError: unknown;
 
@@ -106,14 +130,12 @@ export class AiService {
           contents,
         });
 
-        const text = response.text ?? '';
-        const cleaned = this.cleanJsonResponse(text);
-
-        if (!cleaned) {
+        const text = (response.text ?? '').trim();
+        if (!text) {
           throw new Error(`${featureName} returned an empty response.`);
         }
 
-        return JSON.parse(cleaned) as T;
+        return text;
       } catch (err) {
         lastError = err;
         const message = this.getErrorMessage(err);
@@ -135,9 +157,7 @@ export class AiService {
         }
 
         this.logger.error(`${featureName} failed: ${message}`, err as Error);
-        throw new InternalServerErrorException(
-          `Failed to ${featureName}. Please try again.`,
-        );
+        throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
       }
     }
 
@@ -146,9 +166,29 @@ export class AiService {
       `${featureName} failed after retries: ${fallbackMessage}`,
       lastError as Error,
     );
-    throw new InternalServerErrorException(
-      `Failed to ${featureName}. Please try again.`,
+    throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+  }
+
+  async generateQaReply(question: string) {
+    const trimmedQuestion = question.trim();
+    if (!trimmedQuestion) {
+      throw new InternalServerErrorException('Failed to generate Q&A reply. Please try again.');
+    }
+
+    const answer = await this.generateText(
+      `You are helping a presenter answer audience questions professionally.
+
+Provide a concise, accurate, audience-friendly response.
+
+Question:
+${trimmedQuestion}
+
+Return only the answer.`,
+      'generate Q&A reply',
+      { retries: 1 },
     );
+
+    return { answer };
   }
 
   async generatePoll(topic: string) {
@@ -365,10 +405,7 @@ Rules:
     );
   }
 
-  async summarizeLiveAnswers(
-    eventId: string,
-    hostId: string,
-  ): Promise<SummarizeLiveAnswersResult> {
+  async summarizeLiveAnswers(eventId: string, hostId: string): Promise<SummarizeLiveAnswersResult> {
     if (!Types.ObjectId.isValid(eventId)) {
       throw new NotFoundException(`Event ${eventId} not found`);
     }
@@ -416,9 +453,7 @@ Rules:
           const rWords = (r as any).words;
           if (Array.isArray(rWords)) {
             words.push(
-              ...rWords.filter(
-                (w: unknown) => typeof w === 'string' && w.trim().length > 0,
-              ),
+              ...rWords.filter((w: unknown) => typeof w === 'string' && w.trim().length > 0),
             );
           }
         }
@@ -426,28 +461,23 @@ Rules:
           snippets.push(`Word cloud responses: ${words.slice(0, 80).join(', ')}`);
         }
       } else if ((activity as any).type === 'feedback') {
-        const fields: Array<{ id: string; type: string; label: string }> =
-          Array.isArray(actConfig?.fields) ? (actConfig.fields as any[]) : [];
-        const textFieldIds = new Set(
-          fields.filter((f) => f.type === 'text').map((f) => f.id),
-        );
+        const fields: Array<{ id: string; type: string; label: string }> = Array.isArray(
+          actConfig?.fields,
+        )
+          ? (actConfig.fields as any[])
+          : [];
+        const textFieldIds = new Set(fields.filter((f) => f.type === 'text').map((f) => f.id));
         for (const r of responses) {
           const answers = (r as any).feedbackAnswers;
           if (!Array.isArray(answers)) continue;
           for (const ans of answers) {
-            if (
-              textFieldIds.has(ans.fieldId) &&
-              typeof ans.textValue === 'string'
-            ) {
+            if (textFieldIds.has(ans.fieldId) && typeof ans.textValue === 'string') {
               const val = ans.textValue.trim();
               if (val.length >= 3) snippets.push(`Feedback: ${val}`);
             }
           }
         }
-      } else if (
-        (activity as any).type === 'poll' &&
-        actConfig?.pollType === 'open'
-      ) {
+      } else if ((activity as any).type === 'poll' && actConfig?.pollType === 'open') {
         for (const r of responses) {
           const val = ((r as any).textValue ?? '').trim();
           if (val.length >= 3) snippets.push(`Poll response: ${val}`);
@@ -526,9 +556,7 @@ Return this exact shape:
 
       const message = this.getErrorMessage(err);
       this.logger.error(`Gemini error for event ${eventId}: ${message}`, err as Error);
-      throw new InternalServerErrorException(
-        'Failed to generate the summary. Please try again.',
-      );
+      throw new InternalServerErrorException('Failed to generate the summary. Please try again.');
     }
   }
 }

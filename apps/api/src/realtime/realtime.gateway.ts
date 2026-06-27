@@ -29,6 +29,7 @@ import {
   qaAskSchema,
   qaUpvoteSchema,
   qaModerateSchema,
+  qaReplySchema,
   sessionEndSchema,
 } from '@iep/types';
 import { ActivityService } from '../activities/activity.service';
@@ -42,7 +43,6 @@ import {
   getQuizQuestion,
   sanitizeQuizQuestionForBroadcast,
 } from '../activities/utils/quiz.util';
-
 
 type JoinPayload = {
   eventCode: string;
@@ -87,11 +87,7 @@ const pollRuntimeByActivityId = new Map<string, { endsAt: number; timeout: NodeJ
 
 @WebSocketGateway({ cors: true })
 export class RealtimeGateway
-  implements
-    OnGatewayInit,
-    OnGatewayConnection,
-    OnGatewayDisconnect,
-    OnApplicationShutdown
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnApplicationShutdown
 {
   private readonly logger = new Logger(RealtimeGateway.name);
   private readonly socketState = new Map<string, SocketState>();
@@ -114,11 +110,7 @@ export class RealtimeGateway
     this.logger.log('RealtimeGateway initialized');
   }
 
-  private parsePayload<T>(
-    schema: ZodSchema<T>,
-    payload: unknown,
-    client: Socket,
-  ): T | null {
+  private parsePayload<T>(schema: ZodSchema<T>, payload: unknown, client: Socket): T | null {
     const result = schema.safeParse(payload);
     if (!result.success) {
       this.logger.warn(
@@ -142,11 +134,7 @@ export class RealtimeGateway
     return client.handshake?.address;
   }
 
-  private async enforceRateLimit(
-    action: string,
-    anonId: string,
-    client: Socket,
-  ): Promise<boolean> {
+  private async enforceRateLimit(action: string, anonId: string, client: Socket): Promise<boolean> {
     const result = await this.rateLimitService.consumeForAction(
       action,
       anonId,
@@ -182,9 +170,7 @@ export class RealtimeGateway
       });
     } catch (err) {
       this.logger.error(
-        `Error closing Socket.IO server: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `Error closing Socket.IO server: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -247,9 +233,7 @@ export class RealtimeGateway
     const snapshot = await this.buildSnapshot(event, 'participant');
     client.emit(ServerEvents.SESSION_SNAPSHOT, snapshot);
 
-    this.logger.log(
-      `Participant joined event=${event.eventCode} anonId=${anonId}`,
-    );
+    this.logger.log(`Participant joined event=${event.eventCode} anonId=${anonId}`);
   }
 
   @SubscribeMessage(ClientEvents.EVENT_OBSERVE)
@@ -323,11 +307,9 @@ export class RealtimeGateway
         wordCloudBroadcastTimers.delete(closedId);
       }
 
-      this.server
-        .to(rooms.event(eventId))
-        .emit(ServerEvents.ACTIVITY_CLOSED, {
-          activityId: closedId,
-        });
+      this.server.to(rooms.event(eventId)).emit(ServerEvents.ACTIVITY_CLOSED, {
+        activityId: closedId,
+      });
     }
 
     const liveActivity = await this.activityService.setStatus(activityId, 'live');
@@ -341,7 +323,13 @@ export class RealtimeGateway
 
     this.logger.debug(`Found config.timeLimitSec = ${config.timeLimitSec}, parsed sec = ${sec}`);
 
-    if ((rawActivity.type === 'poll' || rawActivity.type === 'feedback' || rawActivity.type === 'wordcloud') && !isNaN(sec) && sec > 0) {
+    if (
+      (rawActivity.type === 'poll' ||
+        rawActivity.type === 'feedback' ||
+        rawActivity.type === 'wordcloud') &&
+      !isNaN(sec) &&
+      sec > 0
+    ) {
       endsAt = Date.now() + sec * 1000;
 
       const timeout = setTimeout(async () => {
@@ -350,7 +338,10 @@ export class RealtimeGateway
         await this.eventsService.setActiveActivity(eventId, null);
 
         const bTimer = pollBroadcastTimers.get(activityId);
-        if (bTimer) { clearTimeout(bTimer); pollBroadcastTimers.delete(activityId); }
+        if (bTimer) {
+          clearTimeout(bTimer);
+          pollBroadcastTimers.delete(activityId);
+        }
 
         this.server.to(rooms.event(eventId)).emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
       }, sec * 1000);
@@ -362,7 +353,9 @@ export class RealtimeGateway
       .to(rooms.event(eventId))
       .emit(ServerEvents.ACTIVITY_LAUNCHED, { activity: liveActivity, endsAt });
 
-    this.logger.log(`activity:launched activityId=${activityId} eventId=${eventId} endsAt=${endsAt}`);
+    this.logger.log(
+      `activity:launched activityId=${activityId} eventId=${eventId} endsAt=${endsAt}`,
+    );
 
     if (rawActivity.type === 'quiz') {
       setTimeout(() => {
@@ -411,9 +404,7 @@ export class RealtimeGateway
 
     this.clearQuizRuntime(activityId);
 
-    this.server
-      .to(rooms.event(eventId))
-      .emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
+    this.server.to(rooms.event(eventId)).emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
 
     this.logger.log(`activity:closed activityId=${activityId} eventId=${eventId}`);
   }
@@ -438,14 +429,7 @@ export class RealtimeGateway
   ): Promise<void> {
     const data = this.parsePayload(activityRespondSocketSchema, payload, client);
     if (!data) return;
-    const {
-      activityId,
-      anonId,
-      selectedOptionIds,
-      textValue,
-      ratingValue,
-      feedbackAnswers,
-    } = data;
+    const { activityId, anonId, selectedOptionIds, textValue, ratingValue, feedbackAnswers } = data;
 
     if (!(await this.enforceRateLimit('activity:respond', anonId, client))) {
       return;
@@ -499,14 +483,11 @@ export class RealtimeGateway
       }
 
       client.emit(ServerEvents.ERROR, {
-        message:
-          'activity:respond is only supported for poll and feedback activities.',
+        message: 'activity:respond is only supported for poll and feedback activities.',
       });
     } catch (err: unknown) {
       const message =
-        isRecord(err) && typeof err.message === 'string'
-          ? err.message
-          : 'Could not save response.';
+        isRecord(err) && typeof err.message === 'string' ? err.message : 'Could not save response.';
 
       client.emit(ServerEvents.ERROR, { message });
     }
@@ -698,7 +679,7 @@ export class RealtimeGateway
     // client sends a displayName. When allowAnonymousQA is false, use whatever
     // name the participant provided.
     const allowAnonymousQA = Boolean(event.settings?.allowAnonymousQA);
-    const authorName = allowAnonymousQA ? null : (displayName?.trim() || null);
+    const authorName = allowAnonymousQA ? null : displayName?.trim() || null;
 
     const question = await this.questionsService.create({
       eventId,
@@ -711,13 +692,9 @@ export class RealtimeGateway
     await this.analyticsService.invalidateCacheIfLive(eventId);
 
     if (requireModeration) {
-      this.server
-        .to(rooms.host(eventId))
-        .emit(ServerEvents.QA_NEW, { question });
+      this.server.to(rooms.host(eventId)).emit(ServerEvents.QA_NEW, { question });
     } else {
-      this.server
-        .to(rooms.event(eventId))
-        .emit(ServerEvents.QA_NEW, { question });
+      this.server.to(rooms.event(eventId)).emit(ServerEvents.QA_NEW, { question });
     }
 
     this.logger.log(
@@ -744,13 +721,9 @@ export class RealtimeGateway
 
       await this.analyticsService.invalidateCacheIfLive(eventId);
 
-      this.server
-        .to(rooms.event(eventId))
-        .emit(ServerEvents.QA_UPDATED, { question });
+      this.server.to(rooms.event(eventId)).emit(ServerEvents.QA_UPDATED, { question });
 
-      this.logger.log(
-        `qa:upvote eventId=${eventId} questionId=${questionId} anonId=${anonId}`,
-      );
+      this.logger.log(`qa:upvote eventId=${eventId} questionId=${questionId} anonId=${anonId}`);
     } catch (err: unknown) {
       const message =
         isRecord(err) && typeof err.message === 'string'
@@ -781,9 +754,7 @@ export class RealtimeGateway
       await this.analyticsService.invalidateCacheIfLive(eventId);
 
       if (status === 'approved') {
-        this.server
-          .to(rooms.event(eventId))
-          .emit(ServerEvents.QA_NEW, { question });
+        this.server.to(rooms.event(eventId)).emit(ServerEvents.QA_NEW, { question });
       }
 
       // Emit to both host and event rooms so pending-question status changes
@@ -793,14 +764,45 @@ export class RealtimeGateway
         .to(rooms.event(eventId))
         .emit(ServerEvents.QA_UPDATED, { question });
 
-      this.logger.log(
-        `qa:moderate eventId=${eventId} questionId=${questionId} status=${status}`,
-      );
+      this.logger.log(`qa:moderate eventId=${eventId} questionId=${questionId} status=${status}`);
     } catch (err: unknown) {
       const message =
         isRecord(err) && typeof err.message === 'string'
           ? err.message
           : 'Could not moderate question.';
+
+      client.emit(ServerEvents.ERROR, { message });
+    }
+  }
+
+  @SubscribeMessage(ClientEvents.QA_REPLY)
+  async handleQaReply(
+    @MessageBody()
+    payload: {
+      questionId: string;
+      answerText: string;
+    },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const data = this.parsePayload(qaReplySchema, payload, client);
+    if (!data) return;
+    const { questionId, answerText } = data;
+
+    try {
+      const question = await this.questionsService.reply(questionId, answerText);
+      const eventId = question.eventId.toString();
+
+      await this.analyticsService.invalidateCacheIfLive(eventId);
+
+      this.server
+        .to(rooms.host(eventId))
+        .to(rooms.event(eventId))
+        .emit(ServerEvents.QA_UPDATED, { question });
+
+      this.logger.log(`qa:reply eventId=${eventId} questionId=${questionId}`);
+    } catch (err: unknown) {
+      const message =
+        isRecord(err) && typeof err.message === 'string' ? err.message : 'Could not save reply.';
 
       client.emit(ServerEvents.ERROR, { message });
     }
@@ -827,9 +829,7 @@ export class RealtimeGateway
       this.logger.log(`session:end eventId=${eventId}`);
     } catch (err: unknown) {
       const message =
-        isRecord(err) && typeof err.message === 'string'
-          ? err.message
-          : 'Could not end session.';
+        isRecord(err) && typeof err.message === 'string' ? err.message : 'Could not end session.';
 
       client.emit(ServerEvents.ERROR, { message });
     }
@@ -868,7 +868,11 @@ export class RealtimeGateway
     event: {
       activeActivityId: unknown;
       _id: unknown;
-      settings?: { allowAnonymousQA?: boolean; requireModeration?: boolean; participantNames?: boolean } | null;
+      settings?: {
+        allowAnonymousQA?: boolean;
+        requireModeration?: boolean;
+        participantNames?: boolean;
+      } | null;
     },
     mode: 'participant' | 'observer' = 'participant',
   ) {
@@ -882,9 +886,7 @@ export class RealtimeGateway
 
     if (event.activeActivityId) {
       try {
-        activeActivity = await this.activityService.findById(
-          event.activeActivityId.toString(),
-        );
+        activeActivity = await this.activityService.findById(event.activeActivityId.toString());
 
         const runtime = pollRuntimeByActivityId.get(activeActivity._id.toString());
         if (runtime) pollEndsAt = runtime.endsAt;
@@ -897,10 +899,9 @@ export class RealtimeGateway
         }
 
         if (activeActivity.type === 'quiz') {
-          currentQuizLeaderboard =
-            await this.responseService.computeQuizLeaderboard(
-              activeActivity._id.toString(),
-            );
+          currentQuizLeaderboard = await this.responseService.computeQuizLeaderboard(
+            activeActivity._id.toString(),
+          );
 
           const runtimeQuiz = quizRuntimeByActivityId.get(activeActivity._id.toString());
           if (runtimeQuiz) {
@@ -928,8 +929,7 @@ export class RealtimeGateway
       }
     }
 
-    const approvedQuestions =
-      await this.questionsService.findApprovedByEvent(eventId);
+    const approvedQuestions = await this.questionsService.findApprovedByEvent(eventId);
 
     let pendingQuestions: Awaited<ReturnType<typeof this.questionsService.findByEvent>> = [];
     if (mode === 'observer') {
@@ -942,9 +942,7 @@ export class RealtimeGateway
     const allowAnonymousQA = event.settings?.allowAnonymousQA ?? true;
 
     return {
-      activeActivityId: event.activeActivityId
-        ? event.activeActivityId.toString()
-        : null,
+      activeActivityId: event.activeActivityId ? event.activeActivityId.toString() : null,
       activeActivity,
       currentTally,
       currentQuizQuestion,
@@ -968,28 +966,19 @@ export class RealtimeGateway
     const timer = setTimeout(async () => {
       pollBroadcastTimers.delete(activityId);
       try {
-        const tallies = await this.responseService.computeTally(
-          activityId,
-          activity,
-        );
+        const tallies = await this.responseService.computeTally(activityId, activity);
         this.server
           .to(rooms.event(eventId))
           .emit(ServerEvents.POLL_RESULTS, { activityId, tallies });
       } catch (err: unknown) {
-        this.logger.error(
-          `Failed to broadcast poll:results for activityId=${activityId}`,
-          err,
-        );
+        this.logger.error(`Failed to broadcast poll:results for activityId=${activityId}`, err);
       }
     }, 250);
 
     pollBroadcastTimers.set(activityId, timer);
   }
 
-  private scheduleWordCloudBroadcast(
-    activityId: string,
-    eventId: string,
-  ): void {
+  private scheduleWordCloudBroadcast(activityId: string, eventId: string): void {
     const existing = wordCloudBroadcastTimers.get(activityId);
     if (existing) clearTimeout(existing);
 
@@ -997,24 +986,16 @@ export class RealtimeGateway
       wordCloudBroadcastTimers.delete(activityId);
       try {
         const words = await this.responseService.computeWordCloud(activityId);
-        this.server
-          .to(rooms.event(eventId))
-          .emit(ServerEvents.WORDCLOUD_UPDATE, { words });
+        this.server.to(rooms.event(eventId)).emit(ServerEvents.WORDCLOUD_UPDATE, { words });
       } catch (err: unknown) {
-        this.logger.error(
-          `Failed to broadcast wordcloud:update for activityId=${activityId}`,
-          err,
-        );
+        this.logger.error(`Failed to broadcast wordcloud:update for activityId=${activityId}`, err);
       }
     }, 250);
 
     wordCloudBroadcastTimers.set(activityId, timer);
   }
 
-  private async advanceQuizQuestion(
-    activityId: string,
-    client?: Socket,
-  ): Promise<void> {
+  private async advanceQuizQuestion(activityId: string, client?: Socket): Promise<void> {
     if (quizAdvanceLocks.has(activityId)) {
       return;
     }
@@ -1051,8 +1032,7 @@ export class RealtimeGateway
       }
 
       if (existingRuntime) {
-        const leaderboard =
-          await this.responseService.computeQuizLeaderboard(activityId);
+        const leaderboard = await this.responseService.computeQuizLeaderboard(activityId);
         this.server
           .to(rooms.event(eventId))
           .emit(ServerEvents.QUIZ_LEADERBOARD, { top: leaderboard });
@@ -1064,8 +1044,7 @@ export class RealtimeGateway
       if (!question) {
         this.clearQuizRuntime(activityId);
 
-        const leaderboard =
-          await this.responseService.computeQuizLeaderboard(activityId);
+        const leaderboard = await this.responseService.computeQuizLeaderboard(activityId);
         this.server
           .to(rooms.event(eventId))
           .emit(ServerEvents.QUIZ_LEADERBOARD, { top: leaderboard });
@@ -1073,9 +1052,7 @@ export class RealtimeGateway
         await this.activityService.setStatus(activityId, 'closed');
         await this.eventsService.setActiveActivity(eventId, null);
 
-        this.server
-          .to(rooms.event(eventId))
-          .emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
+        this.server.to(rooms.event(eventId)).emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
 
         return;
       }
@@ -1089,8 +1066,7 @@ export class RealtimeGateway
         }
 
         try {
-          const leaderboard =
-            await this.responseService.computeQuizLeaderboard(activityId);
+          const leaderboard = await this.responseService.computeQuizLeaderboard(activityId);
           this.server
             .to(rooms.event(eventId))
             .emit(ServerEvents.QUIZ_LEADERBOARD, { top: leaderboard });
@@ -1120,13 +1096,11 @@ export class RealtimeGateway
         timeout,
       });
 
-      this.server
-        .to(rooms.event(eventId))
-        .emit(ServerEvents.QUIZ_QUESTION, {
-          activityId,
-          ...sanitizeQuizQuestionForBroadcast(question),
-          endsAt,
-        });
+      this.server.to(rooms.event(eventId)).emit(ServerEvents.QUIZ_QUESTION, {
+        activityId,
+        ...sanitizeQuizQuestionForBroadcast(question),
+        endsAt,
+      });
     } finally {
       quizAdvanceLocks.delete(activityId);
     }
@@ -1145,21 +1119,11 @@ export class RealtimeGateway
     return `event:${eventId}:connections`;
   }
 
-  private async incrementConnection(
-    eventId: string,
-    anonId: string,
-  ): Promise<void> {
-    await this.redisService.client.hincrby(
-      this.connectionsKey(eventId),
-      anonId,
-      1,
-    );
+  private async incrementConnection(eventId: string, anonId: string): Promise<void> {
+    await this.redisService.client.hincrby(this.connectionsKey(eventId), anonId, 1);
   }
 
-  private async decrementConnection(
-    eventId: string,
-    anonId: string,
-  ): Promise<number> {
+  private async decrementConnection(eventId: string, anonId: string): Promise<number> {
     const key = this.connectionsKey(eventId);
     const remaining = await this.redisService.client.hincrby(key, anonId, -1);
     if (remaining <= 0) {
@@ -1174,8 +1138,6 @@ export class RealtimeGateway
 
   private async broadcastCount(eventId: string): Promise<void> {
     const count = await this.getCount(eventId);
-    this.server
-      .to(rooms.event(eventId))
-      .emit(ServerEvents.PARTICIPANT_COUNT, { count });
+    this.server.to(rooms.event(eventId)).emit(ServerEvents.PARTICIPANT_COUNT, { count });
   }
 }

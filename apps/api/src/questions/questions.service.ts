@@ -1,15 +1,7 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import {
-  QuestionDocument,
-  QuestionEntity,
-  QuestionStatus,
-} from './question.schema';
+import { QuestionDocument, QuestionEntity, QuestionStatus } from './question.schema';
 import { sanitizeText, sanitizeOptionalText } from '../common/sanitize';
 
 type CreateQuestionInput = {
@@ -40,7 +32,7 @@ export class QuestionsService {
     return this.questionModel
       .find({
         eventId: new Types.ObjectId(eventId),
-        status: 'approved',
+        status: { $in: ['approved', 'answered'] },
       })
       .sort({ voteCount: -1, createdAt: -1 })
       .exec();
@@ -69,6 +61,8 @@ export class QuestionsService {
       authorName: sanitizeOptionalText(authorName, 80) ?? null,
       voteCount: 0,
       voterAnonIds: [],
+      answerText: null,
+      answeredAt: null,
       status: status ?? 'pending',
     });
 
@@ -107,9 +101,7 @@ export class QuestionsService {
       return updated;
     }
 
-    const existing = await this.questionModel
-      .findById(new Types.ObjectId(questionId))
-      .exec();
+    const existing = await this.questionModel.findById(new Types.ObjectId(questionId)).exec();
 
     if (!existing) {
       throw new NotFoundException('Question not found.');
@@ -118,24 +110,53 @@ export class QuestionsService {
     return existing;
   }
 
-  async updateStatus(
-    questionId: string,
-    status: 'approved' | 'dismissed' | 'answered',
-  ) {
+  async updateStatus(questionId: string, status: 'approved' | 'dismissed' | 'answered') {
     if (!questionId || !Types.ObjectId.isValid(questionId)) {
       throw new BadRequestException('A valid questionId is required.');
     }
 
     if (!['approved', 'dismissed', 'answered'].includes(status)) {
-      throw new BadRequestException(
-        'status must be approved, dismissed, or answered.',
-      );
+      throw new BadRequestException('status must be approved, dismissed, or answered.');
     }
 
     const updated = await this.questionModel
       .findByIdAndUpdate(
         new Types.ObjectId(questionId),
         { $set: { status } },
+        {
+          new: true,
+          runValidators: true,
+        },
+      )
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException('Question not found.');
+    }
+
+    return updated;
+  }
+
+  async reply(questionId: string, answerText: string) {
+    if (!questionId || !Types.ObjectId.isValid(questionId)) {
+      throw new BadRequestException('A valid questionId is required.');
+    }
+
+    const sanitizedAnswer = sanitizeText(answerText, 4000);
+    if (!sanitizedAnswer) {
+      throw new BadRequestException('Answer text is required.');
+    }
+
+    const updated = await this.questionModel
+      .findByIdAndUpdate(
+        new Types.ObjectId(questionId),
+        {
+          $set: {
+            answerText: sanitizedAnswer,
+            answeredAt: new Date(),
+            status: 'answered',
+          },
+        },
         {
           new: true,
           runValidators: true,

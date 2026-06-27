@@ -15,6 +15,7 @@ describe('QuestionsService', () => {
   let findById: jest.Mock;
   let findByIdAndUpdate: jest.Mock;
   let create: jest.Mock;
+  let find: jest.Mock;
   let service: QuestionsService;
 
   beforeEach(() => {
@@ -22,12 +23,14 @@ describe('QuestionsService', () => {
     findById = jest.fn();
     findByIdAndUpdate = jest.fn();
     create = jest.fn();
+    find = jest.fn();
 
     const model = {
       findOneAndUpdate,
       findById,
       findByIdAndUpdate,
       create,
+      find,
     } as any;
 
     service = new QuestionsService(model);
@@ -66,15 +69,11 @@ describe('QuestionsService', () => {
       findOneAndUpdate.mockReturnValue({ exec: async () => null });
       findById.mockReturnValue({ exec: async () => null });
 
-      await expect(service.addVote(questionId, 'a')).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(service.addVote(questionId, 'a')).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('rejects an invalid questionId', async () => {
-      await expect(service.addVote('not-an-id', 'a')).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(service.addVote('not-an-id', 'a')).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
@@ -95,6 +94,8 @@ describe('QuestionsService', () => {
       expect(result.authorName).toBe('Sam');
       expect(result.voteCount).toBe(0);
       expect(result.voterAnonIds).toEqual([]);
+      expect(result.answerText).toBeNull();
+      expect(result.answeredAt).toBeNull();
     });
 
     it('honours an explicit status (e.g. approved when moderation is off)', async () => {
@@ -130,9 +131,47 @@ describe('QuestionsService', () => {
     });
 
     it('rejects an invalid status', async () => {
-      await expect(
-        service.updateStatus(questionId, 'bogus' as any),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.updateStatus(questionId, 'bogus' as any)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('findApprovedByEvent', () => {
+    it('includes answered questions in the public Q&A list', async () => {
+      const sort = jest.fn().mockReturnValue({ exec: async () => [] });
+      find.mockReturnValue({ sort });
+
+      await service.findApprovedByEvent(eventId);
+
+      expect(find).toHaveBeenCalledWith({
+        eventId: new Types.ObjectId(eventId),
+        status: { $in: ['approved', 'answered'] },
+      });
+    });
+  });
+
+  describe('reply', () => {
+    it('stores a sanitized answer and marks the question answered', async () => {
+      const updated = {
+        _id: questionId,
+        answerText: 'Helpful answer',
+        status: 'answered',
+      };
+      findByIdAndUpdate.mockReturnValue({ exec: async () => updated });
+
+      const result = await service.reply(questionId, '  Helpful answer  ');
+
+      expect(result).toBe(updated);
+      const [, update, options] = findByIdAndUpdate.mock.calls[0];
+      expect(update.$set.answerText).toBe('Helpful answer');
+      expect(update.$set.status).toBe('answered');
+      expect(update.$set.answeredAt).toBeInstanceOf(Date);
+      expect(options).toEqual({ new: true, runValidators: true });
+    });
+
+    it('rejects empty answers', async () => {
+      await expect(service.reply(questionId, '   ')).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });

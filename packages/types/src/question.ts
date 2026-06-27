@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { anonId, objectId, timestamps } from './common.js';
+import { anonId, isoDate, objectId, timestamps } from './common.js';
 
 export const questionStatus = z.enum(['pending', 'approved', 'answered', 'dismissed']);
 export type QuestionStatus = z.infer<typeof questionStatus>;
@@ -11,6 +11,8 @@ export const questionSchema = z.object({
   text: z.string().min(1).max(1000),
   authorAnonId: anonId,
   authorName: z.string().max(80).optional(),
+  answerText: z.string().max(4000).nullable().optional(),
+  answeredAt: isoDate.nullable().optional(),
   voteCount: z.number().int().min(0).default(0),
   voterAnonIds: z.array(anonId).default([]),
   status: questionStatus,

@@ -79,6 +79,11 @@ export const qaModerateSchema = z.object({
   status: z.enum(['approved', 'dismissed', 'answered']),
 });
 
+export const qaReplySchema = z.object({
+  questionId: shortId,
+  answerText: z.string().min(1).max(4000),
+});
+
 export const sessionEndSchema = z.object({
   eventId: shortId,
 });
@@ -86,12 +91,11 @@ export const sessionEndSchema = z.object({
 export type EventJoinPayload = z.infer<typeof eventJoinSchema>;
 export type EventObservePayload = z.infer<typeof eventObserveSchema>;
 export type ActivityIdPayload = z.infer<typeof activityIdSchema>;
-export type ActivityRespondSocketPayload = z.infer<
-  typeof activityRespondSocketSchema
->;
+export type ActivityRespondSocketPayload = z.infer<typeof activityRespondSocketSchema>;
 export type WordCloudSubmitPayload = z.infer<typeof wordCloudSubmitSchema>;
 export type QuizAnswerPayload = z.infer<typeof quizAnswerSchema>;
 export type QaAskPayload = z.infer<typeof qaAskSchema>;
 export type QaUpvotePayload = z.infer<typeof qaUpvoteSchema>;
 export type QaModeratePayload = z.infer<typeof qaModerateSchema>;
+export type QaReplyPayload = z.infer<typeof qaReplySchema>;
 export type SessionEndPayload = z.infer<typeof sessionEndSchema>;

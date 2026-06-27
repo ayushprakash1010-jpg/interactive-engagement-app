@@ -39,6 +39,20 @@ export class QuestionEntity {
   authorName!: string | null;
 
   @Prop({
+    type: String,
+    default: null,
+    trim: true,
+    maxlength: 4000,
+  })
+  answerText!: string | null;
+
+  @Prop({
+    type: Date,
+    default: null,
+  })
+  answeredAt!: Date | null;
+
+  @Prop({
     type: Number,
     default: 0,
   })
@@ -59,8 +73,7 @@ export class QuestionEntity {
   status!: QuestionStatus;
 }
 
-export const QuestionEntitySchema =
-  SchemaFactory.createForClass(QuestionEntity);
+export const QuestionEntitySchema = SchemaFactory.createForClass(QuestionEntity);
 
 QuestionEntitySchema.index({ eventId: 1, status: 1 });
 QuestionEntitySchema.index({ eventId: 1, voteCount: -1, createdAt: -1 });

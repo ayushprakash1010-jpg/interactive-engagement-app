@@ -10,6 +10,8 @@ import { getAnonId, getDisplayName } from './anon-id';
 export type QaQuestion = {
   _id: string;
   text: string;
+  answerText?: string | null;
+  answeredAt?: string | null;
   authorName?: string | null;
   voteCount: number;
   status: 'pending' | 'approved' | 'answered' | 'dismissed';
@@ -38,15 +40,13 @@ export type EventRealtime = {
   isEndingSession: boolean;
   sessionEnded: boolean;
   sessionEndError: string | null;
-  askQuestion: (payload: {
-    text: string;
-    displayName?: string;
-  }) => void;
+  askQuestion: (payload: { text: string; displayName?: string }) => void;
   upvoteQuestion: (payload: { questionId: string }) => void;
   moderateQuestion: (payload: {
     questionId: string;
     status: 'approved' | 'dismissed' | 'answered';
   }) => void;
+  replyQuestion: (payload: { questionId: string; answerText: string }) => void;
   endSession: (payload?: { eventId?: string }) => void;
   resetSessionEndState: () => void;
 };
@@ -76,10 +76,7 @@ function upsertQuestion(current: QaQuestion[], incoming: QaQuestion): QaQuestion
   return sortAllQuestions(next);
 }
 
-function mergeQuestions(
-  current: QaQuestion[],
-  incoming: QaQuestion[],
-): QaQuestion[] {
+function mergeQuestions(current: QaQuestion[], incoming: QaQuestion[]): QaQuestion[] {
   const map = new Map(current.map((question) => [question._id, question]));
 
   for (const question of incoming) {
@@ -222,9 +219,14 @@ export function useEventRealtime(
   }, [mode, eventId]);
 
   const approvedQuestions = useMemo(
+    () => sortApprovedQuestions(allQuestions.filter((question) => question.status === 'approved')),
+    [allQuestions],
+  );
+
+  const visibleQuestions = useMemo(
     () =>
       sortApprovedQuestions(
-        allQuestions.filter((question) => question.status === 'approved'),
+        allQuestions.filter((question) => ['approved', 'answered'].includes(question.status)),
       ),
     [allQuestions],
   );
@@ -260,6 +262,12 @@ export function useEventRealtime(
     socket.emit(ClientEvents.QA_MODERATE, payload);
   };
 
+  const replyQuestion = (payload: { questionId: string; answerText: string }) => {
+    if (!eventCode || mode !== 'observe') return;
+
+    socket.emit(ClientEvents.QA_REPLY, payload);
+  };
+
   const endSession = useCallback(
     (payload?: { eventId?: string }) => {
       if (mode !== 'observe') return;
@@ -289,7 +297,7 @@ export function useEventRealtime(
     count,
     error,
     snapshot,
-    approvedQuestions,
+    approvedQuestions: mode === 'participant' ? visibleQuestions : approvedQuestions,
     allQuestions,
     allowAnonymousQA,
     isEndingSession,
@@ -298,6 +306,7 @@ export function useEventRealtime(
     askQuestion,
     upvoteQuestion,
     moderateQuestion,
+    replyQuestion,
     endSession,
     resetSessionEndState,
   };

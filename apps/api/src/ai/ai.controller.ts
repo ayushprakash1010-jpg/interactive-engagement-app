@@ -43,6 +43,11 @@ export class AiController {
     return this.aiService.generateEventInsights(body.data);
   }
 
+  @Post('generate-qa-reply')
+  async generateQaReply(@Body() body: { question: string }) {
+    return this.aiService.generateQaReply(body.question);
+  }
+
   @Post('generate-session')
   async generateSession(@Body('prompt') prompt: string) {
     return this.aiService.generateSession(prompt);
@@ -50,10 +55,7 @@ export class AiController {
 
   @Post('events/:eventId/summarize-live-answers')
   @UseGuards(JwtAuthGuard)
-  async summarizeLiveAnswers(
-    @Param('eventId') eventId: string,
-    @Req() req: Request,
-  ) {
+  async summarizeLiveAnswers(@Param('eventId') eventId: string, @Req() req: Request) {
     const user = req.user as { id?: string; _id?: string };
     const userId = user.id ?? user._id ?? '';
     return this.aiService.summarizeLiveAnswers(eventId, userId);
