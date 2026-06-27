@@ -29,11 +29,15 @@ export default function DashboardLayout({
   const analyticsMatch = pathname.match(/^\/dashboard\/events\/([^/]+)\/analytics$/);
   const isAccountPage = pathname === '/dashboard/account';
   const isAIStudioPage = pathname === '/dashboard/ai';
+  const isSettingsPage = pathname === '/dashboard/settings';
+  const isHelpPage = pathname === '/dashboard/help';
 
   if (
     pathname === '/dashboard' ||
     isAccountPage ||
     isAIStudioPage ||
+    isSettingsPage ||
+    isHelpPage ||
     eventDetailMatch ||
     analyticsMatch
   ) {
@@ -66,11 +70,22 @@ export default function DashboardLayout({
                   { label: 'Workspace', href: '/dashboard' },
                   { label: 'AI Studio' },
                 ]
+            : isSettingsPage
+              ? [
+                  { label: 'Workspace', href: '/dashboard' },
+                  { label: 'Settings' },
+                ]
+            : isHelpPage
+              ? [
+                  { label: 'Workspace', href: '/dashboard' },
+                  { label: 'Help Center' },
+                ]
             : [
                 { label: 'Workspace', href: '/dashboard' },
                 { label: 'Events' },
               ]
         }
+        helpHref="/dashboard/help"
         topActions={
           <>
             {user?.name && (
