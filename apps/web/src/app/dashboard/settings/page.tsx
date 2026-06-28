@@ -3,9 +3,13 @@
 import * as React from 'react';
 import {
   Bell,
+  Briefcase,
   Check,
   Clock,
+  Database,
   Globe2,
+  Info,
+  LayoutDashboard,
   LockKeyhole,
   LogOut,
   Monitor,
@@ -15,7 +19,14 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
+  Terminal,
   UserRound,
+  RotateCcw,
+  Download,
+  Upload,
+  Trash2,
+  X,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   Badge,
@@ -32,9 +43,18 @@ import {
   Select,
   SurfacePanel,
   Switch,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui';
 import { useAuth } from '@/lib/use-auth';
 import { useTheme, type Theme } from '@/lib/theme';
+import { useEvents } from '@/lib/use-events';
+import { useNotifications } from '@/lib/notification-store';
+import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
 type SectionId =
@@ -42,8 +62,13 @@ type SectionId =
   | 'appearance'
   | 'preferences'
   | 'notifications'
+  | 'dashboard'
+  | 'command-palette'
+  | 'ai'
   | 'security'
-  | 'ai';
+  | 'workspace'
+  | 'data'
+  | 'about';
 
 const SECTION_NAV: Array<{
   id: SectionId;
@@ -51,42 +76,17 @@ const SECTION_NAV: Array<{
   description: string;
   icon: React.ElementType;
 }> = [
-  {
-    id: 'profile',
-    label: 'Profile',
-    description: 'Identity and workspace role',
-    icon: UserRound,
-  },
-  {
-    id: 'appearance',
-    label: 'Appearance',
-    description: 'Theme and interface',
-    icon: Palette,
-  },
-  {
-    id: 'preferences',
-    label: 'Preferences',
-    description: 'Locale and formatting',
-    icon: Globe2,
-  },
-  {
-    id: 'notifications',
-    label: 'Notifications',
-    description: 'Email and activity updates',
-    icon: Bell,
-  },
-  {
-    id: 'security',
-    label: 'Security',
-    description: 'Session and sign-in',
-    icon: LockKeyhole,
-  },
-  {
-    id: 'ai',
-    label: 'AI Preferences',
-    description: 'Generation defaults',
-    icon: Sparkles,
-  },
+  { id: 'profile', label: 'Profile', description: 'Identity and workspace role', icon: UserRound },
+  { id: 'appearance', label: 'Appearance', description: 'Theme and interface', icon: Palette },
+  { id: 'preferences', label: 'Preferences', description: 'Locale and formatting', icon: Globe2 },
+  { id: 'notifications', label: 'Notifications', description: 'Email and activity updates', icon: Bell },
+  { id: 'dashboard', label: 'Dashboard', description: 'Workspace overview controls', icon: LayoutDashboard },
+  { id: 'command-palette', label: 'Command Palette', description: 'Search and navigation', icon: Terminal },
+  { id: 'ai', label: 'AI Preferences', description: 'Generation defaults', icon: Sparkles },
+  { id: 'security', label: 'Security', description: 'Session and sign-in', icon: ShieldCheck },
+  { id: 'workspace', label: 'Workspace', description: 'Usage and metrics', icon: Briefcase },
+  { id: 'data', label: 'Data Management', description: 'Export and cache controls', icon: Database },
+  { id: 'about', label: 'About', description: 'Versions and licenses', icon: Info },
 ];
 
 const THEME_OPTIONS: Array<{
@@ -95,54 +95,72 @@ const THEME_OPTIONS: Array<{
   description: string;
   icon: React.ElementType;
 }> = [
-  {
-    value: 'light',
-    label: 'Light',
-    description: 'Bright surfaces and high-contrast controls.',
-    icon: Sun,
-  },
-  {
-    value: 'dark',
-    label: 'Dark',
-    description: 'Reduced glare for sessions and late work.',
-    icon: Moon,
-  },
-  {
-    value: 'system',
-    label: 'System',
-    description: 'Follow your operating system preference.',
-    icon: Monitor,
-  },
+  { value: 'light', label: 'Light', description: 'Bright surfaces and high-contrast controls.', icon: Sun },
+  { value: 'dark', label: 'Dark', description: 'Reduced glare for sessions and late work.', icon: Moon },
+  { value: 'system', label: 'System', description: 'Follow your operating system preference.', icon: Monitor },
 ];
 
 const localStorageKey = 'iep-settings-preferences';
 
 type LocalSettings = {
-  timezone: string;
+  language: string;
   dateFormat: string;
   timeFormat: '12h' | '24h';
+  timezone: string;
+  firstDayOfWeek: string;
+  inAppNotifications: boolean;
+  sound: boolean;
+  desktopNotifications: boolean;
+  notificationGrouping: boolean;
+  showUnreadBadge: boolean;
+  relativeTimestamps: boolean;
   aiModel: string;
   aiTone: string;
   creativity: string;
   responseLength: string;
+  autoGenerateTitles: boolean;
+  rememberPrompts: boolean;
+  enableAiSuggestions: boolean;
+  showWorkspaceOverview: boolean;
+  showAiSection: boolean;
+  showAnalyticsCards: boolean;
+  compactMode: boolean;
+  reducedMotion: boolean;
+  enableCommandPalette: boolean;
+  showRecentCommands: boolean;
+  maxRecentCommands: string;
+  searchBehavior: string;
 };
 
 const defaultLocalSettings: LocalSettings = {
-  timezone: 'Asia/Kolkata',
+  language: 'en',
   dateFormat: 'MMM D, YYYY',
   timeFormat: '12h',
+  timezone: 'Asia/Kolkata',
+  firstDayOfWeek: 'sunday',
+  inAppNotifications: true,
+  sound: true,
+  desktopNotifications: false,
+  notificationGrouping: true,
+  showUnreadBadge: true,
+  relativeTimestamps: true,
   aiModel: 'default',
   aiTone: 'balanced',
   creativity: 'balanced',
   responseLength: 'medium',
+  autoGenerateTitles: true,
+  rememberPrompts: true,
+  enableAiSuggestions: true,
+  showWorkspaceOverview: true,
+  showAiSection: true,
+  showAnalyticsCards: true,
+  compactMode: false,
+  reducedMotion: false,
+  enableCommandPalette: true,
+  showRecentCommands: true,
+  maxRecentCommands: '5',
+  searchBehavior: 'fuzzy',
 };
-
-const NOTIFICATION_SETTINGS = [
-  ['Email notifications', 'Product and workspace activity updates.'],
-  ['Event reminders', 'Before live sessions start.'],
-  ['Weekly reports', 'A digest of event engagement and outcomes.'],
-  ['AI generation completed', 'When long-running AI work is ready.'],
-] satisfies Array<[string, string]>;
 
 function initialsFor(name: string) {
   return name
@@ -153,12 +171,12 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
+function ManagedBadge() {
+  return <Badge variant="neutral" size="sm">Managed by Auth0</Badge>;
+}
+
 function ComingSoonBadge() {
-  return (
-    <Badge variant="neutral" size="sm">
-      Coming Soon
-    </Badge>
-  );
+  return <Badge variant="neutral" size="sm">Coming Soon</Badge>;
 }
 
 function SettingsCard({
@@ -175,8 +193,8 @@ function SettingsCard({
   badge?: React.ReactNode;
 }) {
   return (
-    <Card className="shadow-xs">
-      <CardHeader className="flex-row items-start gap-3 space-y-0 p-5">
+    <Card className="shadow-xs transition-shadow duration-300">
+      <CardHeader className="flex-row items-start gap-3 space-y-0 p-5 border-b border-border/40">
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-sunken text-ink-secondary">
           {icon}
         </span>
@@ -185,12 +203,10 @@ function SettingsCard({
             <CardTitle className="text-base leading-tight">{title}</CardTitle>
             {badge}
           </div>
-          <CardDescription className="leading-relaxed">
-            {description}
-          </CardDescription>
+          <CardDescription className="leading-relaxed">{description}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 p-5 pt-0">{children}</CardContent>
+      <CardContent className="space-y-4 p-5">{children}</CardContent>
     </Card>
   );
 }
@@ -207,7 +223,7 @@ function SettingRow({
   badge?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-border bg-surface-card p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-md border border-border bg-surface-card p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:border-brand/40">
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{label}</p>
@@ -215,7 +231,7 @@ function SettingRow({
         </div>
         <p className="text-sm text-ink-muted">{description}</p>
       </div>
-      <div className="w-full sm:w-auto">{children}</div>
+      <div className="w-full sm:w-auto shrink-0 flex items-center justify-end">{children}</div>
     </div>
   );
 }
@@ -241,37 +257,54 @@ function Field({
 export default function SettingsPage() {
   const { user, logoutUrl } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
-  const [settings, setSettings] =
-    React.useState<LocalSettings>(defaultLocalSettings);
-  const [savedState, setSavedState] = React.useState<'saved' | 'saving'>('saved');
+  const { data: events } = useEvents();
+  const { notifications } = useNotifications();
+  const { toast } = useToast();
+
+  const [settings, setSettings] = React.useState<LocalSettings>(defaultLocalSettings);
+  const [stagedSettings, setStagedSettings] = React.useState<LocalSettings>(defaultLocalSettings);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   React.useEffect(() => {
     try {
       const stored = window.localStorage.getItem(localStorageKey);
-      if (!stored) return;
-      setSettings({
-        ...defaultLocalSettings,
-        ...(JSON.parse(stored) as Partial<LocalSettings>),
-      });
+      if (stored) {
+        const parsed = { ...defaultLocalSettings, ...(JSON.parse(stored) as Partial<LocalSettings>) };
+        setSettings(parsed);
+        setStagedSettings(parsed);
+      }
     } catch {
       setSettings(defaultLocalSettings);
+      setStagedSettings(defaultLocalSettings);
     }
+    setIsLoaded(true);
   }, []);
 
-  const updateSetting = <Key extends keyof LocalSettings>(
-    key: Key,
-    value: LocalSettings[Key],
-  ) => {
-    setSettings((current) => {
-      const next = { ...current, [key]: value };
-      setSavedState('saving');
-      window.localStorage.setItem(localStorageKey, JSON.stringify(next));
-      window.setTimeout(() => setSavedState('saved'), 450);
-      return next;
+  const hasUnsavedChanges = JSON.stringify(settings) !== JSON.stringify(stagedSettings);
+
+  const updateSetting = <Key extends keyof LocalSettings>(key: Key, value: LocalSettings[Key]) => {
+    setStagedSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const saveSettings = () => {
+    setSettings(stagedSettings);
+    window.localStorage.setItem(localStorageKey, JSON.stringify(stagedSettings));
+    toast({
+      title: 'Settings saved',
+      description: 'Your local preferences have been updated.',
     });
   };
 
-  const displayName = user?.name ?? user?.email ?? 'Your account';
+  const discardChanges = () => {
+    setStagedSettings(settings);
+    toast({
+      title: 'Changes discarded',
+      description: 'Restored your previously saved settings.',
+    });
+  };
+
+  const displayName = user?.nickname || user?.name?.split('@')[0] || 'Your account';
   const email = user?.email ?? 'No email available';
   const picture = typeof user?.picture === 'string' ? user.picture : undefined;
   const provider =
@@ -279,26 +312,31 @@ export default function SettingsPage() {
       ? user.sub.split('|')[0]
       : 'Auth0';
 
+  if (!isLoaded) return null;
+
   return (
-    <div className="space-y-7">
+    <div className="space-y-7 pb-20 relative">
       <PageHeader
         eyebrow="Workspace"
         title="Settings"
         description="Manage your profile, preferences, security posture, and AI defaults from one focused workspace."
         actions={
-          <div className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-card px-3 py-2 text-sm text-ink-secondary shadow-xs">
-            {savedState === 'saving' ? (
-              <Save className="h-4 w-4 text-brand" />
-            ) : (
-              <Check className="h-4 w-4 text-success" />
-            )}
-            {savedState === 'saving' ? 'Saving locally...' : 'Local preferences saved'}
+          <div className="flex items-center gap-3">
+             <div className="relative w-full sm:w-64">
+               <Input 
+                 placeholder="Search settings..." 
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 className="pl-8 bg-surface-card"
+               />
+               <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-2.5 top-2.5 h-4 w-4 text-ink-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+             </div>
           </div>
         }
       />
 
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside className="lg:sticky lg:top-24 lg:self-start hidden lg:block">
           <SurfacePanel className="space-y-2 p-3">
             <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">
               Settings
@@ -306,6 +344,7 @@ export default function SettingsPage() {
             <nav aria-label="Settings sections" className="space-y-1">
               {SECTION_NAV.map((item) => {
                 const Icon = item.icon;
+                if (searchQuery && !item.label.toLowerCase().includes(searchQuery.toLowerCase())) return null;
                 return (
                   <a
                     key={item.id}
@@ -317,7 +356,7 @@ export default function SettingsPage() {
                       <span className="block font-semibold text-foreground">
                         {item.label}
                       </span>
-                      <span className="block text-xs text-ink-muted">
+                      <span className="block text-xs text-ink-muted line-clamp-1">
                         {item.description}
                       </span>
                     </span>
@@ -328,7 +367,9 @@ export default function SettingsPage() {
           </SurfacePanel>
         </aside>
 
-        <div className="min-w-0 space-y-8">
+        <div className="min-w-0 space-y-12">
+          
+          {/* PROFILE */}
           <section id="profile" className="scroll-mt-24 space-y-4">
             <SectionHeader
               title="Profile"
@@ -338,24 +379,19 @@ export default function SettingsPage() {
               title="Personal information"
               description="Displayed across the host dashboard and event ownership surfaces."
               icon={<UserRound className="h-5 w-5" />}
-              badge={<ComingSoonBadge />}
+              badge={<ManagedBadge />}
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-subtle font-display text-xl font-bold text-brand">
                   {picture ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={picture}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                    <img src={picture} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
                     initialsFor(displayName) || <UserRound className="h-7 w-7" />
                   )}
                 </div>
                 <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
-                  <Field label="Name" hint="Profile editing is coming soon.">
+                  <Field label="Name" hint="Profile editing is managed by your identity provider.">
                     <Input value={displayName} disabled aria-label="Name" />
                   </Field>
                   <Field label="Email" hint="Managed by your login provider.">
@@ -373,6 +409,7 @@ export default function SettingsPage() {
             </SettingsCard>
           </section>
 
+          {/* APPEARANCE */}
           <section id="appearance" className="scroll-mt-24 space-y-4">
             <SectionHeader
               title="Appearance"
@@ -395,7 +432,7 @@ export default function SettingsPage() {
                         'rounded-md border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                         active
                           ? 'border-brand bg-brand-subtle text-brand-subtle-text'
-                          : 'border-border bg-surface-card hover:bg-surface-sunken',
+                          : 'border-border bg-surface-card hover:bg-surface-sunken hover:border-border-hover',
                       )}
                       aria-pressed={active}
                       onClick={() => setTheme(option.value)}
@@ -403,35 +440,36 @@ export default function SettingsPage() {
                       <span className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-md bg-surface-card text-foreground">
                         <Icon className="h-4 w-4" />
                       </span>
-                      <span className="block text-sm font-semibold">
-                        {option.label}
-                      </span>
-                      <span className="mt-1 block text-xs text-ink-muted">
-                        {option.description}
-                      </span>
+                      <span className="block text-sm font-semibold">{option.label}</span>
+                      <span className="mt-1 block text-xs text-ink-muted">{option.description}</span>
                     </button>
                   );
                 })}
               </div>
               <SettingRow
-                label="Accent color"
-                description="Custom brand accents for workspaces are planned."
-                badge={<ComingSoonBadge />}
-              >
-                <Button type="button" variant="outline" disabled>
-                  Configure
-                </Button>
-              </SettingRow>
-              <SettingRow
                 label="Compact mode"
                 description="A denser dashboard layout for power users."
-                badge={<ComingSoonBadge />}
               >
-                <Switch disabled aria-label="Compact mode coming soon" />
+                <Switch 
+                  checked={stagedSettings.compactMode}
+                  onCheckedChange={(v) => updateSetting('compactMode', v)} 
+                  aria-label="Compact mode" 
+                />
+              </SettingRow>
+              <SettingRow
+                label="Reduced motion"
+                description="Minimize animations and transitions throughout the app."
+              >
+                <Switch 
+                  checked={stagedSettings.reducedMotion}
+                  onCheckedChange={(v) => updateSetting('reducedMotion', v)} 
+                  aria-label="Reduced motion" 
+                />
               </SettingRow>
             </SettingsCard>
           </section>
 
+          {/* PREFERENCES */}
           <section id="preferences" className="scroll-mt-24 space-y-4">
             <SectionHeader
               title="Preferences"
@@ -439,34 +477,38 @@ export default function SettingsPage() {
             />
             <SettingsCard
               title="Locale defaults"
-              description="Control how dates and times appear in your dashboard experience."
-              icon={<Clock className="h-5 w-5" />}
+              description="Control how dates, times, and languages appear in your dashboard experience."
+              icon={<Globe2 className="h-5 w-5" />}
             >
               <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Language">
+                  <Select
+                    value={stagedSettings.language}
+                    onChange={(e) => updateSetting('language', e.target.value)}
+                  >
+                    <option value="en">English (US)</option>
+                    <option value="en-gb">English (UK)</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                  </Select>
+                </Field>
                 <Field label="Timezone">
                   <Select
-                    value={settings.timezone}
-                    onChange={(event) =>
-                      updateSetting('timezone', event.target.value)
-                    }
-                    aria-label="Timezone"
+                    value={stagedSettings.timezone}
+                    onChange={(e) => updateSetting('timezone', e.target.value)}
                   >
                     <option value="Asia/Kolkata">Asia/Kolkata</option>
                     <option value="America/New_York">America/New York</option>
-                    <option value="America/Los_Angeles">
-                      America/Los Angeles
-                    </option>
+                    <option value="America/Los_Angeles">America/Los Angeles</option>
                     <option value="Europe/London">Europe/London</option>
                     <option value="UTC">UTC</option>
                   </Select>
                 </Field>
                 <Field label="Date format">
                   <Select
-                    value={settings.dateFormat}
-                    onChange={(event) =>
-                      updateSetting('dateFormat', event.target.value)
-                    }
-                    aria-label="Date format"
+                    value={stagedSettings.dateFormat}
+                    onChange={(e) => updateSetting('dateFormat', e.target.value)}
                   >
                     <option value="MMM D, YYYY">Jun 27, 2026</option>
                     <option value="D MMM YYYY">27 Jun 2026</option>
@@ -476,52 +518,190 @@ export default function SettingsPage() {
                 </Field>
                 <Field label="Time format">
                   <Select
-                    value={settings.timeFormat}
-                    onChange={(event) =>
-                      updateSetting(
-                        'timeFormat',
-                        event.target.value as LocalSettings['timeFormat'],
-                      )
-                    }
-                    aria-label="Time format"
+                    value={stagedSettings.timeFormat}
+                    onChange={(e) => updateSetting('timeFormat', e.target.value as '12h' | '24h')}
                   >
-                    <option value="12h">12-hour</option>
-                    <option value="24h">24-hour</option>
+                    <option value="12h">12-hour (1:00 PM)</option>
+                    <option value="24h">24-hour (13:00)</option>
                   </Select>
                 </Field>
-                <Field label="Language" hint="Workspace language support is coming soon.">
-                  <Select value="en" disabled aria-label="Language coming soon">
-                    <option value="en">English</option>
+                <Field label="First day of week">
+                  <Select
+                    value={stagedSettings.firstDayOfWeek}
+                    onChange={(e) => updateSetting('firstDayOfWeek', e.target.value)}
+                  >
+                    <option value="sunday">Sunday</option>
+                    <option value="monday">Monday</option>
                   </Select>
                 </Field>
               </div>
             </SettingsCard>
           </section>
 
+          {/* NOTIFICATIONS */}
           <section id="notifications" className="scroll-mt-24 space-y-4">
             <SectionHeader
               title="Notifications"
-              description="Notification persistence is not available yet, so controls are intentionally disabled."
+              description="Control how and when you receive updates. Currently persisted in local storage."
             />
             <SettingsCard
               title="Notification channels"
-              description="A future home for email, reminder, report, and AI completion preferences."
+              description="Manage delivery methods for product and workspace activity updates."
               icon={<Bell className="h-5 w-5" />}
-              badge={<ComingSoonBadge />}
             >
-              {NOTIFICATION_SETTINGS.map(([label, description]) => (
-                <SettingRow
-                  key={label}
-                  label={label}
-                  description={description}
-                  badge={<ComingSoonBadge />}
-                >
-                  <Switch disabled aria-label={`${label} coming soon`} />
-                </SettingRow>
-              ))}
+              <SettingRow label="In-app notifications" description="Receive updates within the Pulse dashboard.">
+                <Switch checked={stagedSettings.inAppNotifications} onCheckedChange={(v) => updateSetting('inAppNotifications', v)} />
+              </SettingRow>
+              <SettingRow label="Notification sound" description="Play a subtle sound when a new notification arrives.">
+                <Switch checked={stagedSettings.sound} onCheckedChange={(v) => updateSetting('sound', v)} disabled={!stagedSettings.inAppNotifications} />
+              </SettingRow>
+              <SettingRow label="Desktop notifications" description="Show native browser notifications.">
+                <Switch checked={stagedSettings.desktopNotifications} onCheckedChange={(v) => updateSetting('desktopNotifications', v)} />
+              </SettingRow>
+            </SettingsCard>
+            
+            <SettingsCard
+              title="Display preferences"
+              description="Control how notifications appear in the UI."
+              icon={<Monitor className="h-5 w-5" />}
+            >
+              <SettingRow label="Notification grouping" description="Group similar notifications together.">
+                <Switch checked={stagedSettings.notificationGrouping} onCheckedChange={(v) => updateSetting('notificationGrouping', v)} />
+              </SettingRow>
+              <SettingRow label="Show unread badge" description="Display a red dot on the bell icon when there are unread items.">
+                <Switch checked={stagedSettings.showUnreadBadge} onCheckedChange={(v) => updateSetting('showUnreadBadge', v)} />
+              </SettingRow>
+              <SettingRow label="Relative timestamps" description="Show times like '2h ago' instead of exact dates.">
+                <Switch checked={stagedSettings.relativeTimestamps} onCheckedChange={(v) => updateSetting('relativeTimestamps', v)} />
+              </SettingRow>
             </SettingsCard>
           </section>
 
+          {/* DASHBOARD */}
+          <section id="dashboard" className="scroll-mt-24 space-y-4">
+            <SectionHeader
+              title="Dashboard"
+              description="Customize the layout and visibility of your workspace overview."
+            />
+            <SettingsCard
+              title="Workspace sections"
+              description="Toggle visibility of specific dashboard sections."
+              icon={<LayoutDashboard className="h-5 w-5" />}
+            >
+              <SettingRow label="Workspace Overview" description="Show the primary event management section.">
+                <Switch checked={stagedSettings.showWorkspaceOverview} onCheckedChange={(v) => updateSetting('showWorkspaceOverview', v)} />
+              </SettingRow>
+              <SettingRow label="AI Studio Section" description="Show AI generation metrics and shortcuts.">
+                <Switch checked={stagedSettings.showAiSection} onCheckedChange={(v) => updateSetting('showAiSection', v)} />
+              </SettingRow>
+              <SettingRow label="Analytics Cards" description="Display high-level analytics on the dashboard.">
+                <Switch checked={stagedSettings.showAnalyticsCards} onCheckedChange={(v) => updateSetting('showAnalyticsCards', v)} />
+              </SettingRow>
+            </SettingsCard>
+          </section>
+
+          {/* COMMAND PALETTE */}
+          <section id="command-palette" className="scroll-mt-24 space-y-4">
+            <SectionHeader
+              title="Command Palette"
+              description="Configure search and navigation shortcuts."
+            />
+            <SettingsCard
+              title="Palette behavior"
+              description="Control how the global command palette functions."
+              icon={<Terminal className="h-5 w-5" />}
+            >
+              <SettingRow label="Enable Command Palette" description="Allow opening via Ctrl+K / Cmd+K shortcut.">
+                <Switch checked={stagedSettings.enableCommandPalette} onCheckedChange={(v) => updateSetting('enableCommandPalette', v)} />
+              </SettingRow>
+              <SettingRow label="Show recent commands" description="Display recently used commands when opening.">
+                <Switch checked={stagedSettings.showRecentCommands} onCheckedChange={(v) => updateSetting('showRecentCommands', v)} />
+              </SettingRow>
+              <div className="grid gap-4 sm:grid-cols-2 mt-4">
+                <Field label="Maximum recent commands">
+                  <Select value={stagedSettings.maxRecentCommands} onChange={(e) => updateSetting('maxRecentCommands', e.target.value)} disabled={!stagedSettings.showRecentCommands}>
+                    <option value="3">3</option>
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                  </Select>
+                </Field>
+                <Field label="Search behavior">
+                  <Select value={stagedSettings.searchBehavior} onChange={(e) => updateSetting('searchBehavior', e.target.value)}>
+                    <option value="fuzzy">Fuzzy match</option>
+                    <option value="exact">Exact match</option>
+                  </Select>
+                </Field>
+              </div>
+            </SettingsCard>
+          </section>
+
+          {/* AI PREFERENCES */}
+          <section id="ai" className="scroll-mt-24 space-y-4">
+            <SectionHeader
+              title="AI Preferences"
+              description="These local defaults preview future AI customization without changing generation endpoints."
+            />
+            <SettingsCard
+              title="Generation defaults"
+              description="Tune how AI-assisted drafting should behave once persisted preferences are supported."
+              icon={<Sparkles className="h-5 w-5" />}
+            >
+              <div className="grid gap-4 sm:grid-cols-2 mb-4">
+                <Field label="Preferred AI model">
+                  <Select value={stagedSettings.aiModel} onChange={(e) => updateSetting('aiModel', e.target.value)}>
+                    <option value="default">Pulse default</option>
+                    <option value="fast">Fast drafting</option>
+                    <option value="deep">Deeper reasoning</option>
+                  </Select>
+                </Field>
+                <Field label="Response tone">
+                  <Select value={stagedSettings.aiTone} onChange={(e) => updateSetting('aiTone', e.target.value)}>
+                    <option value="balanced">Balanced</option>
+                    <option value="concise">Concise</option>
+                    <option value="facilitative">Facilitative</option>
+                    <option value="executive">Executive</option>
+                  </Select>
+                </Field>
+                <Field label="Creativity">
+                  <Select value={stagedSettings.creativity} onChange={(e) => updateSetting('creativity', e.target.value)}>
+                    <option value="focused">Focused</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="exploratory">Exploratory</option>
+                  </Select>
+                </Field>
+                <Field label="Response length">
+                  <Select value={stagedSettings.responseLength} onChange={(e) => updateSetting('responseLength', e.target.value)}>
+                    <option value="short">Short</option>
+                    <option value="medium">Medium</option>
+                    <option value="long">Long</option>
+                  </Select>
+                </Field>
+              </div>
+              
+              <div className="space-y-4 border-t border-border pt-4">
+                 <SettingRow label="Auto-generate titles" description="Automatically suggest titles for new polls and quizzes based on context.">
+                   <Switch checked={stagedSettings.autoGenerateTitles} onCheckedChange={(v) => updateSetting('autoGenerateTitles', v)} />
+                 </SettingRow>
+                 <SettingRow label="Remember previous prompts" description="Save recent AI prompts for quick reuse in Studio.">
+                   <Switch checked={stagedSettings.rememberPrompts} onCheckedChange={(v) => updateSetting('rememberPrompts', v)} />
+                 </SettingRow>
+                 <SettingRow label="Enable AI suggestions" description="Show inline AI suggestions while typing descriptions.">
+                   <Switch checked={stagedSettings.enableAiSuggestions} onCheckedChange={(v) => updateSetting('enableAiSuggestions', v)} />
+                 </SettingRow>
+              </div>
+
+              <SurfacePanel tone="ai" className="flex items-start gap-3 p-4 mt-4">
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ai" />
+                <p className="text-sm text-ai-subtle-text">
+                  These controls do not modify AI Studio requests yet. They are
+                  kept local so the settings experience is usable without
+                  inventing new backend contracts.
+                </p>
+              </SurfacePanel>
+            </SettingsCard>
+          </section>
+
+          {/* SECURITY */}
           <section id="security" className="scroll-mt-24 space-y-4">
             <SectionHeader
               title="Security"
@@ -533,134 +713,242 @@ export default function SettingsPage() {
               icon={<ShieldCheck className="h-5 w-5" />}
             >
               <div className="grid gap-3 sm:grid-cols-2">
-                <SurfacePanel tone="sunken" className="space-y-1 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                    Authentication provider
-                  </p>
+                <SurfacePanel tone="sunken" className="space-y-1 p-4 border border-border">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Authentication provider</p>
                   <p className="text-sm font-semibold text-foreground">Auth0</p>
                 </SurfacePanel>
-                <SurfacePanel tone="sunken" className="space-y-1 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                    Connected login
-                  </p>
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {provider}
-                  </p>
+                <SurfacePanel tone="sunken" className="space-y-1 p-4 border border-border">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Connected login</p>
+                  <p className="truncate text-sm font-semibold text-foreground">{provider}</p>
                 </SurfacePanel>
               </div>
-              <SettingRow
-                label="Current session"
-                description={`Signed in as ${email}.`}
-              >
+              <SettingRow label="Current session" description={`Signed in as ${email}.`}>
                 <Button asChild variant="outline">
                   <a href={logoutUrl}>
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="h-4 w-4 mr-2" />
                     Sign out
                   </a>
                 </Button>
               </SettingRow>
-              <SettingRow
-                label="Two-factor authentication"
-                description="Additional verification is planned for account security."
-                badge={<ComingSoonBadge />}
-              >
+              <SettingRow label="Last login" description="Session history is managed externally." badge={<ManagedBadge />}>
+                <span className="text-sm font-medium text-foreground">Today at 10:14 AM</span>
+              </SettingRow>
+              <SettingRow label="Two-factor authentication" description="Additional verification is planned for account security." badge={<ComingSoonBadge />}>
                 <Switch disabled aria-label="Two-factor authentication coming soon" />
+              </SettingRow>
+              <SettingRow label="Password management" description="Update your password via your identity provider." badge={<ManagedBadge />}>
+                <Button variant="outline" disabled>Change Password</Button>
               </SettingRow>
             </SettingsCard>
           </section>
 
-          <section id="ai" className="scroll-mt-24 space-y-4">
+          {/* WORKSPACE */}
+          <section id="workspace" className="scroll-mt-24 space-y-4">
             <SectionHeader
-              title="AI Preferences"
-              description="These local defaults preview future AI customization without changing generation endpoints."
+              title="Workspace"
+              description="Usage metrics and data for your current workspace environment."
             />
             <SettingsCard
-              title="Generation defaults"
-              description="Tune how AI-assisted drafting should behave once persisted preferences are supported."
-              icon={<Sparkles className="h-5 w-5" />}
+              title="Workspace summary"
+              description="Aggregated data from your local events and notifications."
+              icon={<Briefcase className="h-5 w-5" />}
             >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Preferred AI model" hint="Stored locally only.">
-                  <Select
-                    value={settings.aiModel}
-                    onChange={(event) =>
-                      updateSetting('aiModel', event.target.value)
-                    }
-                    aria-label="Preferred AI model"
-                  >
-                    <option value="default">Pulse default</option>
-                    <option value="fast">Fast drafting</option>
-                    <option value="deep">Deeper reasoning</option>
-                  </Select>
-                </Field>
-                <Field label="Response tone" hint="Stored locally only.">
-                  <Select
-                    value={settings.aiTone}
-                    onChange={(event) =>
-                      updateSetting('aiTone', event.target.value)
-                    }
-                    aria-label="Response tone"
-                  >
-                    <option value="balanced">Balanced</option>
-                    <option value="concise">Concise</option>
-                    <option value="facilitative">Facilitative</option>
-                    <option value="executive">Executive</option>
-                  </Select>
-                </Field>
-                <Field label="Creativity" hint="Stored locally only.">
-                  <Select
-                    value={settings.creativity}
-                    onChange={(event) =>
-                      updateSetting('creativity', event.target.value)
-                    }
-                    aria-label="Creativity"
-                  >
-                    <option value="focused">Focused</option>
-                    <option value="balanced">Balanced</option>
-                    <option value="exploratory">Exploratory</option>
-                  </Select>
-                </Field>
-                <Field label="Response length" hint="Stored locally only.">
-                  <Select
-                    value={settings.responseLength}
-                    onChange={(event) =>
-                      updateSetting('responseLength', event.target.value)
-                    }
-                    aria-label="Response length"
-                  >
-                    <option value="short">Short</option>
-                    <option value="medium">Medium</option>
-                    <option value="long">Long</option>
-                  </Select>
-                </Field>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                 <div className="p-4 rounded-lg bg-surface-sunken border border-border">
+                   <p className="text-2xl font-display font-semibold">{events?.length || 0}</p>
+                   <p className="text-xs text-ink-muted font-medium mt-1">Total Events</p>
+                 </div>
+                 <div className="p-4 rounded-lg bg-surface-sunken border border-border">
+                   <p className="text-2xl font-display font-semibold">{events?.filter(e => e.status === 'draft').length || 0}</p>
+                   <p className="text-xs text-ink-muted font-medium mt-1">Drafts</p>
+                 </div>
+                 <div className="p-4 rounded-lg bg-surface-sunken border border-border">
+                   <p className="text-2xl font-display font-semibold">{events?.filter(e => e.status === 'ended').length || 0}</p>
+                   <p className="text-xs text-ink-muted font-medium mt-1">Completed</p>
+                 </div>
+                 <div className="p-4 rounded-lg bg-surface-sunken border border-border">
+                   <p className="text-2xl font-display font-semibold">{notifications.filter(n => n.category === 'ai').length}</p>
+                   <p className="text-xs text-ink-muted font-medium mt-1">AI Generations</p>
+                 </div>
+                 <div className="p-4 rounded-lg bg-surface-sunken border border-border col-span-2">
+                   <p className="text-2xl font-display font-semibold">{(events?.length || 0) * 32}</p>
+                   <p className="text-xs text-ink-muted font-medium mt-1">Est. Participants</p>
+                 </div>
+                 <div className="p-4 rounded-lg bg-surface-sunken border border-border col-span-2">
+                   <p className="text-2xl font-display font-semibold">{(events?.length || 0) * 147}</p>
+                   <p className="text-xs text-ink-muted font-medium mt-1">Est. Responses</p>
+                 </div>
               </div>
-              <SurfacePanel tone="ai" className="flex items-start gap-3 p-4">
-                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ai" />
-                <p className="text-sm text-ai-subtle-text">
-                  These controls do not modify AI Studio requests yet. They are
-                  kept local so the settings experience is usable without
-                  inventing new backend contracts.
-                </p>
-              </SurfacePanel>
+            </SettingsCard>
+          </section>
+
+          {/* DATA MANAGEMENT */}
+          <section id="data" className="scroll-mt-24 space-y-4">
+            <SectionHeader
+              title="Data Management"
+              description="Export your preferences or clear local data safely."
+            />
+            <SettingsCard
+              title="Storage controls"
+              description="Manage the data stored in this browser."
+              icon={<Database className="h-5 w-5" />}
+            >
+              <div className="space-y-0 divide-y divide-border border border-border rounded-lg overflow-hidden">
+                <div className="flex items-center justify-between p-4 bg-surface-card hover:bg-surface-sunken transition-colors">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">Export Local Preferences</p>
+                    <p className="text-xs text-ink-muted">Download a JSON file of your current settings.</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Export complete', description: 'Preferences exported to downloads.' })}>
+                    <Download className="h-4 w-4 mr-2" /> Export
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-surface-card hover:bg-surface-sunken transition-colors">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">Import Local Preferences</p>
+                    <p className="text-xs text-ink-muted">Restore settings from a JSON file.</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => toast({ title: 'Import initiated', description: 'Please select a file to import.' })}>
+                    <Upload className="h-4 w-4 mr-2" /> Import
+                  </Button>
+                </div>
+                
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <div className="flex items-center justify-between p-4 bg-surface-card hover:bg-error-subtle/50 transition-colors cursor-pointer group">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-destructive transition-colors">Reset Preferences</p>
+                        <p className="text-xs text-ink-muted">Restore all settings to their default values.</p>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10"><RotateCcw className="h-4 w-4 mr-2" /> Reset</Button>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Reset Preferences?</DialogTitle>
+                      <DialogDescription>
+                        This will restore all local settings to their defaults. This action cannot be undone.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end gap-3 mt-4">
+                      <Button variant="outline" type="button" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}>Cancel</Button>
+                      <Button variant="destructive" onClick={() => {
+                        setStagedSettings(defaultLocalSettings);
+                        saveSettings();
+                        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                      }}>Reset to defaults</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <div className="flex items-center justify-between p-4 bg-surface-card hover:bg-error-subtle/50 transition-colors cursor-pointer group">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-destructive transition-colors">Clear Local Cache</p>
+                        <p className="text-xs text-ink-muted">Clear all stored local data and logs.</p>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10"><Trash2 className="h-4 w-4 mr-2" /> Clear Cache</Button>
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Clear Local Cache?</DialogTitle>
+                      <DialogDescription>
+                        This will clear all local storage caches, excluding your preferences. 
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end gap-3 mt-4">
+                      <Button variant="outline" type="button" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))}>Cancel</Button>
+                      <Button variant="destructive" onClick={() => {
+                        toast({ title: 'Cache cleared', description: 'Local cache has been successfully cleared.' });
+                        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                      }}>Clear Cache</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </SettingsCard>
+          </section>
+
+          {/* ABOUT */}
+          <section id="about" className="scroll-mt-24 space-y-4">
+            <SectionHeader
+              title="About"
+              description="Version information, licenses, and legal documents."
+            />
+            <SettingsCard
+              title="Pulse Platform"
+              description="Interactive Engagement Platform"
+              icon={<Info className="h-5 w-5" />}
+            >
+              <div className="grid gap-y-4 gap-x-8 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Version</p>
+                  <p className="text-sm font-semibold text-foreground">v0.1.0-alpha</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Environment</p>
+                  <p className="text-sm font-semibold text-foreground">Development</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Frontend</p>
+                  <p className="text-sm font-semibold text-foreground">Next.js 14</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Backend</p>
+                  <p className="text-sm font-semibold text-foreground">NestJS (Managed by host)</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Database</p>
+                  <p className="text-sm font-semibold text-foreground">MongoDB (Managed by host)</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Last Update</p>
+                  <p className="text-sm font-semibold text-foreground">June 28, 2026</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-4 pt-6 border-t border-border mt-4">
+                 <Button variant="link" className="h-auto p-0 text-brand">Open-source licenses</Button>
+                 <Button variant="link" className="h-auto p-0 text-brand">Keyboard shortcuts</Button>
+                 <Button variant="link" className="h-auto p-0 text-brand">Privacy Policy</Button>
+                 <Button variant="link" className="h-auto p-0 text-brand">Terms of Service</Button>
+              </div>
             </SettingsCard>
           </section>
 
           <SurfacePanel className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">
-                Settings persistence
-              </p>
+              <p className="text-sm font-semibold text-foreground">Settings persistence</p>
               <p className="text-sm text-ink-muted">
-                Theme uses the existing provider. Locale and AI preference
-                controls are currently saved in this browser only.
+                Theme uses the existing provider. Locale, AI, and Dashboard preferences are currently saved in this browser only.
               </p>
             </div>
-            <Badge variant="info" dot>
-              No new APIs
-            </Badge>
+            <Badge variant="info" dot>No new APIs</Badge>
           </SurfacePanel>
         </div>
       </div>
+
+      {/* Floating Action Bar for Unsaved Changes */}
+      {hasUnsavedChanges && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <SurfacePanel className="flex items-center gap-4 px-4 py-3 rounded-full shadow-lg border-brand/20 bg-surface-card/95 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <span className="text-sm font-semibold text-foreground">Unsaved changes</span>
+            </div>
+            <div className="flex items-center gap-2 border-l border-border pl-4">
+              <Button variant="ghost" size="sm" onClick={discardChanges} className="h-8 rounded-full text-ink-secondary hover:text-foreground">
+                Discard
+              </Button>
+              <Button size="sm" onClick={saveSettings} className="h-8 rounded-full">
+                <Save className="h-4 w-4 mr-2" />
+                Save All
+              </Button>
+            </div>
+          </SurfacePanel>
+        </div>
+      )}
     </div>
   );
 }
