@@ -41,6 +41,7 @@ import {
   type NotificationCategory,
   useNotifications,
 } from '@/lib/notification-store';
+import { useNotificationCenterSignal } from '@/lib/notification-center-store';
 import { cn } from '@/lib/utils';
 
 type NotificationFilter =
@@ -312,10 +313,18 @@ export function NotificationCenter() {
   const [ringing, setRinging] = React.useState(false);
   const previousUnreadRef = React.useRef(0);
   const { notifications } = useNotifications();
+  const { openSignal } = useNotificationCenterSignal();
   const unreadCount = React.useMemo(
     () => notifications.filter((notification) => !notification.read).length,
     [notifications],
   );
+
+  // Open when the command palette triggers the signal
+  React.useEffect(() => {
+    if (openSignal > 0) {
+      setOpen(true);
+    }
+  }, [openSignal]);
 
   React.useEffect(() => {
     if (!open) return;

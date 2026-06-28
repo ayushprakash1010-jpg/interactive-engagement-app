@@ -87,8 +87,7 @@ const pollRuntimeByActivityId = new Map<string, { endsAt: number; timeout: NodeJ
 
 @WebSocketGateway({ cors: true })
 export class RealtimeGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnApplicationShutdown
-{
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, OnApplicationShutdown {
   private readonly logger = new Logger(RealtimeGateway.name);
   private readonly socketState = new Map<string, SocketState>();
 
@@ -101,7 +100,7 @@ export class RealtimeGateway
     private readonly questionsService: QuestionsService,
     private readonly analyticsService: AnalyticsService,
     private readonly rateLimitService: RateLimitService,
-  ) {}
+  ) { }
 
   @WebSocketServer()
   server!: Server;

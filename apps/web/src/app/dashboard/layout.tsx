@@ -2,7 +2,20 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CircleUserRound, LayoutDashboard, LogOut, Sparkles } from 'lucide-react';
+import { 
+  CalendarDays, 
+  CircleUserRound, 
+  LayoutDashboard, 
+  LogOut, 
+  Sparkles, 
+  BarChart3, 
+  Settings, 
+  HelpCircle,
+  PlayCircle,
+  Terminal,
+  RadioTower,
+  BrainCircuit
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardShell } from '@/components/layout';
 import { NotificationCenter } from '@/components/notifications';
@@ -10,10 +23,24 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Wordmark, AIBadge } from '@/components/pulse';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/use-auth';
+import { useEvents } from '@/lib/use-events';
+import { openCommandPalette } from '@/lib/command-palette-store';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Events', icon: LayoutDashboard, exact: true },
 ];
+
+function formatRelativeTime(isoString: string): string {
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+}
 
 export default function DashboardLayout({
   children,
@@ -22,6 +49,9 @@ export default function DashboardLayout({
 }) {
   const { user, logoutUrl } = useAuth();
   const pathname = usePathname();
+  const { data: events } = useEvents();
+  
+  const draftEvent = events?.find((e) => e.status === 'draft');
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -32,9 +62,13 @@ export default function DashboardLayout({
   const isAIStudioPage = pathname === '/dashboard/ai';
   const isSettingsPage = pathname === '/dashboard/settings';
   const isHelpPage = pathname === '/dashboard/help';
+  const isOverviewPage = pathname === '/dashboard';
+  const isEventsListPage = pathname === '/dashboard/events';
 
+  // Pages that use the DashboardShell sidebar layout
   if (
-    pathname === '/dashboard' ||
+    isOverviewPage ||
+    isEventsListPage ||
     isAccountPage ||
     isAIStudioPage ||
     isSettingsPage ||
@@ -44,62 +78,109 @@ export default function DashboardLayout({
   ) {
     const eventId = eventDetailMatch?.[1] ?? analyticsMatch?.[1];
 
+    // Build breadcrumbs for each route
+    const breadcrumbs = analyticsMatch
+      ? [
+          { label: 'Workspace', href: '/dashboard' },
+          { label: 'Events', href: '/dashboard/events' },
+          { label: 'Event detail', href: `/dashboard/events/${eventId}` },
+          { label: 'Analytics' },
+        ]
+      : eventDetailMatch
+      ? [
+          { label: 'Workspace', href: '/dashboard' },
+          { label: 'Events', href: '/dashboard/events' },
+          { label: 'Event detail' },
+        ]
+      : isEventsListPage
+      ? [
+          { label: 'Workspace', href: '/dashboard' },
+          { label: 'Events' },
+        ]
+      : isAccountPage
+      ? [
+          { label: 'Workspace', href: '/dashboard' },
+          { label: 'Account' },
+        ]
+      : isAIStudioPage
+      ? [
+          { label: 'Workspace', href: '/dashboard' },
+          { label: 'AI Studio' },
+        ]
+      : isSettingsPage
+      ? [
+          { label: 'Workspace', href: '/dashboard' },
+          { label: 'Settings' },
+        ]
+      : isHelpPage
+      ? [
+          { label: 'Workspace', href: '/dashboard' },
+          { label: 'Help Center' },
+        ]
+      : [{ label: 'Overview' }];
+
+    const displayName = user?.nickname || user?.name?.split('@')[0] || 'User';
+    const displayInitial = displayName?.[0]?.toUpperCase() || 'U';
+
     return (
       <DashboardShell
         analyticsHref={eventId ? `/dashboard/events/${eventId}/analytics` : undefined}
-        breadcrumbs={
-          analyticsMatch
-            ? [
-                { label: 'Workspace', href: '/dashboard' },
-                { label: 'Events', href: '/dashboard' },
-                { label: 'Event detail', href: `/dashboard/events/${eventId}` },
-                { label: 'Analytics' },
-              ]
-            : eventDetailMatch
-            ? [
-                { label: 'Workspace', href: '/dashboard' },
-                { label: 'Events', href: '/dashboard' },
-                { label: 'Event detail' },
-              ]
-            : isAccountPage
-              ? [
-                  { label: 'Workspace', href: '/dashboard' },
-                  { label: 'Account' },
-                ]
-            : isAIStudioPage
-              ? [
-                  { label: 'Workspace', href: '/dashboard' },
-                  { label: 'AI Studio' },
-                ]
-            : isSettingsPage
-              ? [
-                  { label: 'Workspace', href: '/dashboard' },
-                  { label: 'Settings' },
-                ]
-            : isHelpPage
-              ? [
-                  { label: 'Workspace', href: '/dashboard' },
-                  { label: 'Help Center' },
-                ]
-            : [
-                { label: 'Workspace', href: '/dashboard' },
-                { label: 'Events' },
-              ]
-        }
+        breadcrumbs={breadcrumbs}
         helpHref="/dashboard/help"
+        navItems={[
+          {
+            label: 'Overview',
+            href: '/dashboard',
+            icon: LayoutDashboard,
+            exact: true,
+          },
+          {
+            label: 'Events',
+            href: '/dashboard/events',
+            icon: CalendarDays,
+          },
+          {
+            label: 'AI Studio',
+            href: '/dashboard/ai',
+            icon: Sparkles,
+            badge: <AIBadge label="New" size="sm" />,
+          },
+          {
+            label: 'Analytics',
+            href: eventId ? `/dashboard/events/${eventId}/analytics` : undefined,
+            icon: BarChart3,
+            disabled: !eventId,
+          },
+          {
+            label: 'Settings',
+            href: '/dashboard/settings',
+            icon: Settings,
+          },
+          {
+            label: 'Help',
+            href: '/dashboard/help',
+            icon: HelpCircle,
+          },
+        ]}
         topActions={
-          <>
-            {user?.name && (
-              <span className="hidden max-w-48 truncate text-sm text-ink-muted sm:inline">
-                {user.name}
-              </span>
-            )}
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <NotificationCenter />
             <ThemeToggle />
-            <Button asChild variant="outline" size="sm">
-              <a href={logoutUrl}>Log out</a>
-            </Button>
-          </>
+            <div className="h-4 w-px bg-border mx-1 hidden sm:block" aria-hidden="true" />
+            <div className="flex items-center gap-3">
+              {user ? (
+                <div 
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand text-xs font-semibold uppercase ring-1 ring-brand/20 shadow-sm"
+                  title={displayName}
+                >
+                  {displayInitial}
+                </div>
+              ) : null}
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex transition-all hover:bg-surface-sunken">
+                <a href={logoutUrl}>Log out</a>
+              </Button>
+            </div>
+          </div>
         }
         sidebarFooter={
           <div className="space-y-1">
@@ -112,9 +193,9 @@ export default function DashboardLayout({
             </Link>
             <a
               href={logoutUrl}
-              className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-sunken"
+              className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-sunken hover:text-destructive group"
             >
-              <LogOut className="h-5 w-5 shrink-0 text-ink-muted" />
+              <LogOut className="h-5 w-5 shrink-0 text-ink-muted group-hover:text-destructive" />
               <span className="truncate">Sign out</span>
             </a>
           </div>
@@ -124,6 +205,9 @@ export default function DashboardLayout({
       </DashboardShell>
     );
   }
+
+  // Fallback layout (for any remaining sub-routes not caught above)
+  const displayNameFallback = user?.nickname || user?.name?.split('@')[0] || 'User';
 
   return (
     <div className="min-h-screen bg-surface-canvas">
@@ -172,8 +256,8 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            {user?.name && (
-              <span className="hidden text-ink-muted sm:inline">{user.name}</span>
+            {user && (
+              <span className="hidden text-ink-muted sm:inline font-medium">{displayNameFallback}</span>
             )}
             <NotificationCenter />
             <ThemeToggle />
