@@ -160,6 +160,7 @@ export function PollParticipant({
     ) {
       handleSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pollTimeLeftMs, hasSubmitted, submitting, canSubmit]);
 
   const quizExpired = quizTimeLeftMs <= 0;

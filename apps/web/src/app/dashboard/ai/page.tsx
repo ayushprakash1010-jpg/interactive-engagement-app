@@ -24,6 +24,7 @@ import {
   CardTitle,
   EmptyState,
   LoadingSkeleton,
+  ActivityTileSkeleton,
   PageHeader,
   SectionHeader,
   Select,
@@ -535,18 +536,14 @@ export default function AIStudioPage() {
           />
 
           {generating && (
-            <div className="space-y-3 rounded-md border border-ai-border bg-surface-card p-4">
+            <div className="space-y-4 rounded-xl border border-ai-border bg-surface-card p-5 shadow-xs">
               <div className="flex items-center gap-2 text-sm font-semibold text-ai-subtle-text">
                 <Sparkles className="h-4 w-4 animate-spin text-ai" />
                 Drafting activities for your session...
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-3">
                 {[0, 1, 2].map((index) => (
-                  <LoadingSkeleton
-                    key={index}
-                    variant="card"
-                    className="h-24"
-                  />
+                  <ActivityTileSkeleton key={index} />
                 ))}
               </div>
             </div>

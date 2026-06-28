@@ -41,6 +41,9 @@ import {
   CardTitle,
   EmptyState,
   LoadingSkeleton,
+  MetricCardSkeleton,
+  ListSkeleton,
+  ChartSkeleton,
   MetricCard,
   PageHeader,
   StatusBadge,
@@ -668,7 +671,7 @@ export default function DashboardOverviewPage() {
         {eventsLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {[0, 1, 2, 3, 4].map((i) => (
-              <LoadingSkeleton key={i} variant="card" className="h-32" />
+              <MetricCardSkeleton key={i} />
             ))}
           </div>
         ) : (
@@ -680,7 +683,7 @@ export default function DashboardOverviewPage() {
       {!eventsLoading && !hasEvents && <WorkspaceEmptyState />}
 
       {/* Rest of sections only meaningful when there are events */}
-      {hasEvents && (
+      {(eventsLoading || hasEvents) && (
         <>
           {/* ── Section 3 + 4: Activity + Quick Actions (2-col grid) ──────── */}
           <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -703,7 +706,7 @@ export default function DashboardOverviewPage() {
                 </button>
               </div>
               <div className="flex-1">
-                <ActivityTimeline notifications={notifications} />
+                {eventsLoading ? <ListSkeleton count={4} /> : <ActivityTimeline notifications={notifications} />}
               </div>
             </section>
 
@@ -739,17 +742,21 @@ export default function DashboardOverviewPage() {
                 </Link>
               </Button>
             </div>
-            <div className="overflow-hidden rounded-lg border border-border bg-surface-card divide-y divide-border shadow-xs">
-              {recentEvents?.map((event) => (
-                <RecentEventRow key={event._id} event={event} />
-              ))}
-            </div>
+            {eventsLoading ? (
+              <ListSkeleton count={5} />
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-border bg-surface-card divide-y divide-border shadow-xs">
+                {recentEvents?.map((event) => (
+                  <RecentEventRow key={event._id} event={event} />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* ── Sections 6 + 7: AI Workspace + Session Summary ───────────── */}
           <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-            <AIWorkspacePanel notifications={notifications} />
-            <SessionSummaryPanel events={events} />
+            {eventsLoading ? <ChartSkeleton /> : <AIWorkspacePanel notifications={notifications} />}
+            {eventsLoading ? <ChartSkeleton /> : <SessionSummaryPanel events={events} />}
           </div>
         </>
       )}

@@ -111,6 +111,7 @@ export function WordCloudParticipant({
     ) {
       handleSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeftMs, hasSubmitted, submitting, isSubmitting, canSubmit]);
 
   if (hasSubmitted || isClosed) {

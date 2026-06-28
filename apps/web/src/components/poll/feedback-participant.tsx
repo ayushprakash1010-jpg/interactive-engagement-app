@@ -110,6 +110,7 @@ export function FeedbackParticipant({
 
   const isFormValid = useMemo(
     () => validate(false),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [fields, ratingValues, textValues],
   );
 
@@ -153,6 +154,7 @@ export function FeedbackParticipant({
     ) {
       handleSubmit();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeftMs, submitted, isSubmitting, isFormValid]);
 
   return (

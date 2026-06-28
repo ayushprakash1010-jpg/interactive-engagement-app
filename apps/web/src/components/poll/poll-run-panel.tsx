@@ -153,7 +153,7 @@ export function PollRunPanel({ activity }: Props) {
         </div>
       )}
 
-      {isThisActivityClosed && tallies && (
+      {isThisActivityClosed && activeActivity?._id === activity._id && tallies && (
         <div className="pt-2 opacity-75">
           <PollResultsChart tallies={tallies} />
         </div>

@@ -49,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  SettingsSkeleton,
 } from '@/components/ui';
 import { useAuth } from '@/lib/use-auth';
 import { useTheme, type Theme } from '@/lib/theme';
@@ -312,7 +313,18 @@ export default function SettingsPage() {
       ? user.sub.split('|')[0]
       : 'Auth0';
 
-  if (!isLoaded) return null;
+  if (!isLoaded) {
+    return (
+      <div className="space-y-7 pb-20 relative">
+        <PageHeader
+          eyebrow="Workspace"
+          title="Settings"
+          description="Manage your profile, preferences, security posture, and AI defaults from one focused workspace."
+        />
+        <SettingsSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-7 pb-20 relative">

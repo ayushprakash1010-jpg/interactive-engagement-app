@@ -34,6 +34,9 @@ import {
   MetricCard,
   StatusBadge,
   EmptyState,
+  ProfileSkeleton,
+  MetricCardSkeleton,
+  ListSkeleton,
 } from '@/components/ui';
 import { useAuth } from '@/lib/use-auth';
 import { useEvents } from '@/lib/use-events';
@@ -182,84 +185,93 @@ export default function AccountPage() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* SECTION 1: PROFILE */}
-          <Card className="overflow-hidden border-border/40 shadow-xs relative">
-            <div className="absolute top-0 right-0 p-4">
-               <ManagedBadge />
-            </div>
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-brand-subtle font-display text-2xl font-bold text-brand overflow-hidden shadow-sm">
-                  {picture ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={picture} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    initials || <UserRound className="h-8 w-8" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h2 className="text-2xl font-display font-bold text-foreground truncate">
-                      {displayName}
-                    </h2>
-                    <Badge variant="brand" size="sm">Host</Badge>
-                    <Badge variant="success" size="sm">Active</Badge>
+          {/* SECTION 1: PROFILE */}
+          {eventsLoading ? (
+            <ProfileSkeleton />
+          ) : (
+            <Card className="overflow-hidden border-border/40 shadow-xs relative">
+              <div className="absolute top-0 right-0 p-4">
+                 <ManagedBadge />
+              </div>
+              <CardContent className="p-6">
+                <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-brand-subtle font-display text-2xl font-bold text-brand overflow-hidden shadow-sm">
+                    {picture ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={picture} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      initials || <UserRound className="h-8 w-8" />
+                    )}
                   </div>
-                  <p className="text-sm text-ink-muted flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5" />
-                    {email}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h2 className="text-2xl font-display font-bold text-foreground truncate">
+                        {displayName}
+                      </h2>
+                      <Badge variant="brand" size="sm">Host</Badge>
+                      <Badge variant="success" size="sm">Active</Badge>
+                    </div>
+                    <p className="text-sm text-ink-muted flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5" />
+                      {email}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="mt-6 pt-4 border-t border-border/40">
+                  <p className="text-xs text-ink-muted flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-brand" />
+                    Profile information is managed by your identity provider ({provider}).
                   </p>
                 </div>
-              </div>
-              
-              <div className="mt-6 pt-4 border-t border-border/40">
-                <p className="text-xs text-ink-muted flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-brand" />
-                  Profile information is managed by your identity provider ({provider}).
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* SECTION 3: ACTIVITY SUMMARY */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-muted px-1">Workspace Activity</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <MetricCard 
-                label="Events Created" 
-                value={totalEvents} 
-                icon={<Calendar className="h-4 w-4" />} 
-                className="bg-surface-card border-border/40 shadow-xs"
-              />
-              <MetricCard 
-                label="Drafts" 
-                value={draftEvents} 
-                icon={<PlayCircle className="h-4 w-4 text-warning" />} 
-                className="bg-surface-card border-border/40 shadow-xs"
-              />
-              <MetricCard 
-                label="Completed" 
-                value={completedEvents} 
-                icon={<CheckCircle2 className="h-4 w-4 text-success" />} 
-                className="bg-surface-card border-border/40 shadow-xs"
-              />
-              <MetricCard 
-                label="Est. Participants" 
-                value={totalEvents * 32} 
-                icon={<UserRound className="h-4 w-4" />} 
-                className="bg-surface-card border-border/40 shadow-xs"
-              />
-              <MetricCard 
-                label="Est. Responses" 
-                value={totalEvents * 147} 
-                icon={<Activity className="h-4 w-4" />} 
-                className="bg-surface-card border-border/40 shadow-xs"
-              />
-              <MetricCard 
-                label="AI Generations" 
-                value={aiGenerations} 
-                icon={<Sparkles className="h-4 w-4 text-ai" />} 
-                className="bg-surface-card border-border/40 shadow-xs"
-              />
+              {eventsLoading ? Array.from({ length: 6 }).map((_, i) => <MetricCardSkeleton key={i} />) : (
+                <>
+                  <MetricCard 
+                    label="Events Created" 
+                    value={totalEvents} 
+                    icon={<Calendar className="h-4 w-4" />} 
+                    className="bg-surface-card border-border/40 shadow-xs"
+                  />
+                  <MetricCard 
+                    label="Drafts" 
+                    value={draftEvents} 
+                    icon={<PlayCircle className="h-4 w-4 text-warning" />} 
+                    className="bg-surface-card border-border/40 shadow-xs"
+                  />
+                  <MetricCard 
+                    label="Completed" 
+                    value={completedEvents} 
+                    icon={<CheckCircle2 className="h-4 w-4 text-success" />} 
+                    className="bg-surface-card border-border/40 shadow-xs"
+                  />
+                  <MetricCard 
+                    label="Est. Participants" 
+                    value={totalEvents * 32} 
+                    icon={<UserRound className="h-4 w-4" />} 
+                    className="bg-surface-card border-border/40 shadow-xs"
+                  />
+                  <MetricCard 
+                    label="Est. Responses" 
+                    value={totalEvents * 147} 
+                    icon={<Activity className="h-4 w-4" />} 
+                    className="bg-surface-card border-border/40 shadow-xs"
+                  />
+                  <MetricCard 
+                    label="AI Generations" 
+                    value={aiGenerations} 
+                    icon={<Sparkles className="h-4 w-4 text-ai" />} 
+                    className="bg-surface-card border-border/40 shadow-xs"
+                  />
+                </>
+              )}
             </div>
           </div>
 
@@ -275,7 +287,9 @@ export default function AccountPage() {
               </Button>
             </CardHeader>
             <CardContent className="p-0">
-              {recentEvents.length > 0 ? (
+              {eventsLoading ? (
+                <ListSkeleton count={5} />
+              ) : recentEvents.length > 0 ? (
                 <div className="divide-y divide-border/40">
                   {recentEvents.map(event => (
                     <div key={event._id} className="flex items-center justify-between p-4 hover:bg-surface-sunken transition-colors group">
@@ -330,7 +344,9 @@ export default function AccountPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {recentNotifications.length > 0 ? (
+              {eventsLoading ? (
+                <ListSkeleton count={8} />
+              ) : recentNotifications.length > 0 ? (
                 <div className="divide-y divide-border/40">
                   {recentNotifications.map(notification => (
                     <div key={notification.id} className="flex items-start gap-4 p-4 hover:bg-surface-sunken transition-colors">
