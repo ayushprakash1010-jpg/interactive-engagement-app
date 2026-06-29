@@ -133,6 +133,14 @@ export function buildAnalyticsReportHtml(data: any): string {
         .join('')
     : `<p class="empty">No poll analytics available.</p>`;
 
+const resolveParticipantName = (entry: any): string => {
+  const anonId = entry?.participantAnonId ?? entry?.anonId ?? 'anonymous';
+  const displayName = entry?.displayName;
+  return typeof displayName === 'string' && displayName.trim().length > 0
+    ? displayName.trim()
+    : `Participant ${String(anonId).slice(0, 6)}`;
+};
+
   const quizBody = quizAnalytics.length
     ? quizAnalytics
         .map((quiz: any) => {
@@ -143,7 +151,7 @@ export function buildAnalyticsReportHtml(data: any): string {
                 .slice(0, 10)
                 .map(
                   (entry: any, i: number) =>
-                    `#${i + 1} ${e(entry.participantAnonId ?? 'anonymous')} - ${e(entry.totalPoints ?? 0)} pts`,
+                    `#${i + 1} ${e(resolveParticipantName(entry))} - ${e(entry.totalPoints ?? entry.points ?? 0)} pts`,
                 ),
             )}
           `;

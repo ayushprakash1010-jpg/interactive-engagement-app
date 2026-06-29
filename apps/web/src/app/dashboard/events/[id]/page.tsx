@@ -62,6 +62,9 @@ import {
   type QuizConfig,
   type WordCloudConfig,
 } from '@/hooks/use-activities';
+import { useQueryClient } from '@tanstack/react-query';
+import { socket } from '@/lib/socket';
+import { ServerEvents } from '@iep/types';
 import { PollBuilder } from '@/components/poll/poll-builder';
 import { QuizBuilder } from '@/components/poll/quiz-builder';
 import { PollRunPanel } from '@/components/poll/poll-run-panel';
@@ -170,6 +173,22 @@ export default function EventDetailPage() {
   const createActivity = useCreateActivity(id);
   const updateActivity = useUpdateActivity(id);
   const deleteActivity = useDeleteActivity(id);
+  const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    const invalidateActivities = () => {
+      queryClient.invalidateQueries({ queryKey: ['activities', id] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', id] });
+    };
+
+    socket.on(ServerEvents.ACTIVITY_LAUNCHED, invalidateActivities);
+    socket.on(ServerEvents.ACTIVITY_CLOSED, invalidateActivities);
+
+    return () => {
+      socket.off(ServerEvents.ACTIVITY_LAUNCHED, invalidateActivities);
+      socket.off(ServerEvents.ACTIVITY_CLOSED, invalidateActivities);
+    };
+  }, [id, queryClient]);
 
   const activities: Activity[] = React.useMemo(() => {
     return Array.isArray(activitiesData) ? activitiesData : [];
@@ -896,8 +915,8 @@ export default function EventDetailPage() {
           }
         }}
       >
-        <DialogContent className="max-h-[92vh] max-w-3xl overflow-hidden border-border bg-surface-card p-0">
-          <DialogHeader className="border-b border-border bg-surface-raised px-6 py-5">
+        <DialogContent className="flex max-h-[92vh] max-w-3xl flex-col overflow-hidden border-border bg-surface-card p-0">
+          <DialogHeader className="shrink-0 border-b border-border bg-surface-raised px-6 py-5">
             <DialogTitle className="font-display text-xl">
               {`${editingActivity ? 'Edit' : 'Create'} ${
                 builderType === 'quiz'
@@ -921,7 +940,7 @@ export default function EventDetailPage() {
           </DialogHeader>
 
           {!editingActivity && (
-            <div className="mx-6 mt-5 grid gap-2 rounded-lg border border-border bg-surface-sunken p-1 sm:grid-cols-4">
+            <div className="mx-6 mt-5 shrink-0 grid gap-2 rounded-lg border border-border bg-surface-sunken p-1 sm:grid-cols-4">
               <Button
                 type="button"
                 variant={builderType === 'poll' ? 'default' : 'ghost'}
@@ -961,7 +980,7 @@ export default function EventDetailPage() {
             </div>
           )}
 
-          <div className="max-h-[calc(92vh-10rem)] overflow-y-auto px-6 py-5">
+          <div className="flex-1 overflow-y-auto px-6 pb-0 pt-5">
             {builderType === 'quiz' ? (
               <QuizBuilder
                 eventId={id}
@@ -986,7 +1005,7 @@ export default function EventDetailPage() {
                   disabled={createActivity.isPending || updateActivity.isPending}
                 />
 
-                <ActionGroup className="sticky bottom-0 -mx-1 border-t border-border bg-background/95 px-1 pt-4 backdrop-blur">
+                <ActionGroup className="sticky bottom-0 -mx-1 border-t border-border bg-background/95 px-1 pb-5 pt-4 backdrop-blur">
                   <Button type="button" variant="ghost" onClick={resetBuilderState}>
                     Cancel
                   </Button>

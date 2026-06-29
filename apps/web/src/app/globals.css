@@ -47,6 +47,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+
     :root.theme-transitioning,
     :root.theme-transitioning body,
     :root.theme-transitioning body *,
@@ -96,15 +97,19 @@
     margin: 0;
     text-wrap: balance;
   }
+
   h1 {
     font-size: var(--text-3xl);
   }
+
   h2 {
     font-size: var(--text-2xl);
   }
+
   h3 {
     font-size: var(--text-xl);
   }
+
   h4 {
     font-size: var(--text-lg);
   }
@@ -166,6 +171,7 @@
     border-radius: var(--radius-full);
     background: var(--live);
   }
+
   .pulse-dot::after {
     content: '';
     position: absolute;
@@ -177,12 +183,10 @@
 
   /* AI "thinking" shimmer surface. */
   .pulse-shimmer {
-    background-image: linear-gradient(
-      100deg,
-      transparent 30%,
-      var(--ai-subtle) 50%,
-      transparent 70%
-    );
+    background-image: linear-gradient(100deg,
+        transparent 30%,
+        var(--ai-subtle) 50%,
+        transparent 70%);
     background-size: 200% 100%;
     animation: pulse-shimmer 1.6s var(--ease-standard) infinite;
   }

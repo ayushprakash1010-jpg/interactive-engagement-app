@@ -5,7 +5,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('ai')
 export class AiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(private readonly aiService: AiService) { }
 
   @Post('generate-poll')
   async generatePoll(@Body() body: { topic: string }) {
@@ -33,14 +33,9 @@ export class AiController {
     return this.aiService.generateWordCloud(body.topic);
   }
 
-  @Post('generate-session-summary')
-  async generateSessionSummary(@Body() body: { data: string }) {
-    return this.aiService.generateSessionSummary(body.data);
-  }
-
-  @Post('generate-insights')
-  async generateInsights(@Body() body: { data: string }) {
-    return this.aiService.generateEventInsights(body.data);
+  @Post('generate-analytics-report')
+  async generateAnalyticsReport(@Body() body: { data: string }) {
+    return this.aiService.generateAnalyticsReport(body.data);
   }
 
   @Post('generate-qa-reply')

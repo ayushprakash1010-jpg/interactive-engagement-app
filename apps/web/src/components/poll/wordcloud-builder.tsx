@@ -248,7 +248,7 @@ export function WordCloudBuilder({
         </p>
       </SurfacePanel>
 
-      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-1 pt-4 backdrop-blur">
+      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-1 pb-5 pt-4 backdrop-blur">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>

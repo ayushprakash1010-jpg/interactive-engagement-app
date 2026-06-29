@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,9 @@ import type {
 } from "../../hooks/use-activities";
 
 const uid = () => Math.random().toString(36).slice(2, 9);
+
+/** Maximum questions the host can request from AI in one generation. */
+const MAX_AI_QUESTIONS = 50;
 
 const createOption = (label = "") => ({
   id: uid(),
@@ -72,7 +75,9 @@ export function QuizBuilder({
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiTopic, setAiTopic] = useState("");
-  const [questionCount, setQuestionCount] = useState(1);
+  // Stored as a string so the input is fully controlled (allows clearing/typing freely)
+  const [questionCountRaw, setQuestionCountRaw] = useState("5");
+  const [aiWarning, setAiWarning] = useState<string | null>(null);
 
   const updateQuestion = (questionId: string, patch: Partial<QuizQuestion>) => {
     setQuestions((prev) =>
@@ -83,7 +88,16 @@ export function QuizBuilder({
   };
 
   const addQuestion = () => {
-    setQuestions((prev) => [...prev, createQuestion()]);
+    const newQuestion = createQuestion();
+    setQuestions((prev) => [...prev, newQuestion]);
+
+    // Give React a tick to render the new DOM node, then scroll it into view
+    setTimeout(() => {
+      document.getElementById(`question-${newQuestion.id}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
   };
 
   const removeQuestion = (questionId: string) => {
@@ -201,11 +215,17 @@ export function QuizBuilder({
 
   const handleGenerateWithAI = async () => {
     const topic = aiTopic.trim();
-
     if (!topic) return;
+
+    // Resolve the requested count, clamped to the allowed range
+    const requestedCount = Math.min(
+      MAX_AI_QUESTIONS,
+      Math.max(1, Math.round(Number(questionCountRaw) || 5)),
+    );
 
     try {
       setIsGenerating(true);
+      setAiWarning(null);
 
       let data: { questions?: GeneratedQuizQuestion[] } | null = null;
       let lastError = "";
@@ -218,7 +238,7 @@ export function QuizBuilder({
               method: "POST",
               body: JSON.stringify({
                 topic,
-                count: questionCount,
+                count: requestedCount,
               }),
             },
           );
@@ -276,6 +296,15 @@ export function QuizBuilder({
       );
 
       setQuestions(generatedQuestions);
+
+      // Warn if AI returned fewer questions than requested
+      if (generatedQuestions.length < requestedCount) {
+        setAiWarning(
+          `AI returned ${generatedQuestions.length} of ${requestedCount} requested question${
+            requestedCount === 1 ? "" : "s"
+          }. You can add more manually.`,
+        );
+      }
 
       if (!title.trim()) {
         setTitle(`${topic} Quiz`);
@@ -336,7 +365,7 @@ export function QuizBuilder({
   };
 
   return (
-    <form id={formId} onSubmit={handleSubmit} className="space-y-6 pb-2">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-6">
       <SurfacePanel tone="sunken" className="space-y-4">
         <div>
           <h3 className="font-display text-sm font-semibold text-foreground">
@@ -424,12 +453,27 @@ export function QuizBuilder({
           <p className="text-xs text-destructive">{errors.questions}</p>
         )}
 
+        {aiWarning && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
+            <span className="mt-0.5 shrink-0">⚠</span>
+            <span>{aiWarning}</span>
+            <button
+              type="button"
+              aria-label="Dismiss warning"
+              className="ml-auto shrink-0 opacity-60 hover:opacity-100"
+              onClick={() => setAiWarning(null)}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         <div className="space-y-4">
           {questions.map((question, questionIndex) => {
             const key = `question-${question.id}`;
 
             return (
-              <SurfacePanel key={question.id} className="space-y-4">
+              <SurfacePanel id={key} key={question.id} className="space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-brand">
@@ -608,7 +652,7 @@ export function QuizBuilder({
         </div>
       </div>
 
-      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-1 pt-4 backdrop-blur">
+      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-1 pb-5 pt-4 backdrop-blur">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
@@ -641,21 +685,76 @@ export function QuizBuilder({
                 />
               </div>
 
+              {/* ── Number of questions ──────────────────── */}
               <div className="space-y-1.5">
                 <Label htmlFor={`${formId}-ai-count`}>
                   Number of questions
+                  <span className="ml-1 text-xs font-normal text-ink-muted">
+                    (1 – {MAX_AI_QUESTIONS})
+                  </span>
                 </Label>
-                <Select
-                  id={`${formId}-ai-count`}
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(Number(e.target.value))}
-                  disabled={isGenerating}
-                >
-                  <option value={1}>1 question</option>
-                  <option value={5}>5 questions</option>
-                  <option value={10}>10 questions</option>
-                  <option value={15}>15 questions</option>
-                </Select>
+
+                {/* Stepper input */}
+                <div className="flex items-center gap-0">
+                  <Input
+                    id={`${formId}-ai-count`}
+                    type="number"
+                    min={1}
+                    max={MAX_AI_QUESTIONS}
+                    value={questionCountRaw}
+                    onChange={(e) => setQuestionCountRaw(e.target.value)}
+                    onBlur={() => {
+                      // Clamp on blur so the displayed value is always valid
+                      const n = Math.min(
+                        MAX_AI_QUESTIONS,
+                        Math.max(1, Math.round(Number(questionCountRaw) || 5)),
+                      );
+                      setQuestionCountRaw(String(n));
+                    }}
+                    disabled={isGenerating}
+                    className="rounded-r-none text-center [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
+                  <div className="flex flex-col">
+                    <button
+                      type="button"
+                      aria-label="Increase question count"
+                      disabled={isGenerating || Number(questionCountRaw) >= MAX_AI_QUESTIONS}
+                      onClick={() =>
+                        setQuestionCountRaw((prev) =>
+                          String(
+                            Math.min(MAX_AI_QUESTIONS, (Math.round(Number(prev) || 0)) + 1),
+                          )
+                        )
+                      }
+                      className="flex h-[19px] w-8 items-center justify-center rounded-tr border border-l-0 border-border bg-surface-raised text-ink-muted transition hover:bg-surface-card hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      <ChevronUp className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Decrease question count"
+                      disabled={isGenerating || Number(questionCountRaw) <= 1}
+                      onClick={() =>
+                        setQuestionCountRaw((prev) =>
+                          String(Math.max(1, (Math.round(Number(prev) || 2)) - 1))
+                        )
+                      }
+                      className="flex h-[19px] w-8 items-center justify-center rounded-br border border-l-0 border-t-0 border-border bg-surface-raised text-ink-muted transition hover:bg-surface-card hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+                    >
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Inline validation */}
+                {(() => {
+                  const n = Number(questionCountRaw);
+                  if (!questionCountRaw || isNaN(n) || n < 1)
+                    return <p className="text-xs text-destructive">Minimum is 1 question.</p>;
+                  if (n > MAX_AI_QUESTIONS)
+                    return <p className="text-xs text-destructive">Maximum is {MAX_AI_QUESTIONS} questions.</p>;
+                  return null;
+                })()}
               </div>
             </div>
 
@@ -672,7 +771,14 @@ export function QuizBuilder({
               <Button
                 type="button"
                 variant="ai"
-                disabled={!aiTopic.trim() || isGenerating}
+                disabled={
+                  !aiTopic.trim() ||
+                  isGenerating ||
+                  (() => {
+                    const n = Number(questionCountRaw);
+                    return !questionCountRaw || isNaN(n) || n < 1 || n > MAX_AI_QUESTIONS;
+                  })()
+                }
                 onClick={handleGenerateWithAI}
                 loading={isGenerating}
               >

@@ -39,6 +39,12 @@ import {
   type ActivityType,
   type SummaryTheme,
 } from '@/components/pulse';
+import {
+  pollConfigSchema,
+  quizConfigSchema,
+  wordcloudConfigSchema,
+  feedbackConfigSchema,
+} from '@iep/types';
 
 type DraftActivity = {
   id: string;
@@ -110,6 +116,355 @@ const FEATURE_CARDS = [
     icon: <Lightbulb className="h-4 w-4" />,
   },
 ];
+// ─── Poll sanitiser ──────────────────────────────────────────────────────────
+
+function sanitisePollConfig(
+  rawConfig: Record<string, unknown>,
+  activityTitle: string,
+): Record<string, unknown> {
+  const VALID_POLL_TYPES = ['single', 'multiple', 'rating', 'open'] as const;
+  type ValidPollType = (typeof VALID_POLL_TYPES)[number];
+
+  const rawPollType = typeof rawConfig.pollType === 'string' ? rawConfig.pollType : '';
+  const pollType: ValidPollType = VALID_POLL_TYPES.includes(rawPollType as ValidPollType)
+    ? (rawPollType as ValidPollType)
+    : 'single';
+
+  const question =
+    typeof rawConfig.question === 'string' && rawConfig.question.trim()
+      ? rawConfig.question.trim().slice(0, 499)
+      : '';
+
+  if (!question) {
+    throw new Error(
+      `AI generated poll "${activityTitle}" has an empty question. Please regenerate.`,
+    );
+  }
+
+  const rawOptions = Array.isArray(rawConfig.options) ? rawConfig.options : [];
+  const sanitisedOptions = (rawOptions as Record<string, unknown>[]).map((opt, oIndex) => {
+    const id =
+      typeof opt.id === 'string' && opt.id.trim()
+        ? opt.id.trim()
+        : `option-${oIndex + 1}`;
+    const label =
+      typeof opt.label === 'string' && opt.label.trim()
+        ? opt.label.trim().slice(0, 199)
+        : `Option ${oIndex + 1}`;
+    return { id, label };
+  });
+
+  // timeLimitSec must be an integer if provided
+  const rawTls = rawConfig.timeLimitSec;
+  const timeLimitSec =
+    typeof rawTls === 'number' && rawTls >= 5
+      ? Math.round(rawTls)
+      : undefined;
+
+  // ─── Post-sanitisation validation ────────────────────────────────────────────
+  // We run the same Zod schema the backend uses so a mismatch is caught here
+  // with a precise field-level error, not an opaque 400 from the server.
+  const validated = pollConfigSchema.safeParse({
+    pollType,
+    question,
+    ...(sanitisedOptions.length > 0 ? { options: sanitisedOptions } : {}),
+    ...(timeLimitSec !== undefined ? { timeLimitSec } : {}),
+  });
+
+  if (!validated.success) {
+    const issues = validated.error.issues
+      .map((i) => `${i.path.join('.')}: ${i.message}`)
+      .join('; ');
+    throw new Error(
+      `AI generated poll "${activityTitle}" failed validation after normalisation: ${issues}`,
+    );
+  }
+
+  return validated.data as Record<string, unknown>;
+}
+
+// ─── Wordcloud sanitiser ──────────────────────────────────────────────────────
+
+function sanitiseWordcloudConfig(
+  rawConfig: Record<string, unknown>,
+  activityTitle: string,
+): Record<string, unknown> {
+  const prompt =
+    typeof rawConfig.prompt === 'string' && rawConfig.prompt.trim()
+      ? rawConfig.prompt.trim().slice(0, 499)
+      : '';
+
+  if (!prompt) {
+    throw new Error(
+      `AI generated word cloud "${activityTitle}" has an empty prompt. Please regenerate.`,
+    );
+  }
+
+  // Clamp and coerce maxWordsPerParticipant to int in [1, 20]
+  const rawMax = rawConfig.maxWordsPerParticipant;
+  const maxWordsPerParticipant = Math.min(
+    20,
+    Math.max(1, Math.round(typeof rawMax === 'number' && rawMax > 0 ? rawMax : 3)),
+  );
+
+  // timeLimitSec must be an integer if provided
+  const rawTls = rawConfig.timeLimitSec;
+  const timeLimitSec =
+    typeof rawTls === 'number' && rawTls >= 5
+      ? Math.round(rawTls)
+      : undefined;
+
+  // ─── Post-sanitisation validation ────────────────────────────────────────────
+  const validated = wordcloudConfigSchema.safeParse({
+    prompt,
+    maxWordsPerParticipant,
+    ...(timeLimitSec !== undefined ? { timeLimitSec } : {}),
+  });
+
+  if (!validated.success) {
+    const issues = validated.error.issues
+      .map((i) => `${i.path.join('.')}: ${i.message}`)
+      .join('; ');
+    throw new Error(
+      `AI generated word cloud "${activityTitle}" failed validation after normalisation: ${issues}`,
+    );
+  }
+
+  return validated.data as Record<string, unknown>;
+}
+
+// ─── Feedback sanitiser ───────────────────────────────────────────────────────
+
+function sanitiseFeedbackConfig(
+  rawConfig: Record<string, unknown>,
+  activityTitle: string,
+): Record<string, unknown> {
+  const prompt =
+    typeof rawConfig.prompt === 'string' && rawConfig.prompt.trim()
+      ? rawConfig.prompt.trim().slice(0, 499)
+      : '';
+
+  if (!prompt) {
+    throw new Error(
+      `AI generated feedback "${activityTitle}" has an empty prompt. Please regenerate.`,
+    );
+  }
+
+  const rawFields = Array.isArray(rawConfig.fields) ? rawConfig.fields : [];
+
+  const VALID_FIELD_TYPES = ['rating', 'text'] as const;
+  type ValidFieldType = (typeof VALID_FIELD_TYPES)[number];
+
+  const sanitisedFields = (rawFields as Record<string, unknown>[])
+    .map((field, fIndex) => {
+      const id =
+        typeof field.id === 'string' && field.id.trim()
+          ? field.id.trim()
+          : `field-${fIndex + 1}`;
+      const rawType = typeof field.type === 'string' ? field.type : '';
+      const type: ValidFieldType = VALID_FIELD_TYPES.includes(rawType as ValidFieldType)
+        ? (rawType as ValidFieldType)
+        : 'text'; // default unknown types to 'text'
+      const label =
+        typeof field.label === 'string' && field.label.trim()
+          ? field.label.trim().slice(0, 199)
+          : type === 'rating' ? 'Rate your experience' : 'Share your thoughts';
+      return { id, type, label };
+    });
+
+  if (sanitisedFields.length === 0) {
+    // Backend requires min 1 field — add a sensible default
+    sanitisedFields.push({ id: 'rating-1', type: 'rating', label: 'Rate your experience' });
+  }
+
+  // timeLimitSec must be an integer if provided
+  const rawTls = rawConfig.timeLimitSec;
+  const timeLimitSec =
+    typeof rawTls === 'number' && rawTls >= 5
+      ? Math.round(rawTls)
+      : undefined;
+
+  // ─── Post-sanitisation validation ────────────────────────────────────────────
+  const validated = feedbackConfigSchema.safeParse({
+    prompt,
+    fields: sanitisedFields,
+    ...(timeLimitSec !== undefined ? { timeLimitSec } : {}),
+  });
+
+  if (!validated.success) {
+    const issues = validated.error.issues
+      .map((i) => `${i.path.join('.')}: ${i.message}`)
+      .join('; ');
+    throw new Error(
+      `AI generated feedback "${activityTitle}" failed validation after normalisation: ${issues}`,
+    );
+  }
+
+  return validated.data as Record<string, unknown>;
+}
+
+// ─── Quiz sanitiser ───────────────────────────────────────────────────────────
+
+/**
+ * Sanitises and repairs a quiz config produced by the AI.
+ *
+ * The AI may generate:
+ *   - correctOptionId that doesn't match any option id (most common failure)
+ *   - float values for points / timeLimitSec instead of integers
+ *   - missing "id" on a question
+ *   - empty text / label strings
+ *
+ * This function fixes what it safely can (integer coercion, missing question ids)
+ * and throws a descriptive Error for anything that is unrecoverable (e.g. an
+ * empty option list, or a correctOptionId that can't be resolved).
+ */
+function sanitiseQuizConfig(
+  rawConfig: Record<string, unknown>,
+  activityTitle: string,
+): Record<string, unknown> {
+  const questions = Array.isArray(rawConfig.questions) ? rawConfig.questions : [];
+
+  if (questions.length === 0) {
+    throw new Error(
+      `AI generated quiz "${activityTitle}" has no questions. Please regenerate.`,
+    );
+  }
+
+  const sanitisedQuestions = (questions as Record<string, unknown>[]).map(
+    (rawQ, qIndex) => {
+      const q = rawQ as Record<string, unknown>;
+
+      // Ensure question has an id
+      const questionId =
+        typeof q.id === 'string' && q.id.trim()
+          ? q.id.trim()
+          : `question-${qIndex + 1}`;
+
+      // Normalise text field (AI may use 'question' instead of 'text')
+      const text =
+        typeof q.text === 'string' && q.text.trim()
+          ? q.text.trim()
+          : typeof q.question === 'string' && (q.question as string).trim()
+            ? (q.question as string).trim()
+            : '';
+
+      if (!text) {
+        throw new Error(
+          `AI generated quiz "${activityTitle}" has a question (${questionId}) with an empty question text. Please regenerate.`,
+        );
+      }
+
+      const options = Array.isArray(q.options) ? q.options : [];
+
+      if (options.length < 2) {
+        throw new Error(
+          `AI generated quiz "${activityTitle}" question "${text}" has fewer than 2 options. Please regenerate.`,
+        );
+      }
+
+      // Normalise option ids — AI may produce empty ids
+      const sanitisedOptions = (options as Record<string, unknown>[]).map(
+        (opt, oIndex) => {
+          const id =
+            typeof opt.id === 'string' && opt.id.trim()
+              ? opt.id.trim()
+              : `q${qIndex + 1}-option-${oIndex + 1}`;
+          const label =
+            typeof opt.label === 'string' && opt.label.trim()
+              ? opt.label.trim()
+              : `Option ${oIndex + 1}`;
+          return { id, label };
+        },
+      );
+
+      const optionIds = sanitisedOptions.map((o) => o.id);
+
+      // Resolve correctOptionId — the most common source of 400 errors
+      let correctOptionId = typeof q.correctOptionId === 'string' ? q.correctOptionId.trim() : '';
+
+      if (!optionIds.includes(correctOptionId)) {
+        // Attempt to recover: if the AI used a numeric correctAnswerIndex
+        const indexHint =
+          typeof q.correctAnswerIndex === 'number'
+            ? q.correctAnswerIndex
+            : typeof q.correctAnswerIndex === 'string'
+              ? parseInt(q.correctAnswerIndex as string, 10)
+              : NaN;
+
+        if (!isNaN(indexHint) && indexHint >= 0 && indexHint < sanitisedOptions.length) {
+          correctOptionId = sanitisedOptions[indexHint]!.id;
+        } else {
+          // As a last resort, log the mismatch and default to the first option
+          // so the activity can still be created — the host can edit it.
+          console.warn(
+            `[AI Studio] Quiz "${activityTitle}" Q${qIndex + 1}: correctOptionId "${
+              q.correctOptionId
+            }" does not match any option id [${optionIds.join(', ')}]. Defaulting to first option.`,
+          );
+          correctOptionId = sanitisedOptions[0]!.id;
+        }
+      }
+
+      // Coerce floats to integers; clamp within backend-allowed range
+      const points = Math.min(1000, Math.max(1, Math.round(
+        typeof q.points === 'number' && q.points > 0 ? q.points : 100,
+      )));
+      const timeLimitSec = Math.min(300, Math.max(5, Math.round(
+        typeof q.timeLimitSec === 'number' && q.timeLimitSec >= 5
+          ? q.timeLimitSec
+          : 20,
+      )));
+
+      return {
+        id: questionId,
+        text,
+        options: sanitisedOptions,
+        correctOptionId,
+        points,
+        timeLimitSec,
+      };
+    },
+  );
+
+  const candidateResult = {
+    questions: sanitisedQuestions,
+    speedBonusEnabled:
+      typeof rawConfig.speedBonusEnabled === 'boolean'
+        ? rawConfig.speedBonusEnabled
+        : false,
+  };
+
+  // ─── Post-sanitisation validation ────────────────────────────────────────────
+  // quizConfigSchema from @iep/types validates structure. We additionally
+  // re-check the correctOptionId cross-reference (same rule as the backend's
+  // superRefine) so we catch it client-side with a clear message.
+  const validated = quizConfigSchema.safeParse(candidateResult);
+
+  if (!validated.success) {
+    const issues = validated.error.issues
+      .map((i) => `${i.path.join('.')}: ${i.message}`)
+      .join('; ');
+    throw new Error(
+      `AI generated quiz "${activityTitle}" failed validation after normalisation: ${issues}`,
+    );
+  }
+
+  // Cross-check correctOptionId within each question (mirrors backend superRefine)
+  for (const [qi, q] of validated.data.questions.entries()) {
+    const ids = q.options.map((o) => o.id);
+    if (!ids.includes(q.correctOptionId)) {
+      throw new Error(
+        `AI generated quiz "${activityTitle}" Q${qi + 1}: correctOptionId "${
+          q.correctOptionId
+        }" does not match any option id after normalisation [${ids.join(', ')}]. Please regenerate.`,
+      );
+    }
+  }
+
+  return validated.data as Record<string, unknown>;
+}
+
+// ─── Top-level normaliser ─────────────────────────────────────────────────────
 
 function normaliseActivity(
   raw: {
@@ -120,23 +475,10 @@ function normaliseActivity(
   },
   index: number,
 ): DraftActivity {
-  let config = raw.config ?? {};
-
-  if (raw.type === 'quiz' && Array.isArray(config.questions)) {
-    config = {
-      ...config,
-      questions: (config.questions as Record<string, unknown>[]).map((q) => {
-        const { question, ...rest } = q as {
-          question?: string;
-        } & Record<string, unknown>;
-
-        return {
-          ...rest,
-          text: rest.text ?? question ?? '',
-        };
-      }),
-    };
-  }
+  const config = raw.config ?? {};
+  const title = typeof raw.title === 'string' && raw.title.trim()
+    ? raw.title.trim().slice(0, 199)
+    : `Activity ${index + 1}`;
 
   const allowedTypes: ActivityType[] = [
     'poll',
@@ -151,12 +493,26 @@ function normaliseActivity(
     ? (raw.type as ActivityType)
     : 'ai';
 
+  let normalisedConfig: Record<string, unknown>;
+  if (activityType === 'quiz') {
+    normalisedConfig = sanitiseQuizConfig(config, title);
+  } else if (activityType === 'poll') {
+    normalisedConfig = sanitisePollConfig(config, title);
+  } else if (activityType === 'wordcloud') {
+    normalisedConfig = sanitiseWordcloudConfig(config, title);
+  } else if (activityType === 'feedback') {
+    normalisedConfig = sanitiseFeedbackConfig(config, title);
+  } else {
+    // 'qa' and 'ai' types are skipped by handleCreateEventFromDraft
+    normalisedConfig = config;
+  }
+
   return {
     id: `api-${raw.type}-${index}-${Date.now()}`,
     type: activityType,
-    title: raw.title,
+    title,
     description: raw.description,
-    config,
+    config: normalisedConfig,
   };
 }
 

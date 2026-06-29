@@ -23,18 +23,18 @@ export interface LiveSummaryTheme {
 
 export type SummarizeLiveAnswersResult =
   | {
-      hasResponses: true;
-      summary: string;
-      themes: LiveSummaryTheme[];
-      responseCount: number;
-    }
+    hasResponses: true;
+    summary: string;
+    themes: LiveSummaryTheme[];
+    responseCount: number;
+  }
   | {
-      hasResponses: false;
-      message: string;
-      summary: null;
-      themes: [];
-      responseCount: 0;
-    };
+    hasResponses: false;
+    message: string;
+    summary: null;
+    themes: [];
+    responseCount: 0;
+  };
 
 @Injectable()
 export class AiService {
@@ -296,54 +296,46 @@ Topic: ${topic}
     );
   }
 
-  async generateSessionSummary(data: string) {
+  async generateAnalyticsReport(data: string) {
     return this.generateJson(
       `
-You are an event analyst.
+You are an event analytics expert for an interactive audience engagement platform.
 
-Create a concise professional session summary.
-
-Event data:
-
-${data}
-
-Return ONLY valid JSON:
-
-{
-  "summary": ""
-}
-`,
-      'generate session summary',
-      { retries: 1 },
-    );
-  }
-
-  async generateEventInsights(data: string) {
-    return this.generateJson(
-      `
-You are an event analytics expert.
-
-Analyze the event data and generate 3 to 5 key insights.
+Analyze the event data and generate a comprehensive, structured session report.
 
 Rules:
-- Short bullet points
-- Professional tone
-- Focus on engagement patterns
-- Return ONLY valid JSON
+- Professional, actionable tone
+- Focus on engagement patterns and clear insights
+- Extract accurate numbers when referencing participation
+- Return ONLY valid JSON matching this exact structure:
+
+{
+  "executiveSummary": "Short overview of the session",
+  "keyInsights": ["Insight 1", "Insight 2", "Insight 3"],
+  "audienceBehaviour": {
+    "participationRate": "e.g., 75% engaged",
+    "dropOffPoints": "When/where did engagement dip",
+    "mostActiveTime": "e.g., During the Q&A segment"
+  },
+  "activityAnalysis": {
+    "pollPerformance": "Analysis of polls",
+    "quizPerformance": "Analysis of quizzes",
+    "wordCloudHighlights": "Analysis of word clouds",
+    "feedbackHighlights": "Analysis of feedback",
+    "qaTrends": "Analysis of Q&A"
+  },
+  "recommendations": ["Recommendation 1", "Recommendation 2"],
+  "engagementScore": {
+    "score": 85,
+    "explanation": "Why this score was given"
+  }
+}
 
 Event data:
 
 ${data}
-
-{
-  "insights": [
-    "",
-    "",
-    ""
-  ]
-}
 `,
-      'generate event insights',
+      'generate analytics report',
       { retries: 1 },
     );
   }
@@ -360,7 +352,7 @@ ${prompt}
 
 Return ONLY valid JSON. Do not use markdown. Do not use code fences.
 
-The JSON must follow this exact structure:
+The JSON must follow this exact structure (the "activities" array contains 2-4 items mixing the types below):
 
 {
   "event": {
@@ -374,7 +366,7 @@ The JSON must follow this exact structure:
       "description": "string",
       "config": {
         "pollType": "single",
-        "question": "string",
+        "question": "string (max 120 chars)",
         "options": [
           { "id": "option-1", "label": "string" },
           { "id": "option-2", "label": "string" },
@@ -382,28 +374,83 @@ The JSON must follow this exact structure:
           { "id": "option-4", "label": "string" }
         ]
       }
+    },
+    {
+      "type": "quiz",
+      "title": "string",
+      "description": "string",
+      "config": {
+        "questions": [
+          {
+            "id": "question-1",
+            "text": "string (max 120 chars)",
+            "options": [
+              { "id": "q1-option-1", "label": "string" },
+              { "id": "q1-option-2", "label": "string" },
+              { "id": "q1-option-3", "label": "string" },
+              { "id": "q1-option-4", "label": "string" }
+            ],
+            "correctOptionId": "q1-option-2",
+            "points": 100,
+            "timeLimitSec": 20
+          },
+          {
+            "id": "question-2",
+            "text": "string (max 120 chars)",
+            "options": [
+              { "id": "q2-option-1", "label": "string" },
+              { "id": "q2-option-2", "label": "string" },
+              { "id": "q2-option-3", "label": "string" },
+              { "id": "q2-option-4", "label": "string" }
+            ],
+            "correctOptionId": "q2-option-3",
+            "points": 100,
+            "timeLimitSec": 20
+          }
+        ],
+        "speedBonusEnabled": false
+      }
+    },
+    {
+      "type": "wordcloud",
+      "title": "string",
+      "description": "string",
+      "config": {
+        "prompt": "string (max 120 chars)",
+        "maxWordsPerParticipant": 3
+      }
+    },
+    {
+      "type": "feedback",
+      "title": "string",
+      "description": "string",
+      "config": {
+        "prompt": "string (max 120 chars)",
+        "fields": [
+          { "id": "rating-1", "type": "rating", "label": "string" },
+          { "id": "text-1", "type": "text", "label": "string" }
+        ]
+      }
     }
   ]
 }
 
-Rules:
-- Generate between 2 and 4 activities.
-- Allowed activity types: poll, quiz, wordcloud, feedback.
+CRITICAL RULES — violation will break the application:
+- Generate between 2 and 4 activities total.
+- Allowed activity types: poll, quiz, wordcloud, feedback. No other types.
 - Include at least one poll or quiz.
-- Poll must have exactly 4 options.
-- Quiz must contain 3 to 5 questions.
-- Every quiz question must have exactly 4 options.
-- Quiz must include correctOptionId, points, and timeLimitSec.
-- Wordcloud must include prompt and maxWordsPerParticipant.
-- Feedback must include prompt and fields.
-- Feedback fields can only be rating or text.
-- Use short professional activity titles and descriptions.
-- Generate ids such as option-1, question-1, rating-1, text-1.
+- POLL: must have exactly 4 options; each option "id" must be a unique non-empty string.
+- QUIZ: each question MUST have a unique "id" field (e.g. "question-1"). Each option in a question MUST have a unique "id" scoped to that question (e.g. "q1-option-1", "q1-option-2"). The "correctOptionId" value MUST exactly match one of the option "id" strings listed in that same question — do NOT use an integer index. "points" and "timeLimitSec" must be whole integers (no decimals).
+- WORDCLOUD: must include "prompt" (non-empty string) and "maxWordsPerParticipant" (whole integer between 1 and 20).
+- FEEDBACK: must include "prompt" (non-empty string) and "fields" array with at least 1 item. Each field "type" must be exactly "rating" or "text".
+- All "id" fields must be non-empty strings.
+- All title, description, and text fields must be non-empty strings.
 `,
       'generate session',
       { retries: 2 },
     );
   }
+
 
   async summarizeLiveAnswers(eventId: string, hostId: string): Promise<SummarizeLiveAnswersResult> {
     if (!Types.ObjectId.isValid(eventId)) {

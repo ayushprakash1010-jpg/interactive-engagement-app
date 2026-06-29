@@ -22,6 +22,12 @@ import { SiteHeader } from '@/components/marketing/site-header';
 import { SiteFooter } from '@/components/marketing/site-footer';
 import { AIShowcase } from '@/components/marketing/ai-showcase';
 import { AIBadge, Eyebrow, JoinCode, LiveDot } from '@/components/pulse';
+import {
+  ScrollReveal,
+  StaggerContainer,
+  GlowCard,
+  LivePollBars,
+} from '@/components/marketing/landing-animations';
 
 const SIGNUP_HREF = '/api/auth/signup?returnTo=/dashboard';
 
@@ -137,8 +143,10 @@ const SHOWCASE_ACTIVITIES = [
 function ProductPreview() {
   return (
     <div className="relative mx-auto mt-16 max-w-6xl">
-      <div className="absolute -inset-x-6 top-10 h-72 rounded-full bg-brand/10 blur-3xl" />
+      {/* Animated hero glow behind the mockup */}
+      <div className="landing-hero-glow absolute -inset-x-6 top-0 -z-10 h-72" />
       <div className="relative overflow-hidden rounded-xl border border-border bg-surface-card shadow-xl">
+        {/* Browser chrome */}
         <div className="flex h-12 items-center justify-between border-b border-border bg-surface-raised px-4">
           <div className="flex items-center gap-2" aria-hidden="true">
             <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
@@ -227,20 +235,19 @@ function ProductPreview() {
             </div>
 
             <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+              {/* Live poll with animated bars */}
               <div className="rounded-lg border border-border bg-surface-raised p-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold">Engagement timeline</h3>
-                  <span className="text-xs text-ink-muted">Last 12 min</span>
+                  <h3 className="text-base font-semibold">Live poll</h3>
+                  <span className="flex items-center gap-1.5 text-xs text-ink-muted">
+                    <LiveDot sizeClass="h-1.5 w-1.5" />
+                    Responding
+                  </span>
                 </div>
-                <div className="mt-6 flex h-36 items-end gap-2">
-                  {[42, 64, 48, 88, 58, 72, 96, 68, 82, 74, 90, 78].map((height, index) => (
-                    <span
-                      key={`${height}-${index}`}
-                      className="flex-1 rounded-t-sm bg-brand/80"
-                      style={{ height: `${height}%` }}
-                    />
-                  ))}
-                </div>
+                <p className="mb-4 mt-1 text-sm text-ink-muted">
+                  How aligned is our strategy this quarter?
+                </p>
+                <LivePollBars />
               </div>
 
               <div className="rounded-lg border border-border bg-surface-raised p-4">
@@ -279,14 +286,18 @@ export default function LandingPage() {
       <SiteHeader />
 
       <main className="flex-1">
+        {/* ── Hero ────────────────────────────────────────────────── */}
         <section className="relative isolate overflow-hidden border-b border-border">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,var(--brand-subtle)_0%,transparent_46%),linear-gradient(180deg,var(--surface-raised)_0%,var(--surface-canvas)_72%)]" />
           <div className="absolute left-1/2 top-0 -z-10 h-px w-[min(760px,80vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-brand/40 to-transparent" />
           <div className="mx-auto max-w-container-xl px-6 pb-16 pt-20 text-center sm:pt-24 lg:pb-24">
+            {/* Badge */}
             <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-surface-card/90 px-3 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-xs">
               <LiveDot sizeClass="h-1.5 w-1.5" />
               Real-time audience engagement for every room
             </div>
+
+            {/* Headline */}
             <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
               Turn any audience into a conversation
             </h1>
@@ -294,8 +305,10 @@ export default function LandingPage() {
               Pulse runs live polls, Q&A, quizzes, word clouds, and feedback for meetings,
               webinars, and classrooms. Your audience joins with a code or QR - no app, no login.
             </p>
+
+            {/* CTA buttons */}
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild size="xl" className="shadow-glow-brand">
+              <Button asChild size="xl" className="shimmer-cta shadow-glow-brand">
                 <a href={SIGNUP_HREF}>
                   Start here - it&apos;s free
                   <ArrowRight className="h-4 w-4" />
@@ -327,41 +340,50 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── Stats bar ───────────────────────────────────────────── */}
         <section className="border-b border-border bg-surface-card">
           <div className="mx-auto grid max-w-container-xl grid-cols-1 gap-3 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
             {STATS.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-lg border border-border bg-surface-raised p-5 shadow-xs transition duration-base hover:-translate-y-0.5 hover:bg-surface-card hover:shadow-md"
-              >
-                <div className="font-display text-3xl font-bold tracking-tight tabular-nums">
-                  {stat.value}
+              <ScrollReveal key={stat.label}>
+                <div className="rounded-lg border border-border bg-surface-raised p-5 shadow-xs transition duration-base hover:-translate-y-0.5 hover:bg-surface-card hover:shadow-md">
+                  <div className="font-display text-3xl font-bold tracking-tight tabular-nums">
+                    {stat.value}
+                  </div>
+                  <div className="mt-1 text-sm font-medium text-ink-muted">{stat.label}</div>
                 </div>
-                <div className="mt-1 text-sm font-medium text-ink-muted">{stat.label}</div>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </section>
 
+        {/* ── Features ────────────────────────────────────────────── */}
         <section id="features" className="scroll-mt-20">
           <div className="mx-auto max-w-container-xl px-6 py-24">
-            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
-              <div>
-                <Eyebrow className="mb-3">Everything in one place</Eyebrow>
-                <h2 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
-                  Every interaction your session needs, in one polished workflow
-                </h2>
+            <ScrollReveal>
+              <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+                <div>
+                  <Eyebrow className="mb-3">Everything in one place</Eyebrow>
+                  <h2 className="max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
+                    Every interaction your session needs, in one polished workflow
+                  </h2>
+                </div>
+                <p className="max-w-2xl text-base leading-7 text-ink-muted lg:justify-self-end">
+                  One platform for every interactive moment - built for the big screen, the host
+                  desk, and every phone in the room.
+                </p>
               </div>
-              <p className="max-w-2xl text-base leading-7 text-ink-muted lg:justify-self-end">
-                One platform for every interactive moment - built for the big screen, the host
-                desk, and every phone in the room.
-              </p>
-            </div>
-            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            </ScrollReveal>
+
+            {/* Stagger reveal for the feature cards */}
+            <StaggerContainer
+              staggerMs={90}
+              baseDelay={100}
+              className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            >
               {FEATURES.map((feature) => (
-                <Card
+                <GlowCard
                   key={feature.title}
-                  className="group h-full rounded-lg border-border bg-surface-card shadow-xs transition duration-base hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg"
+                  className="group h-full rounded-lg border border-border bg-surface-card shadow-xs transition duration-base hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg"
                 >
                   <CardContent className="p-6">
                     <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-brand-subtle text-brand transition duration-base group-hover:bg-brand group-hover:text-brand-foreground">
@@ -370,80 +392,103 @@ export default function LandingPage() {
                     <h3 className="mt-5 text-lg font-semibold">{feature.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-ink-muted">{feature.body}</p>
                   </CardContent>
-                </Card>
+                </GlowCard>
               ))}
-            </div>
+            </StaggerContainer>
           </div>
         </section>
 
+        {/* ── AI Studio ───────────────────────────────────────────── */}
         <section id="ai" className="scroll-mt-20 border-y border-border bg-surface-raised">
           <div className="mx-auto max-w-container-xl px-6 py-24">
-            <div className="grid gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
-              <div>
-                <AIBadge label="AI Studio" />
-                <h2 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
-                  Describe your session. Pulse drafts the first version.
-                </h2>
-                <p className="mt-4 text-base leading-7 text-ink-muted">
-                  Generate a runnable agenda in seconds, then let Pulse summarize open responses
-                  and cluster Q&A themes live. AI is a fast first draft you own - never autonomous.
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {['Agenda drafts', 'Answer summaries', 'Theme clustering'].map((item) => (
-                    <span
-                      key={item}
-                      className="rounded-full border border-ai-border bg-ai-subtle px-3 py-1 text-xs font-semibold text-ai-subtle-text"
-                    >
-                      {item}
-                    </span>
-                  ))}
+            <ScrollReveal>
+              <div className="grid gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
+                <div>
+                  <AIBadge label="AI Studio" />
+                  <h2 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
+                    Describe your session. Pulse drafts the first version.
+                  </h2>
+                  <p className="mt-4 text-base leading-7 text-ink-muted">
+                    Generate a runnable agenda in seconds, then let Pulse summarize open responses
+                    and cluster Q&A themes live. AI is a fast first draft you own - never autonomous.
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {['Agenda drafts', 'Answer summaries', 'Theme clustering'].map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-full border border-ai-border bg-ai-subtle px-3 py-1 text-xs font-semibold text-ai-subtle-text"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-ai-border bg-surface-card p-3 shadow-glow-ai">
+                  <AIShowcase />
                 </div>
               </div>
-              <div className="rounded-xl border border-ai-border bg-surface-card p-3 shadow-glow-ai">
-                <AIShowcase />
-              </div>
-            </div>
+            </ScrollReveal>
           </div>
         </section>
 
+        {/* ── How it works ────────────────────────────────────────── */}
         <section id="how-it-works" className="scroll-mt-20">
           <div className="mx-auto max-w-container-xl px-6 py-24">
-            <div className="mx-auto max-w-2xl text-center">
-              <Eyebrow className="mb-3">How it works</Eyebrow>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Live in three steps</h2>
-              <p className="mt-4 text-ink-muted">From idea to interactive in minutes.</p>
-            </div>
-            <div className="relative mt-16 grid gap-5 md:grid-cols-3">
-              <div className="absolute left-[16.5%] right-[16.5%] top-8 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent md:block" />
-              {STEPS.map((step, i) => (
-                <div
-                  key={step.title}
-                  className="relative rounded-lg border border-border bg-surface-card p-6 shadow-xs transition duration-base hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-glow-brand">
-                    <step.icon className="h-5 w-5" />
-                  </span>
-                  <div className="mt-5 font-mono text-xs font-semibold uppercase tracking-wider text-brand">
-                    Step {i + 1}
+            <ScrollReveal>
+              <div className="mx-auto max-w-2xl text-center">
+                <Eyebrow className="mb-3">How it works</Eyebrow>
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Live in three steps</h2>
+                <p className="mt-4 text-ink-muted">From idea to interactive in minutes.</p>
+              </div>
+            </ScrollReveal>
+
+            <div className="relative mt-16">
+              {/* Animated connector line */}
+              <div className="step-connector-glow absolute left-[16.5%] right-[16.5%] top-8 hidden h-px md:block z-10" />
+
+              <StaggerContainer
+                staggerMs={120}
+                baseDelay={200}
+                className="grid gap-5 md:grid-cols-3 relative z-20"
+              >
+                {STEPS.map((step, i) => (
+                  <div
+                    key={step.title}
+                    className="relative rounded-lg border border-border bg-surface-card p-6 shadow-xs transition duration-base hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-glow-brand">
+                      <step.icon className="h-5 w-5" />
+                    </span>
+                    <div className="mt-5 font-mono text-xs font-semibold uppercase tracking-wider text-brand">
+                      Step {i + 1}
+                    </div>
+                    <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-ink-muted">{step.body}</p>
                   </div>
-                  <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-ink-muted">{step.body}</p>
-                </div>
-              ))}
+                ))}
+              </StaggerContainer>
             </div>
           </div>
         </section>
 
+        {/* ── Pricing ─────────────────────────────────────────────── */}
         <section id="pricing" className="scroll-mt-20 border-t border-border bg-surface-raised">
           <div className="mx-auto max-w-container-xl px-6 py-24">
-            <div className="mx-auto max-w-2xl text-center">
-              <Eyebrow className="mb-3">Pricing</Eyebrow>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Simple, transparent pricing
-              </h2>
-              <p className="mt-4 text-ink-muted">Start free. Upgrade when your audience grows.</p>
-            </div>
-            <div className="mt-14 grid gap-5 lg:grid-cols-3 lg:items-stretch">
+            <ScrollReveal>
+              <div className="mx-auto max-w-2xl text-center">
+                <Eyebrow className="mb-3">Pricing</Eyebrow>
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                  Simple, transparent pricing
+                </h2>
+                <p className="mt-4 text-ink-muted">Start free. Upgrade when your audience grows.</p>
+              </div>
+            </ScrollReveal>
+
+            <StaggerContainer
+              staggerMs={100}
+              baseDelay={100}
+              className="mt-14 grid gap-5 lg:grid-cols-3 lg:items-stretch"
+            >
               {PLANS.map((plan) => (
                 <Card
                   key={plan.name}
@@ -490,50 +535,53 @@ export default function LandingPage() {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+            </StaggerContainer>
           </div>
         </section>
 
+        {/* ── CTA ─────────────────────────────────────────────────── */}
         <section className="border-t border-border">
           <div className="mx-auto max-w-container-xl px-6 py-24">
-            <div className="pulse-stage relative isolate overflow-hidden rounded-xl border border-border px-6 py-16 text-center shadow-xl sm:px-10">
-              <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,rgba(122,57,187,0.28),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(79,152,163,0.34),transparent_30%)]" />
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-card text-brand shadow-lg">
-                <Sparkles className="h-6 w-6" />
+            <ScrollReveal>
+              <div className="pulse-stage relative isolate overflow-hidden rounded-xl border border-border px-6 py-16 text-center shadow-xl sm:px-10">
+                <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,rgba(122,57,187,0.28),transparent_34%),radial-gradient(circle_at_80%_0%,rgba(79,152,163,0.34),transparent_30%)]" />
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-card text-brand shadow-lg">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-bold tracking-tight text-ink-on-dark sm:text-4xl">
+                  Ready to make your next session interactive?
+                </h2>
+                <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-ink-muted">
+                  Create your first event in minutes. Your audience just needs a code.
+                </p>
+                <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Button asChild size="xl" className="shimmer-cta">
+                    <a href={SIGNUP_HREF}>
+                      Start here
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                  <Button
+                    asChild
+                    size="xl"
+                    variant="outline"
+                    className="border-border bg-transparent text-ink-on-dark hover:bg-surface-card/10 hover:text-ink-on-dark"
+                  >
+                    <Link href="/login">Log in</Link>
+                  </Button>
+                </div>
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-5 text-sm text-ink-muted">
+                  <span className="inline-flex items-center gap-2">
+                    <QrCode className="h-4 w-4" />
+                    Code or QR join
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    CSV and PDF reports
+                  </span>
+                </div>
               </div>
-              <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-bold tracking-tight text-ink-on-dark sm:text-4xl">
-                Ready to make your next session interactive?
-              </h2>
-              <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-ink-muted">
-                Create your first event in minutes. Your audience just needs a code.
-              </p>
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Button asChild size="xl">
-                  <a href={SIGNUP_HREF}>
-                    Start here
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
-                </Button>
-                <Button
-                  asChild
-                  size="xl"
-                  variant="outline"
-                  className="border-border bg-transparent text-ink-on-dark hover:bg-surface-card/10 hover:text-ink-on-dark"
-                >
-                  <Link href="/login">Log in</Link>
-                </Button>
-              </div>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-5 text-sm text-ink-muted">
-                <span className="inline-flex items-center gap-2">
-                  <QrCode className="h-4 w-4" />
-                  Code or QR join
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  CSV and PDF reports
-                </span>
-              </div>
-            </div>
+            </ScrollReveal>
           </div>
         </section>
       </main>

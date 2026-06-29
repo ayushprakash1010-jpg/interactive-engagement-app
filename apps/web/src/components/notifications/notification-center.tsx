@@ -387,7 +387,10 @@ export function NotificationCenter() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="bottom-0 left-auto right-0 top-auto flex h-[92vh] max-h-[760px] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-t-lg border-border bg-surface-card p-0 shadow-xl data-[state=open]:slide-in-from-bottom sm:bottom-auto sm:top-4 sm:h-[min(760px,calc(100vh-2rem))] sm:w-[460px] sm:rounded-lg sm:data-[state=open]:slide-in-from-right">
+      <DialogContent
+        aria-describedby={undefined}
+        className="bottom-0 left-auto right-0 top-auto flex h-[92vh] max-h-[760px] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-t-lg border-border bg-surface-card p-0 shadow-xl data-[state=open]:slide-in-from-bottom sm:bottom-auto sm:top-4 sm:h-[min(760px,calc(100vh-2rem))] sm:w-[460px] sm:rounded-lg sm:data-[state=open]:slide-in-from-right"
+      >
         <DialogHeader className="sticky top-0 z-10 border-b border-border bg-surface-raised px-4 py-4 text-left">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">

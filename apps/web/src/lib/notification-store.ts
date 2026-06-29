@@ -16,6 +16,7 @@ export type NotificationType =
   | 'ai-feedback-generated'
   | 'ai-reply-generated'
   | 'ai-summary-completed'
+  | 'ai-report-completed'
   | 'analytics-export-started'
   | 'analytics-export-completed'
   | 'session-ended'
@@ -161,6 +162,12 @@ const catalog: Record<
     tone: 'ai',
     category: 'ai',
   },
+  'ai-report-completed': {
+    title: 'AI Report Completed',
+    description: 'AI completed the session report.',
+    tone: 'ai',
+    category: 'ai',
+  },
   'analytics-export-started': {
     title: 'Analytics Export Started',
     description: 'Your analytics export is being prepared.',
@@ -200,6 +207,7 @@ const groupableTypes = new Set<NotificationType>([
   'ai-feedback-generated',
   'ai-reply-generated',
   'ai-summary-completed',
+  'ai-report-completed',
   'analytics-export-completed',
 ]);
 
@@ -319,6 +327,8 @@ function groupTitle(type: NotificationType, count: number, fallback: string) {
       return `${count} AI replies generated recently`;
     case 'ai-summary-completed':
       return `${count} AI summaries completed recently`;
+    case 'ai-report-completed':
+      return `${count} AI reports completed recently`;
     case 'analytics-export-completed':
       return `${count} analytics exports completed recently`;
     default:
@@ -333,7 +343,12 @@ function groupKeyFor(input: { type: NotificationType; groupKey?: string }) {
 export function notify(input: NotificationInput) {
   hydrate();
 
-  const defaults = catalog[input.type];
+  const defaults = catalog[input.type] || {
+    title: 'Notification',
+    description: '',
+    tone: 'info',
+    category: 'info',
+  };
   const groupKey = groupKeyFor(input);
 
   if (groupableTypes.has(input.type)) {

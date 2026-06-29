@@ -92,13 +92,13 @@ function PollChart({
     const distributionSource = poll.distribution ?? {};
     const data = Array.isArray(distributionSource)
       ? distributionSource.map((d: any) => ({
-          name: `★ ${d.rating}`,
-          count: d.count,
-        }))
+        name: `★ ${d.rating}`,
+        count: d.count,
+      }))
       : Object.entries(distributionSource).map(([rating, count]) => ({
-          name: `★ ${rating}`,
-          count: Number(count),
-        }));
+        name: `★ ${rating}`,
+        count: Number(count),
+      }));
 
     return (
       <div className="space-y-2">
@@ -408,6 +408,28 @@ function AnalyticsSkeleton() {
   );
 }
 
+export interface AiReportData {
+  executiveSummary: string;
+  keyInsights: string[];
+  audienceBehaviour: {
+    participationRate: string;
+    dropOffPoints: string;
+    mostActiveTime: string;
+  };
+  activityAnalysis: {
+    pollPerformance: string;
+    quizPerformance: string;
+    wordCloudHighlights: string;
+    feedbackHighlights: string;
+    qaTrends: string;
+  };
+  recommendations: string[];
+  engagementScore: {
+    score: number;
+    explanation: string;
+  };
+}
+
 export default function AnalyticsPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
@@ -417,11 +439,21 @@ export default function AnalyticsPage() {
   const [downloading, setDownloading] = React.useState<"csv" | "pdf" | null>(
     null,
   );
-  const [summary, setSummary] = React.useState("");
-  const [isGeneratingSummary, setIsGeneratingSummary] = React.useState(false);
 
-  const [insights, setInsights] = React.useState<string[]>([]);
-  const [isGeneratingInsights, setIsGeneratingInsights] = React.useState(false);
+  const [aiReport, setAiReport] = React.useState<AiReportData | null>(() => {
+    if (typeof window !== "undefined" && id) {
+      const cached = sessionStorage.getItem(`ai-report-${id}`);
+      if (cached) {
+        try {
+          return JSON.parse(cached) as AiReportData;
+        } catch (e) {
+          // ignore cache parse error
+        }
+      }
+    }
+    return null;
+  });
+  const [isGeneratingReport, setIsGeneratingReport] = React.useState(false);
 
   const handleDownload = async (format: "csv" | "pdf") => {
     if (!id) return;
@@ -484,11 +516,11 @@ export default function AnalyticsPage() {
     engagementTimeline,
   } = report;
 
-  const handleGenerateSummary = async () => {
+  const handleGenerateReport = async () => {
     try {
-      setIsGeneratingSummary(true);
+      setIsGeneratingReport(true);
 
-      const summaryData = `
+      const analyticsData = `
 Participants: ${headlineStats?.totalParticipants ?? 0}
 Responses: ${headlineStats?.totalResponses ?? 0}
 Participation Rate: ${formatPercentFromRatio(headlineStats?.participationRate)}
@@ -499,55 +531,29 @@ Quizzes: ${quizAnalytics?.length ?? 0}
 Polls: ${pollAnalytics?.length ?? 0}
 `;
 
-      const result = await apiFetch<{ summary?: string }>(
-        "ai/generate-session-summary",
+      const result = await apiFetch<AiReportData>(
+        "ai/generate-analytics-report",
         {
           method: "POST",
-          body: JSON.stringify({ data: summaryData }),
+          body: JSON.stringify({ data: analyticsData }),
         },
       );
-      setSummary(result.summary ?? "");
+      
+      setAiReport(result);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(`ai-report-${id}`, JSON.stringify(result));
+      }
+      
       notify({
-        type: "ai-summary-completed",
-        description: "AI completed the session summary.",
+        type: "ai-report-completed",
+        description: "AI completed the comprehensive session report.",
         href: `/dashboard/events/${id}/analytics`,
       });
     } catch (error) {
       console.error(error);
-      alert("Failed to generate AI summary");
+      alert("Failed to generate AI report");
     } finally {
-      setIsGeneratingSummary(false);
-    }
-  };
-
-  const handleGenerateInsights = async () => {
-    try {
-      setIsGeneratingInsights(true);
-
-      const insightsData = `
-Participants: ${headlineStats?.totalParticipants ?? 0}
-Responses: ${headlineStats?.totalResponses ?? 0}
-Participation Rate: ${formatPercentFromRatio(headlineStats?.participationRate)}
-Questions Asked: ${qaAnalytics?.totalQuestions ?? 0}
-Word Clouds: ${wordCloudAnalytics?.length ?? 0}
-Feedback Forms: ${feedbackAnalytics?.length ?? 0}
-Quizzes: ${quizAnalytics?.length ?? 0}
-Polls: ${pollAnalytics?.length ?? 0}
-`;
-
-      const result = await apiFetch<{ insights?: string[] }>(
-        "ai/generate-insights",
-        {
-          method: "POST",
-          body: JSON.stringify({ data: insightsData }),
-        },
-      );
-      setInsights(result.insights ?? []);
-    } catch (error) {
-      console.error(error);
-      alert("Failed to generate AI insights");
-    } finally {
-      setIsGeneratingInsights(false);
+      setIsGeneratingReport(false);
     }
   };
 
@@ -578,22 +584,14 @@ Polls: ${pollAnalytics?.length ?? 0}
         actions={
           <ActionGroup>
             <Button
-              variant="outline"
+              variant={aiReport ? "outline" : "ai"}
               size="sm"
-              disabled={isGeneratingSummary}
-              onClick={handleGenerateSummary}
+              disabled={isGeneratingReport}
+              onClick={handleGenerateReport}
+              loading={isGeneratingReport}
             >
-              <Sparkles className="h-4 w-4 text-ai" />
-              {isGeneratingSummary ? "Generating…" : "AI Summary"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={isGeneratingInsights}
-              onClick={handleGenerateInsights}
-            >
-              <Sparkles className="h-4 w-4 text-ai" />
-              {isGeneratingInsights ? "Generating…" : "AI Insights"}
+              <Sparkles className="h-4 w-4" />
+              {aiReport ? "Regenerate AI Report" : "✨ Generate AI Report"}
             </Button>
             <Button
               variant="outline"
@@ -617,36 +615,86 @@ Polls: ${pollAnalytics?.length ?? 0}
         }
       />
 
-      {summary && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-ai" />
-              AI Session Summary
-            </CardTitle>
-            <CardDescription>Generated from event analytics</CardDescription>
+      {aiReport && (
+        <Card className="border-ai-border bg-surface-card shadow-md">
+          <CardHeader className="border-b border-border bg-background/50 pb-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-xl font-bold">
+                  <Sparkles className="h-6 w-6 text-ai" />
+                  AI Session Report
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Comprehensive analytics and insights generated by AI
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2 text-right">
+                <div className="flex flex-col items-end">
+                  <span className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
+                    Engagement Score
+                  </span>
+                  <span className="text-3xl font-bold text-brand">
+                    {aiReport.engagementScore.score}/100
+                  </span>
+                </div>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap leading-7">{summary}</p>
-          </CardContent>
-        </Card>
-      )}
+          <CardContent className="grid gap-8 p-6 sm:grid-cols-2">
+            <div className="space-y-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Executive Summary
+              </h3>
+              <p className="text-sm leading-relaxed text-ink-secondary">
+                {aiReport.executiveSummary}
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Key Insights
+              </h3>
+              <ul className="list-inside list-disc space-y-2 text-sm leading-relaxed text-ink-secondary">
+                {aiReport.keyInsights.map((insight, i) => (
+                  <li key={i}>{insight}</li>
+                ))}
+              </ul>
+            </div>
 
-      {insights.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart2 className="h-5 w-5 text-ai" />
-              AI Insights
-            </CardTitle>
-            <CardDescription>Generated from event analytics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="list-disc space-y-2 pl-5">
-              {insights.map((insight, index) => (
-                <li key={index}>{insight}</li>
-              ))}
-            </ul>
+            <div className="space-y-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Audience Behaviour
+              </h3>
+              <div className="grid gap-2 text-sm text-ink-secondary">
+                <p><span className="font-medium text-foreground">Participation Rate:</span> {aiReport.audienceBehaviour.participationRate}</p>
+                <p><span className="font-medium text-foreground">Most Active Time:</span> {aiReport.audienceBehaviour.mostActiveTime}</p>
+                <p><span className="font-medium text-foreground">Drop-off Points:</span> {aiReport.audienceBehaviour.dropOffPoints}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Activity Analysis
+              </h3>
+              <div className="grid gap-2 text-sm text-ink-secondary">
+                <p><span className="font-medium text-foreground">Polls:</span> {aiReport.activityAnalysis.pollPerformance}</p>
+                <p><span className="font-medium text-foreground">Quizzes:</span> {aiReport.activityAnalysis.quizPerformance}</p>
+                <p><span className="font-medium text-foreground">Q&A:</span> {aiReport.activityAnalysis.qaTrends}</p>
+              </div>
+            </div>
+
+            <div className="col-span-full space-y-4 border-t border-border pt-6">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Recommendations
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {aiReport.recommendations.map((rec, i) => (
+                  <div key={i} className="rounded-md bg-surface-raised p-4 text-sm text-ink-secondary shadow-xs border border-border">
+                    {rec}
+                  </div>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -742,7 +790,7 @@ Polls: ${pollAnalytics?.length ?? 0}
                         {quiz.questionStats.map((q, i) => {
                           const pct =
                             typeof q.correctPct === "number" &&
-                            q.correctPct <= 1
+                              q.correctPct <= 1
                               ? Number((q.correctPct * 100).toFixed(1))
                               : Number(q.correctPct ?? 0);
 

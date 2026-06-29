@@ -372,7 +372,7 @@ export class RealtimeGateway
     if (!data) return;
     const { activityId } = data;
 
-    let activity: { eventId: { toString(): string } };
+    let activity: ActivityDocument;
     try {
       activity = await this.activityService.findById(activityId);
     } catch {
@@ -402,6 +402,19 @@ export class RealtimeGateway
     pollRuntimeByActivityId.delete(activityId);
 
     this.clearQuizRuntime(activityId);
+
+    if (activity['type'] === 'quiz' || activity['type'] === 'poll' || activity['type'] === 'feedback' || activity['type'] === 'wordcloud') {
+      try {
+         // Broadcast final session snapshot to ensure all clients have the final state
+         // Actually, just for quiz we definitely need the leaderboard
+         if (activity['type'] === 'quiz') {
+            const leaderboard = await this.responseService.computeQuizLeaderboard(activityId);
+            this.server.to(rooms.event(eventId)).emit(ServerEvents.QUIZ_LEADERBOARD, { top: leaderboard });
+         }
+      } catch (err) {
+         this.logger.error(`Failed to broadcast final state for closed activity: ${activityId}`, err);
+      }
+    }
 
     this.server.to(rooms.event(eventId)).emit(ServerEvents.ACTIVITY_CLOSED, { activityId });
 
