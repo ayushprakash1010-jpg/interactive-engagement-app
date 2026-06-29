@@ -1,0 +1,19 @@
+{
+  // Suppress false-positive CSS lint warnings for Tailwind directives.
+  // The built-in CSS language server does not understand @tailwind, @apply,
+  // @layer, @config, or @theme — PostCSS/Tailwind handles these at build time.
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false,
+
+  // Recommended: use the Tailwind CSS IntelliSense extension for real validation.
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+
+  // Associate .css files with PostCSS so the Tailwind extension provides
+  // completions and hover docs for @tailwind / @apply / @layer.
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}

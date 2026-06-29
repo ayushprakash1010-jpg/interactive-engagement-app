@@ -24,6 +24,9 @@ export class UserEntity {
 
   @Prop({ default: 'free', trim: true })
   plan!: string;
+
+  @Prop({ default: 0 })
+  aiUsageCount!: number;
 }
 
 export const UserEntitySchema = SchemaFactory.createForClass(UserEntity);

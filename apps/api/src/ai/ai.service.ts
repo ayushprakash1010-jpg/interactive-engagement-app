@@ -13,6 +13,7 @@ import type { Env } from '../config/env.validation';
 import { ActivityDocument, ActivityEntity } from '../activities/activity.schema';
 import { ResponseDocument, ResponseEntity } from '../responses/response.schema';
 import { QuestionDocument, QuestionEntity } from '../questions/question.schema';
+import { UserDocument, UserEntity } from '../users/user.schema';
 import { EventDocument, EventEntity } from '../events/event.schema';
 import { EventsService } from '../events/events.service';
 
@@ -52,6 +53,8 @@ export class AiService {
     private readonly questionModel: Model<QuestionDocument>,
     @InjectModel(EventEntity.name)
     private readonly eventModel: Model<EventDocument>,
+    @InjectModel(UserEntity.name)
+    private readonly userModel: Model<UserDocument>,
   ) {
     const apiKey = this.configService.get('GEMINI_API_KEY', {
       infer: true,
@@ -97,9 +100,10 @@ export class AiService {
   private async generateJson<T>(
     contents: string,
     featureName: string,
+    userId: string,
     options?: { retries?: number },
   ): Promise<T> {
-    const text = await this.generateText(contents, featureName, options);
+    const text = await this.generateText(contents, featureName, userId, options);
     const cleaned = this.cleanJsonResponse(text);
 
     if (!cleaned) {
@@ -118,6 +122,7 @@ export class AiService {
   private async generateText(
     contents: string,
     featureName: string,
+    userId: string,
     options?: { retries?: number },
   ): Promise<string> {
     const retries = options?.retries ?? 1;
@@ -133,6 +138,12 @@ export class AiService {
         const text = (response.text ?? '').trim();
         if (!text) {
           throw new Error(`${featureName} returned an empty response.`);
+        }
+
+        if (userId) {
+          this.userModel.findByIdAndUpdate(userId, { $inc: { aiUsageCount: 1 } }).exec().catch(err => {
+            this.logger.error(`Failed to increment aiUsageCount for user ${userId}`, err);
+          });
         }
 
         return text;
@@ -169,29 +180,22 @@ export class AiService {
     throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
   }
 
-  async generateQaReply(question: string) {
-    const trimmedQuestion = question.trim();
-    if (!trimmedQuestion) {
+  async generateQaReply(question: string, userId: string) {
+    if (!question?.trim()) {
       throw new InternalServerErrorException('Failed to generate Q&A reply. Please try again.');
     }
 
     const answer = await this.generateText(
-      `You are helping a presenter answer audience questions professionally.
-
-Provide a concise, accurate, audience-friendly response.
-
-Question:
-${trimmedQuestion}
-
-Return only the answer.`,
+      `Write a professional, concise, and helpful reply to the following Q&A question from an audience member.\n\nQuestion: "${question}"`,
       'generate Q&A reply',
+      userId,
       { retries: 1 },
     );
 
     return { answer };
   }
 
-  async generatePoll(topic: string) {
+  async generatePoll(topic: string, userId: string) {
     return this.generateJson(
       `
 Generate ONE professional poll.
@@ -208,21 +212,13 @@ Topic: ${topic}
   "question": "",
   "options": ["", "", "", ""]
 }
-
-Topic: ${topic}
-
-Return ONLY valid JSON:
-
-{
-  "question": "",
-  "options": ["", "", "", ""]
-}
 `,
       'generate poll',
+      userId,
     );
   }
 
-  async generateQuiz(topic: string, count = 1) {
+  async generateQuiz(topic: string, userId: string, count = 1) {
     return this.generateJson(
       `
 Generate ${count} professional multiple choice quiz questions.
@@ -249,10 +245,11 @@ Topic: ${topic}
 }
 `,
       'generate quiz',
+      userId,
     );
   }
 
-  async generateFeedback(topic: string) {
+  async generateFeedback(topic: string, userId: string) {
     return this.generateJson(
       `
 Generate ONE professional feedback question.
@@ -269,10 +266,11 @@ Topic: ${topic}
 }
 `,
       'generate feedback',
+      userId,
     );
   }
 
-  async generateWordCloud(topic: string) {
+  async generateWordCloud(topic: string, userId: string) {
     return this.generateJson(
       `
 Generate 20 relevant keywords for a word cloud.
@@ -293,10 +291,11 @@ Topic: ${topic}
 }
 `,
       'generate word cloud',
+      userId,
     );
   }
 
-  async generateAnalyticsReport(data: string) {
+  async generateAnalyticsReport(data: string, userId: string) {
     return this.generateJson(
       `
 You are an event analytics expert for an interactive audience engagement platform.
@@ -336,11 +335,12 @@ Event data:
 ${data}
 `,
       'generate analytics report',
+      userId,
       { retries: 1 },
     );
   }
 
-  async generateSession(prompt: string) {
+  async generateSession(prompt: string, userId: string) {
     return this.generateJson(
       `
 You are an AI event planner for an interactive audience engagement platform.
@@ -447,17 +447,18 @@ CRITICAL RULES — violation will break the application:
 - All title, description, and text fields must be non-empty strings.
 `,
       'generate session',
+      userId,
       { retries: 2 },
     );
   }
 
 
-  async summarizeLiveAnswers(eventId: string, hostId: string): Promise<SummarizeLiveAnswersResult> {
+  async summarizeLiveAnswers(eventId: string, userId: string): Promise<SummarizeLiveAnswersResult> {
     if (!Types.ObjectId.isValid(eventId)) {
       throw new NotFoundException(`Event ${eventId} not found`);
     }
 
-    await this.eventsService.findOne(eventId, hostId);
+    await this.eventsService.findOne(eventId, userId);
 
     const eventObjectId = new Types.ObjectId(eventId);
 
@@ -583,7 +584,7 @@ Return this exact shape:
       const parsed = await this.generateJson<{
         summary: string;
         themes: LiveSummaryTheme[];
-      }>(geminiPrompt, `summarize live answers for event ${eventId}`, {
+      }>(geminiPrompt, `summarize live answers for event ${eventId}`, userId, {
         retries: 2,
       });
 

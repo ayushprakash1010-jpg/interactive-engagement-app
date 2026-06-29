@@ -51,10 +51,49 @@ export class AnalyticsService {
     private readonly participantModel: Model<ParticipantDocument>,
     private readonly usersService: UsersService,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   private cacheKey(eventId: string): string {
     return `analytics:event:${eventId}`;
+  }
+
+  async getWorkspaceOverview(user: AuthenticatedUser) {
+    const hostUser = await this.usersService.findById(user._id);
+    if (!hostUser) throw new NotFoundException('User not found');
+
+    const hostObjectId = new Types.ObjectId(user._id);
+
+    const events = await this.eventModel.find({ hostId: hostObjectId }).select('_id status').lean().exec();
+    
+    let totalEvents = 0;
+    let draftCount = 0;
+    let liveCount = 0;
+    let completedCount = 0;
+    const eventIds = [];
+
+    for (const event of events) {
+      totalEvents++;
+      eventIds.push(event._id);
+      if (event.status === 'draft') draftCount++;
+      else if (event.status === 'live') liveCount++;
+      else if (event.status === 'ended') completedCount++;
+    }
+
+    const [participantsCount, responsesCount, questionsCount] = await Promise.all([
+      this.participantModel.countDocuments({ eventId: { $in: eventIds } }).exec(),
+      this.responseModel.countDocuments({ eventId: { $in: eventIds } }).exec(),
+      this.questionModel.countDocuments({ eventId: { $in: eventIds } }).exec(),
+    ]);
+
+    return {
+      totalEvents,
+      draftCount,
+      completedCount,
+      liveCount,
+      totalParticipants: participantsCount,
+      totalResponses: responsesCount + questionsCount,
+      aiUsage: hostUser.aiUsageCount ?? 0,
+    };
   }
 
   async getAnalytics(eventId: string, user: AuthenticatedUser) {
@@ -263,13 +302,13 @@ export class AnalyticsService {
             ratingResponses.length === 0
               ? 0
               : Number(
-                  (
-                    ratingResponses.reduce(
-                      (sum, r) => sum + (r.ratingValue as number),
-                      0,
-                    ) / ratingResponses.length
-                  ).toFixed(2),
-                );
+                (
+                  ratingResponses.reduce(
+                    (sum, r) => sum + (r.ratingValue as number),
+                    0,
+                  ) / ratingResponses.length
+                ).toFixed(2),
+              );
 
           return {
             activityId: activity._id.toString(),
@@ -452,21 +491,21 @@ export class AnalyticsService {
         const averageScore =
           allScores.length > 0
             ? Number(
-                (allScores.reduce((s, v) => s + v, 0) / allScores.length).toFixed(1),
-              )
+              (allScores.reduce((s, v) => s + v, 0) / allScores.length).toFixed(1),
+            )
             : 0;
         const completionRate =
           totalQuestions === 0 || participantScores.length === 0
             ? 0
             : Number(
-                (
-                  (participantScores.filter(
-                    (p) => p.correct + p.incorrect === totalQuestions,
-                  ).length /
-                    participantScores.length) *
-                  100
-                ).toFixed(1),
-              );
+              (
+                (participantScores.filter(
+                  (p) => p.correct + p.incorrect === totalQuestions,
+                ).length /
+                  participantScores.length) *
+                100
+              ).toFixed(1),
+            );
 
         return {
           activityId: activity._id.toString(),
@@ -623,11 +662,11 @@ export class AnalyticsService {
               ratingValues.length === 0
                 ? 0
                 : Number(
-                    (
-                      ratingValues.reduce((sum, value) => sum + value, 0) /
-                      ratingValues.length
-                    ).toFixed(2),
-                  );
+                  (
+                    ratingValues.reduce((sum, value) => sum + value, 0) /
+                    ratingValues.length
+                  ).toFixed(2),
+                );
 
             return {
               fieldId: field.id,

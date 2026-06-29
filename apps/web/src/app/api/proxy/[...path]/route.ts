@@ -50,7 +50,16 @@ const handler = withApiAuthRequired(async function handler(req: NextRequest) {
     }
   }
 
-  const apiRes = await fetch(target, init);
+  let apiRes: Response;
+  try {
+    apiRes = await fetch(target, init);
+  } catch (err) {
+    console.error(`[proxy] fetch to ${target} failed:`, err);
+    return NextResponse.json(
+      { message: 'Proxy fetch failed', error: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    );
+  }
 
   const contentType = apiRes.headers.get('content-type') ?? 'application/json';
 

@@ -190,4 +190,168 @@
     background-size: 200% 100%;
     animation: pulse-shimmer 1.6s var(--ease-standard) infinite;
   }
+
+  /* ── Landing-page specific motion classes ── */
+
+  /* Hero background: a slowly drifting radial-gradient that gives the
+     hero depth without being distracting. Loops every 24s. */
+  .hero-gradient-drift {
+    background:
+      radial-gradient(circle at 50% 0%, var(--brand-subtle) 0%, transparent 46%),
+      linear-gradient(180deg, var(--surface-raised) 0%, var(--surface-canvas) 72%);
+    animation: hero-gradient-drift 24s ease-in-out infinite;
+    background-size: 200% 200%;
+  }
+
+  /* Hero glow behind the mockup card */
+  .landing-hero-glow {
+    background: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      color-mix(in srgb, var(--brand) 18%, transparent),
+      transparent 70%
+    );
+    filter: blur(1px);
+    animation: hero-glow-pulse 6s ease-in-out infinite;
+  }
+
+  /* Step connector animated gradient line */
+  .step-connector-glow {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--brand) 20%,
+      var(--brand) 80%,
+      transparent 100%
+    );
+    opacity: 0.35;
+    animation: step-connector-flow 3s ease-in-out infinite;
+  }
+
+  /* Shimmer CTA button — a slow sheen sweep */
+  .shimmer-cta {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer-cta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.18) 50%,
+      transparent 60%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-sweep 3.2s ease-in-out infinite;
+  }
+
+  /* CTA lift + shadow on hover — premium feel */
+  .hero-cta-primary {
+    transition:
+      transform 180ms cubic-bezier(0.2, 0, 0, 1),
+      box-shadow 180ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .hero-cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(1, 105, 111, 0.28);
+  }
+  .hero-cta-primary:active {
+    transform: translateY(0px) scale(0.985);
+  }
+
+  .hero-cta-secondary {
+    transition:
+      transform 180ms cubic-bezier(0.2, 0, 0, 1),
+      box-shadow 180ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  .hero-cta-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(35, 33, 29, 0.12);
+  }
+  .hero-cta-secondary:active {
+    transform: translateY(0px) scale(0.985);
+  }
+
+  /* Glow card — radial spotlight that follows cursor via CSS custom props */
+  .glow-card {
+    position: relative;
+    --glow-x: -999px;
+    --glow-y: -999px;
+  }
+  .glow-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+      200px circle at var(--glow-x) var(--glow-y),
+      color-mix(in srgb, var(--brand) 10%, transparent),
+      transparent 60%
+    );
+    transition: opacity 180ms ease;
+    z-index: 0;
+  }
+  .glow-card:hover::before {
+    opacity: 1;
+  }
+  .glow-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Pulsing badge — a subtle scale-throb used on live counts */
+  .pulsing-badge {
+    animation: badge-pulse 2.4s cubic-bezier(0.2, 0, 0, 1) infinite;
+  }
+}
+
+/* ── Keyframes ── */
+@keyframes hero-gradient-drift {
+  0%   { background-position: 50% 0%, 0% 0%; }
+  50%  { background-position: 40% 10%, 0% 0%; }
+  100% { background-position: 50% 0%, 0% 0%; }
+}
+
+@keyframes hero-glow-pulse {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1.0; }
+}
+
+@keyframes step-connector-flow {
+  0%   { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes shimmer-sweep {
+  0%   { background-position: -200% 0; }
+  60%, 100% { background-position: 200% 0; }
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
+}
+
+/* Disable ALL continuous animations when prefers-reduced-motion is set */
+@media (prefers-reduced-motion: reduce) {
+  .hero-gradient-drift,
+  .landing-hero-glow,
+  .step-connector-glow,
+  .shimmer-cta::after,
+  .pulsing-badge {
+    animation: none !important;
+  }
+
+  .hero-cta-primary,
+  .hero-cta-secondary {
+    transition: none !important;
+  }
+
+  .hero-cta-primary:hover,
+  .hero-cta-secondary:hover {
+    transform: none;
+  }
 }

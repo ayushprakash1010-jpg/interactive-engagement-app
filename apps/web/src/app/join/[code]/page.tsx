@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { setDisplayName } from "@/lib/anon-id";
 import { Eyebrow, JoinCode, Logomark } from "@/components/pulse";
+import { API_URL } from "@/lib/api";
 
 export default function JoinCodePage() {
   const params = useParams<{ code: string }>();
@@ -18,9 +19,39 @@ export default function JoinCodePage() {
   const code = (params.code ?? "").toUpperCase();
 
   const [name, setName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [requiresName, setRequiresName] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    
+    fetch(`${API_URL}/events/lookup/${code}`)
+      .then(async (res) => {
+        if (!mounted) return;
+        if (!res.ok) {
+          setError("Event not found");
+          setIsLoading(false);
+          return;
+        }
+        const data = await res.json();
+        setRequiresName(data.settings?.participantNames ?? false);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setError("Failed to load event");
+        setIsLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [code]);
 
   const enter = () => {
-    setDisplayName(name);
+    if (requiresName && !name.trim()) return;
+    setDisplayName(name.trim());
     router.push(`/event/${code}`);
   };
 
@@ -43,31 +74,45 @@ export default function JoinCodePage() {
         </div>
 
         <SurfacePanel className="p-5 sm:p-6">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              enter();
-            }}
-            className="space-y-5"
-          >
-            <div className="space-y-2">
-              <Label htmlFor="display-name" className="text-ink-secondary">
-                Your name (optional)
-              </Label>
-              <Input
-                id="display-name"
-                placeholder="e.g. Alex"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={40}
-                className="h-12 rounded-lg bg-surface-raised text-base shadow-inner"
-              />
+          {isLoading ? (
+            <div className="flex h-[200px] items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-ink-tertiary" />
             </div>
-            <Button type="submit" size="xl" className="w-full">
-              Join session
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-          </form>
+          ) : error ? (
+            <div className="flex h-[200px] flex-col items-center justify-center space-y-4">
+              <p className="text-center font-medium text-red-500">{error}</p>
+              <Button variant="outline" onClick={() => router.push("/")}>
+                Go back
+              </Button>
+            </div>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                enter();
+              }}
+              className="space-y-5"
+            >
+              <div className="space-y-2">
+                <Label htmlFor="display-name" className="text-ink-secondary">
+                  Your name {requiresName ? "" : "(optional)"}
+                </Label>
+                <Input
+                  id="display-name"
+                  placeholder="e.g. Alex"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={40}
+                  required={requiresName}
+                  className="h-12 rounded-lg bg-surface-raised text-base shadow-inner"
+                />
+              </div>
+              <Button type="submit" size="xl" className="w-full">
+                Join session
+                <ArrowRight className="h-5 w-5" />
+              </Button>
+            </form>
+          )}
         </SurfacePanel>
       </div>
     </main>

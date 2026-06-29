@@ -27,6 +27,9 @@ import {
   StaggerContainer,
   GlowCard,
   LivePollBars,
+  HeroSequence,
+  CursorParallax,
+  FloatingShape,
 } from '@/components/marketing/landing-animations';
 
 const SIGNUP_HREF = '/api/auth/signup?returnTo=/dashboard';
@@ -142,7 +145,7 @@ const SHOWCASE_ACTIVITIES = [
 
 function ProductPreview() {
   return (
-    <div className="relative mx-auto mt-16 max-w-6xl">
+    <CursorParallax strength={4} className="relative mx-auto mt-16 max-w-6xl">
       {/* Animated hero glow behind the mockup */}
       <div className="landing-hero-glow absolute -inset-x-6 top-0 -z-10 h-72" />
       <div className="relative overflow-hidden rounded-xl border border-border bg-surface-card shadow-xl">
@@ -276,7 +279,7 @@ function ProductPreview() {
           </div>
         </div>
       </div>
-    </div>
+    </CursorParallax>
   );
 }
 
@@ -288,55 +291,72 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* ── Hero ────────────────────────────────────────────────── */}
         <section className="relative isolate overflow-hidden border-b border-border">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,var(--brand-subtle)_0%,transparent_46%),linear-gradient(180deg,var(--surface-raised)_0%,var(--surface-canvas)_72%)]" />
+          {/* Drifting radial gradient background */}
+          <div className="hero-gradient-drift absolute inset-0 -z-10" />
           <div className="absolute left-1/2 top-0 -z-10 h-px w-[min(760px,80vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-brand/40 to-transparent" />
+
+          {/* Floating decorative blobs */}
+          <FloatingShape amplitude={7} periodMs={7000} phaseMs={0} className="pointer-events-none absolute -left-16 top-32 -z-10 h-56 w-56 rounded-full bg-brand/5 blur-3xl">
+            <span />
+          </FloatingShape>
+          <FloatingShape amplitude={9} periodMs={9000} phaseMs={2500} className="pointer-events-none absolute -right-20 top-48 -z-10 h-72 w-72 rounded-full bg-ai/5 blur-3xl">
+            <span />
+          </FloatingShape>
+
           <div className="mx-auto max-w-container-xl px-6 pb-16 pt-20 text-center sm:pt-24 lg:pb-24">
-            {/* Badge */}
-            <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-surface-card/90 px-3 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-xs">
-              <LiveDot sizeClass="h-1.5 w-1.5" />
-              Real-time audience engagement for every room
-            </div>
+            <HeroSequence stepMs={90} baseDelay={80}>
+              {/* Slot 0: Badge */}
+              <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-surface-card/90 px-3 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-xs">
+                <LiveDot sizeClass="h-1.5 w-1.5" />
+                Real-time audience engagement for every room
+              </div>
 
-            {/* Headline */}
-            <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
-              Turn any audience into a conversation
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-ink-muted sm:text-xl">
-              Pulse runs live polls, Q&A, quizzes, word clouds, and feedback for meetings,
-              webinars, and classrooms. Your audience joins with a code or QR - no app, no login.
-            </p>
+              {/* Slot 1: Headline */}
+              <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
+                Turn any audience into a conversation
+              </h1>
 
-            {/* CTA buttons */}
-            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Button asChild size="xl" className="shimmer-cta shadow-glow-brand">
-                <a href={SIGNUP_HREF}>
-                  Start here - it&apos;s free
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button asChild size="xl" variant="outline">
-                <Link href="/join">
-                  <Play className="h-4 w-4" />
-                  Join an event
-                </Link>
-              </Button>
-            </div>
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted">
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                No credit card required
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                Email or Google sign-up
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                Participants never need accounts
-              </span>
-            </div>
+              {/* Slot 2: Description */}
+              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-ink-muted sm:text-xl">
+                Pulse runs live polls, Q&A, quizzes, word clouds, and feedback for meetings,
+                webinars, and classrooms. Your audience joins with a code or QR - no app, no login.
+              </p>
 
-            <ProductPreview />
+              {/* Slot 3: CTA buttons */}
+              <div>
+                <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <Button asChild size="xl" className="shimmer-cta shadow-glow-brand hero-cta-primary">
+                    <a href={SIGNUP_HREF}>
+                      Start here - it&apos;s free
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
+                  </Button>
+                  <Button asChild size="xl" variant="outline" className="hero-cta-secondary">
+                    <Link href="/join">
+                      <Play className="h-4 w-4" />
+                      Join an event
+                    </Link>
+                  </Button>
+                </div>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted">
+                  <span className="inline-flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                    No credit card required
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                    Email or Google sign-up
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                    Participants never need accounts
+                  </span>
+                </div>
+              </div>
+
+              {/* Slot 4: Hero preview */}
+              <ProductPreview />
+            </HeroSequence>
           </div>
         </section>
 

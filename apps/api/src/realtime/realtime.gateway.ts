@@ -219,6 +219,14 @@ export class RealtimeGateway
       return;
     }
 
+    const requiresName = event.settings?.participantNames;
+    if (requiresName && (!displayName || displayName.trim().length === 0)) {
+      client.emit(ServerEvents.ERROR, {
+        message: 'A display name is required to join this event.',
+      });
+      return;
+    }
+
     const eventId = event._id.toString();
 
     await this.participantService.upsertParticipant(eventId, anonId, displayName);
@@ -950,8 +958,8 @@ export class RealtimeGateway
     }
 
     // FIX: Forward allowAnonymousQA so participant clients know whether to
-    // display author names. Default true so unknown states are safe (anonymous).
-    const allowAnonymousQA = event.settings?.allowAnonymousQA ?? true;
+    // display author names. Default false so unknown states match event creation defaults.
+    const allowAnonymousQA = event.settings?.allowAnonymousQA ?? false;
 
     return {
       activeActivityId: event.activeActivityId ? event.activeActivityId.toString() : null,

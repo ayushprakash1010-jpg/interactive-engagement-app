@@ -35,9 +35,9 @@ export class EventsService {
       eventCode,
       status: 'draft',
       settings: dto.settings ?? {
-        allowAnonymousQA: true,
+        allowAnonymousQA: false,
         requireModeration: false,
-        participantNames: false,
+        participantNames: true,
       },
     });
 
@@ -149,18 +149,19 @@ export class EventsService {
     eventId: string,
     activityId: string | null,
   ): Promise<void> {
-    await this.eventModel
-      .updateOne(
-        { _id: new Types.ObjectId(eventId) },
-        {
-          $set: {
-            activeActivityId: activityId
-              ? new Types.ObjectId(activityId)
-              : null,
-          },
-        },
-      )
-      .exec();
+    const event = await this.eventModel.findById(eventId).exec();
+    
+    if (!event) return;
+
+    if (activityId && event.status === 'draft') {
+      event.status = 'live';
+      if (!event.startedAt) {
+        event.startedAt = new Date();
+      }
+    }
+
+    event.activeActivityId = activityId ? new Types.ObjectId(activityId) : null;
+    await event.save();
   }
 
   async endEvent(eventId: string): Promise<EventDocument> {

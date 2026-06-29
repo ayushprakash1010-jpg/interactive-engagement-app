@@ -110,9 +110,10 @@ export function useEventRealtime(
   const [sessionEnded, setSessionEnded] = useState(false);
   const [sessionEndError, setSessionEndError] = useState<string | null>(null);
   const previousCountRef = useRef<number | null>(null);
-  // Default true: when we don't yet know the setting, treat Q&A as anonymous
-  // so names are never accidentally shown before the snapshot arrives.
-  const [allowAnonymousQA, setAllowAnonymousQA] = useState(true);
+  const isEndingSessionRef = useRef(false);
+  // Default false: when we don't yet know the setting, treat Q&A as non-anonymous
+  // to match the default event creation state.
+  const [allowAnonymousQA, setAllowAnonymousQA] = useState(false);
 
   const eventId = options?.eventId;
 
@@ -194,6 +195,7 @@ export function useEventRealtime(
 
     const onSessionEnded = () => {
       setIsEndingSession(false);
+      isEndingSessionRef.current = false;
       setSessionEndError(null);
       setSessionEnded(true);
     };
@@ -202,8 +204,9 @@ export function useEventRealtime(
       const message = payload?.message ?? 'Something went wrong.';
       setError(message);
 
-      if (isEndingSession) {
+      if (isEndingSessionRef.current) {
         setIsEndingSession(false);
+        isEndingSessionRef.current = false;
         setSessionEndError(message);
       }
     };
@@ -230,7 +233,7 @@ export function useEventRealtime(
       socket.off(ServerEvents.ERROR, onError);
       socket.off('connect', join);
     };
-  }, [eventCode, mode, isEndingSession, eventId]);
+  }, [eventCode, mode, eventId]);
 
   useEffect(() => {
     if (mode !== 'observe' || !eventId) {
@@ -316,6 +319,7 @@ export function useEventRealtime(
       setSessionEnded(false);
       setSessionEndError(null);
       setIsEndingSession(true);
+      isEndingSessionRef.current = true;
 
       socket.emit(ClientEvents.SESSION_END, { eventId: resolvedEventId });
     },
@@ -324,6 +328,7 @@ export function useEventRealtime(
 
   const resetSessionEndState = useCallback(() => {
     setIsEndingSession(false);
+    isEndingSessionRef.current = false;
     setSessionEnded(false);
     setSessionEndError(null);
   }, []);

@@ -6,6 +6,7 @@ import { ActivityEntity, ActivityEntitySchema } from '../activities/activity.sch
 import { ResponseEntity, ResponseSchema } from '../responses/response.schema';
 import { QuestionEntity, QuestionEntitySchema } from '../questions/question.schema';
 import { EventEntity, EventEntitySchema } from '../events/event.schema';
+import { UserEntity, UserEntitySchema } from '../users/user.schema';
 import { EventsModule } from '../events/events.module';
 import { AuthModule } from '../auth/auth.module';
 
@@ -16,6 +17,7 @@ import { AuthModule } from '../auth/auth.module';
       { name: ResponseEntity.name, schema: ResponseSchema },
       { name: QuestionEntity.name, schema: QuestionEntitySchema },
       { name: EventEntity.name, schema: EventEntitySchema },
+      { name: UserEntity.name, schema: UserEntitySchema },
     ]),
     EventsModule,
     AuthModule,

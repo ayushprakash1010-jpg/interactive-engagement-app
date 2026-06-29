@@ -3,13 +3,19 @@ import { Request } from 'express';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('ai')
 export class AiController {
   constructor(private readonly aiService: AiService) { }
 
+  private getUserId(req: Request): string {
+    const user = req.user as { id?: string; _id?: string };
+    return user.id ?? user._id ?? '';
+  }
+
   @Post('generate-poll')
-  async generatePoll(@Body() body: { topic: string }) {
-    return this.aiService.generatePoll(body.topic);
+  async generatePoll(@Body() body: { topic: string }, @Req() req: Request) {
+    return this.aiService.generatePoll(body.topic, this.getUserId(req));
   }
 
   @Post('generate-quiz')
@@ -19,40 +25,38 @@ export class AiController {
       topic: string;
       count?: number;
     },
+    @Req() req: Request
   ) {
-    return this.aiService.generateQuiz(body.topic, body.count ?? 1);
+    return this.aiService.generateQuiz(body.topic, this.getUserId(req), body.count ?? 1);
   }
 
   @Post('generate-feedback')
-  async generateFeedback(@Body() body: { topic: string }) {
-    return this.aiService.generateFeedback(body.topic);
+  async generateFeedback(@Body() body: { topic: string }, @Req() req: Request) {
+    return this.aiService.generateFeedback(body.topic, this.getUserId(req));
   }
 
   @Post('generate-wordcloud')
-  async generateWordCloud(@Body() body: { topic: string }) {
-    return this.aiService.generateWordCloud(body.topic);
+  async generateWordCloud(@Body() body: { topic: string }, @Req() req: Request) {
+    return this.aiService.generateWordCloud(body.topic, this.getUserId(req));
   }
 
   @Post('generate-analytics-report')
-  async generateAnalyticsReport(@Body() body: { data: string }) {
-    return this.aiService.generateAnalyticsReport(body.data);
+  async generateAnalyticsReport(@Body() body: { data: string }, @Req() req: Request) {
+    return this.aiService.generateAnalyticsReport(body.data, this.getUserId(req));
   }
 
   @Post('generate-qa-reply')
-  async generateQaReply(@Body() body: { question: string }) {
-    return this.aiService.generateQaReply(body.question);
+  async generateQaReply(@Body() body: { question: string }, @Req() req: Request) {
+    return this.aiService.generateQaReply(body.question, this.getUserId(req));
   }
 
   @Post('generate-session')
-  async generateSession(@Body('prompt') prompt: string) {
-    return this.aiService.generateSession(prompt);
+  async generateSession(@Body('prompt') prompt: string, @Req() req: Request) {
+    return this.aiService.generateSession(prompt, this.getUserId(req));
   }
 
   @Post('events/:eventId/summarize-live-answers')
-  @UseGuards(JwtAuthGuard)
   async summarizeLiveAnswers(@Param('eventId') eventId: string, @Req() req: Request) {
-    const user = req.user as { id?: string; _id?: string };
-    const userId = user.id ?? user._id ?? '';
-    return this.aiService.summarizeLiveAnswers(eventId, userId);
+    return this.aiService.summarizeLiveAnswers(eventId, this.getUserId(req));
   }
 }

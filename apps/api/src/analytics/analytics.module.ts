@@ -14,6 +14,7 @@ import {
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { RedisModule } from '../realtime/redis.module';
+import { WorkspaceOverviewController } from './workspace-overview.controller';
 
 @Module({
   imports: [
@@ -28,8 +29,8 @@ import { RedisModule } from '../realtime/redis.module';
     AuthModule,
     RedisModule,
   ],
-  controllers: [AnalyticsController],
+  controllers: [AnalyticsController, WorkspaceOverviewController],
   providers: [AnalyticsService, AnalyticsExportService],
   exports: [AnalyticsService, AnalyticsExportService],
 })
-export class AnalyticsModule {}
+export class AnalyticsModule { }

@@ -6,6 +6,8 @@ import { EventsService } from './events.service';
 import { EventsController } from './events.controller';
 import { AuthModule } from '../auth/auth.module';
 
+import { PublicEventsController } from './public-events.controller';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -14,7 +16,7 @@ import { AuthModule } from '../auth/auth.module';
     // Provides JwtAuthGuard + the registered 'jwt' Passport strategy.
     AuthModule,
   ],
-  controllers: [EventsController],
+  controllers: [EventsController, PublicEventsController],
   providers: [EventsService],
   exports: [EventsService], // exported for use in RealtimeGateway (Sprint 2+)
 })

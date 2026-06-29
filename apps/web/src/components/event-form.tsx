@@ -15,9 +15,9 @@ export interface EventFormValues {
 }
 
 const DEFAULT_SETTINGS: EventSettings = {
-  allowAnonymousQA: true,
+  allowAnonymousQA: false,
   requireModeration: false,
-  participantNames: false,
+  participantNames: true,
 };
 
 const SETTING_LABELS: Record<

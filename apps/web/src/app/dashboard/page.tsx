@@ -56,6 +56,7 @@ import { requestOpenNotificationCenter } from '@/lib/notification-center-store';
 import { cn } from '@/lib/utils';
 import type { Event } from '@iep/types';
 import type { Notification } from '@/lib/notification-store';
+import { useOverviewStats } from '@/lib/use-overview';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -75,7 +76,7 @@ function getGreeting(user: { name?: string | null; nickname?: string | null } | 
   let timeGreeting = 'Good evening';
   if (hour < 12) timeGreeting = 'Good morning';
   else if (hour < 18) timeGreeting = 'Good afternoon';
-  
+
   const displayName = user?.nickname || user?.name?.split('@')[0] || null;
   return displayName ? `${timeGreeting}, ${displayName} 👋` : `${timeGreeting} 👋`;
 }
@@ -121,49 +122,57 @@ function getNotificationColor(notification: Notification): string {
 // Section: Workspace Metrics
 // ---------------------------------------------------------------------------
 
-function WorkspaceMetrics({ events, notifications }: { events: Event[] | undefined, notifications: Notification[] }) {
-  const total = events?.length ?? 0;
-  const live = events?.filter((e) => e.status === 'live').length ?? 0;
-  const ended = events?.filter((e) => e.status === 'ended').length ?? 0;
-  const draft = events?.filter((e) => e.status === 'draft').length ?? 0;
-  const aiCount = notifications.filter(n => n.category === 'ai').length;
+function WorkspaceMetrics() {
+  const { overview, isLoading } = useOverviewStats();
+
+  if (isLoading || !overview) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <MetricCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  const { totalEvents, draftCount, completedCount, liveCount, totalParticipants, totalResponses, aiUsage } = overview;
 
   const metrics = [
     {
       label: 'Total Events',
-      value: total,
+      value: totalEvents,
       description: 'across your workspace',
       icon: <Calendar className="h-5 w-5" />,
-      trend: total > 0 ? `${draft} Draft • ${ended} Completed` : null,
+      trend: totalEvents > 0 ? `${draftCount} Draft • ${completedCount} Completed` : null,
     },
     {
       label: 'Active Sessions',
-      value: live,
-      description: live === 1 ? 'session live now' : 'sessions live now',
+      value: liveCount,
+      description: liveCount === 1 ? 'session live now' : 'sessions live now',
       icon: <Zap className="h-5 w-5" />,
-      trend: live > 0 ? 'Live right now' : null,
-      liveGlow: live > 0,
+      trend: liveCount > 0 ? 'Live right now' : null,
+      liveGlow: liveCount > 0,
     },
     {
       label: 'Participants',
-      value: total * 32, // placeholder for UI since no real data endpoint exists here
+      value: totalParticipants,
       description: 'total participants',
       icon: <Users className="h-5 w-5" />,
-      trend: total > 0 ? 'Across all sessions' : null,
+      trend: totalEvents > 0 ? 'Across all sessions' : null,
     },
     {
       label: 'Responses',
-      value: total * 137, // placeholder
+      value: totalResponses,
       description: 'total responses collected',
       icon: <TrendingUp className="h-5 w-5" />,
-      trend: total > 0 ? '+24 today' : null,
+      trend: totalEvents > 0 ? 'Real-time updates' : null,
     },
     {
       label: 'AI Usage',
-      value: aiCount,
+      value: aiUsage,
       description: 'AI generations used',
       icon: <Sparkles className="h-5 w-5" />,
-      trend: 'Generated this week',
+      trend: 'Lifetime usage',
       ai: true,
     },
   ];
@@ -325,7 +334,7 @@ function RecentEventRow({ event }: { event: Event }) {
         </div>
         <p className="mt-0.5 text-xs text-ink-muted">Updated {updatedAt}</p>
       </div>
-      
+
       {/* Default Actions */}
       <div className="flex shrink-0 items-center gap-2 transition-opacity duration-base group-hover:opacity-0 sm:group-hover:opacity-100">
         <Button asChild variant="ghost" size="sm" className="hidden sm:flex">
@@ -354,10 +363,10 @@ function RecentEventRow({ event }: { event: Event }) {
           <Share className="h-3.5 w-3.5" />
         </Button>
         <div className="h-4 w-px bg-border mx-1"></div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-7 w-7 text-ink-secondary hover:text-destructive hover:bg-destructive/10" 
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-ink-secondary hover:text-destructive hover:bg-destructive/10"
           title="Delete"
           disabled={deleteEvent.isPending}
           onClick={() => deleteEvent.mutate(event._id)}
@@ -376,7 +385,7 @@ function RecentEventRow({ event }: { event: Event }) {
 function AIWorkspacePanel({ notifications }: { notifications: Notification[] }) {
   const aiNotifications = notifications.filter((n) => n.category === 'ai');
   const lastAI = aiNotifications[0];
-  
+
   const pollsGen = aiNotifications.filter(n => n.title.toLowerCase().includes('poll')).length;
   const quizGen = aiNotifications.filter(n => n.title.toLowerCase().includes('quiz')).length;
   const feedbackGen = aiNotifications.filter(n => n.title.toLowerCase().includes('feedback')).length;
@@ -407,7 +416,7 @@ function AIWorkspacePanel({ notifications }: { notifications: Notification[] }) 
         </div>
       </CardHeader>
       <CardContent className="p-4 space-y-5">
-        
+
         {/* Detailed Stats */}
         <div className="grid grid-cols-4 gap-2 text-center">
           <div className="rounded-md bg-surface-sunken/50 p-2 border border-border/50">
@@ -427,7 +436,7 @@ function AIWorkspacePanel({ notifications }: { notifications: Notification[] }) 
             <p className="text-[10px] uppercase tracking-wider text-ink-muted mt-1">Clouds</p>
           </div>
         </div>
-        
+
         {/* Last Action */}
         <div className="rounded-md border border-ai/10 bg-ai-subtle/30 px-3 py-2.5">
           <p className="text-2xs font-semibold uppercase tracking-wider text-ai/80">
@@ -500,11 +509,11 @@ function SessionSummaryPanel({ events }: { events: Event[] | undefined }) {
           </>
         ) : (
           <div className="text-center py-4 space-y-2">
-             <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface-sunken">
-               <BarChart3 className="h-5 w-5 text-ink-muted" />
-             </div>
-             <p className="text-sm font-medium text-foreground">No completed analytics yet.</p>
-             <p className="text-xs text-ink-secondary px-2">Complete your first event to unlock session insights and analytics.</p>
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface-sunken">
+              <BarChart3 className="h-5 w-5 text-ink-muted" />
+            </div>
+            <p className="text-sm font-medium text-foreground">No completed analytics yet.</p>
+            <p className="text-xs text-ink-secondary px-2">Complete your first event to unlock session insights and analytics.</p>
           </div>
         )}
       </CardContent>
@@ -668,15 +677,7 @@ export default function DashboardOverviewPage() {
       {/* ── Section 2: Metrics ───────────────────────────────────────────── */}
       <section aria-labelledby="metrics-heading">
         <h2 id="metrics-heading" className="sr-only">Workspace metrics</h2>
-        {eventsLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <MetricCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : (
-          <WorkspaceMetrics events={events} notifications={notifications} />
-        )}
+        <WorkspaceMetrics />
       </section>
 
       {/* ── Empty state (no events) ──────────────────────────────────────── */}
