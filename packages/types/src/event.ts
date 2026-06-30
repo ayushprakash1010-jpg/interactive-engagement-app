@@ -22,6 +22,9 @@ export const eventSchema = z.object({
   activeActivityId: objectId.nullable().default(null),
   startedAt: z.union([z.string().datetime(), z.date()]).nullable().optional(),
   endedAt: z.union([z.string().datetime(), z.date()]).nullable().optional(),
+  scheduledStart: z.union([z.string().datetime(), z.date()]).nullable().optional(),
+  scheduledEnd: z.union([z.string().datetime(), z.date()]).nullable().optional(),
+  timezone: z.string().nullable().optional(),
   ...timestamps,
 });
 export type Event = z.infer<typeof eventSchema>;
@@ -31,6 +34,9 @@ export const createEventSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().max(2000).optional(),
   settings: eventSettingsSchema.partial().optional(),
+  scheduledStart: z.union([z.string().datetime(), z.date()]).optional(),
+  scheduledEnd: z.union([z.string().datetime(), z.date()]).optional(),
+  timezone: z.string().optional(),
 });
 export type CreateEvent = z.infer<typeof createEventSchema>;
 

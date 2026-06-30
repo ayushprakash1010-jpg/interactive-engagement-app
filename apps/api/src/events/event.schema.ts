@@ -80,6 +80,15 @@ export class EventEntity {
 
   @Prop({ type: Date, default: null })
   endedAt!: Date | null;
+
+  @Prop({ type: Date, default: null })
+  scheduledStart?: Date | null;
+
+  @Prop({ type: Date, default: null })
+  scheduledEnd?: Date | null;
+
+  @Prop({ type: String, default: null })
+  timezone?: string | null;
 }
 
 export const EventEntitySchema = SchemaFactory.createForClass(EventEntity);

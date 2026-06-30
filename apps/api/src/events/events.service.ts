@@ -39,6 +39,9 @@ export class EventsService {
         requireModeration: false,
         participantNames: true,
       },
+      scheduledStart: dto.scheduledStart,
+      scheduledEnd: dto.scheduledEnd,
+      timezone: dto.timezone,
     });
 
     return event;
@@ -106,6 +109,22 @@ export class EventsService {
 
     if (dto.name !== undefined) event.name = dto.name;
     if (dto.description !== undefined) event.description = dto.description;
+    if (dto.scheduledStart !== undefined)
+      event.scheduledStart = dto.scheduledStart
+        ? new Date(dto.scheduledStart)
+        : null;
+    if (dto.scheduledEnd !== undefined)
+      event.scheduledEnd = dto.scheduledEnd ? new Date(dto.scheduledEnd) : null;
+    if (dto.timezone !== undefined) event.timezone = dto.timezone;
+    if (dto.status !== undefined) {
+      event.status = dto.status;
+      if (dto.status === 'live' && !event.startedAt)
+        event.startedAt = new Date();
+      if (dto.status === 'ended') {
+        event.endedAt = new Date();
+        event.activeActivityId = null;
+      }
+    }
 
     await event.save();
     return event;
@@ -150,7 +169,7 @@ export class EventsService {
     activityId: string | null,
   ): Promise<void> {
     const event = await this.eventModel.findById(eventId).exec();
-    
+
     if (!event) return;
 
     if (activityId && event.status === 'draft') {

@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Calendar, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   ActionGroup,
   Button,
@@ -26,6 +27,7 @@ import { JoinCode } from '@/components/pulse';
 import { useDeleteEvent, useEvents } from '@/lib/use-events';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiError } from '@/lib/events-api';
+import { getComputedEventStatus } from '@/lib/event-status';
 
 export default function EventsPage() {
   const { data: events, isLoading, isError, error } = useEvents();
@@ -36,8 +38,34 @@ export default function EventsPage() {
     name: string;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'upcoming' | 'past'>('all');
 
-  const filteredEvents = events?.filter((event) => {
+  const categorizedEvents = useMemo(() => {
+    if (!events) return { all: [], active: [], upcoming: [], past: [] };
+    
+    const now = new Date();
+    const all = events;
+    const active: typeof events = [];
+    const upcoming: typeof events = [];
+    const past: typeof events = [];
+
+    for (const ev of events) {
+      const { status } = getComputedEventStatus(ev, now);
+      if (status === 'live' || status === 'active') {
+        active.push(ev);
+      } else if (status === 'draft' || status === 'upcoming') {
+        upcoming.push(ev);
+      } else if (status === 'ended' || status === 'past') {
+        past.push(ev);
+      }
+    }
+
+    return { all, active, upcoming, past };
+  }, [events]);
+
+  const currentTabEvents = categorizedEvents[activeTab];
+
+  const filteredEvents = currentTabEvents.filter((event) => {
     const query = searchQuery.trim().toLowerCase();
 
     if (!query) {
@@ -90,6 +118,36 @@ export default function EventsPage() {
         }
       />
 
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex space-x-1 rounded-lg bg-surface-raised p-1 w-full sm:max-w-md">
+          {[
+            { id: 'all', label: 'All', count: categorizedEvents.all.length },
+            { id: 'active', label: 'Active', count: categorizedEvents.active.length },
+            { id: 'upcoming', label: 'Upcoming', count: categorizedEvents.upcoming.length },
+            { id: 'past', label: 'Past', count: categorizedEvents.past.length },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              className={cn(
+                'flex-1 rounded-md py-1.5 text-sm font-medium transition-all flex items-center justify-center gap-1.5',
+                activeTab === tab.id
+                  ? 'bg-surface-card text-foreground shadow-sm'
+                  : 'text-ink-muted hover:bg-surface-sunken hover:text-foreground'
+              )}
+            >
+              {tab.label}
+              <span className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-semibold",
+                activeTab === tab.id ? "bg-brand/10 text-brand" : "bg-surface-canvas text-ink-muted"
+              )}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-card p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
         <SearchBar
           value={searchQuery}
@@ -98,7 +156,7 @@ export default function EventsPage() {
           wrapperClassName="w-full sm:max-w-md"
         />
         <p className="text-sm text-ink-muted">
-          {events?.length ?? 0} {events?.length === 1 ? 'event' : 'events'}
+          {filteredEvents.length} {filteredEvents.length === 1 ? 'event' : 'events'}
         </p>
       </div>
 

@@ -51,6 +51,7 @@ import { useEventRealtime } from '@/lib/use-event-realtime';
 import { QuestionModerationPanel } from '@/components/questions/question-moderation-panel';
 import { useEvent, useEventQr, useUpdateEvent, useDeleteEvent } from '@/lib/use-events';
 import { ApiError } from '@/lib/events-api';
+import { notify } from '@/lib/notification-store';
 import {
   useActivities,
   useCreateActivity,
@@ -145,6 +146,8 @@ const ACTIVITY_TYPE_META = {
   }
 >;
 
+import { useScheduledEventStatus } from '@/lib/use-event-status';
+
 export default function EventDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -174,6 +177,8 @@ export default function EventDetailPage() {
   const updateActivity = useUpdateActivity(id);
   const deleteActivity = useDeleteActivity(id);
   const queryClient = useQueryClient();
+
+  const scheduledStatus = useScheduledEventStatus(event);
 
   React.useEffect(() => {
     const invalidateActivities = () => {
@@ -584,7 +589,31 @@ export default function EventDetailPage() {
         eyebrow="Event workspace"
         title={event.name}
         description={event.description}
-        badge={<StatusBadge status={event.status} className="capitalize" />}
+        badge={
+          scheduledStatus.scheduled ? (
+            <div className="flex gap-2">
+              <StatusBadge status={event.status} className="capitalize" />
+              {scheduledStatus.status === 'active' && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-semibold text-brand">
+                  <LiveDot sizeClass="h-1.5 w-1.5" />
+                  Live Now
+                </span>
+              )}
+              {scheduledStatus.status === 'upcoming' && (
+                <span className="inline-flex items-center rounded-full bg-surface-raised px-2.5 py-0.5 text-xs font-semibold text-ink-secondary">
+                  🟡 {scheduledStatus.countdown}
+                </span>
+              )}
+              {scheduledStatus.status === 'past' && (
+                <span className="inline-flex items-center rounded-full bg-surface-raised px-2.5 py-0.5 text-xs font-semibold text-ink-muted">
+                  ⚪ Ended
+                </span>
+              )}
+            </div>
+          ) : (
+            <StatusBadge status={event.status} className="capitalize" />
+          )
+        }
         actions={
           <ActionGroup>
             <Button

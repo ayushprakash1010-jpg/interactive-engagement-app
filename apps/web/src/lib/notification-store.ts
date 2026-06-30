@@ -21,7 +21,11 @@ export type NotificationType =
   | 'analytics-export-completed'
   | 'session-ended'
   | 'participant-joined'
-  | 'participant-milestone';
+  | 'participant-milestone'
+  | 'event-scheduled'
+  | 'event-starts-soon'
+  | 'event-scheduled-live'
+  | 'event-scheduled-ended';
 
 export type NotificationTone = 'success' | 'info' | 'warning' | 'ai' | 'brand';
 export type NotificationCategory =
@@ -84,6 +88,30 @@ const catalog: Record<
     category: NotificationCategory;
   }
 > = {
+  'event-scheduled': {
+    title: 'Event Scheduled',
+    description: 'A new scheduled event was created.',
+    tone: 'success',
+    category: 'event',
+  },
+  'event-starts-soon': {
+    title: 'Event Starts Soon',
+    description: 'An upcoming event starts in 30 minutes.',
+    tone: 'info',
+    category: 'event',
+  },
+  'event-scheduled-live': {
+    title: 'Event is Live',
+    description: 'Your scheduled event is now active.',
+    tone: 'brand',
+    category: 'event',
+  },
+  'event-scheduled-ended': {
+    title: 'Event Ended',
+    description: 'Your scheduled event has ended.',
+    tone: 'info',
+    category: 'event',
+  },
   'event-created': {
     title: 'Event Created',
     description: 'A new event was created.',

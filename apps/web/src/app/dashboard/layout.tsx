@@ -24,6 +24,7 @@ import { Wordmark, AIBadge } from '@/components/pulse';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/use-auth';
 import { useEvents } from '@/lib/use-events';
+import { useGlobalEventScheduler } from '@/lib/use-global-event-scheduler';
 import { openCommandPalette } from '@/lib/command-palette-store';
 
 const NAV_ITEMS = [
@@ -50,6 +51,7 @@ export default function DashboardLayout({
   const { user, logoutUrl } = useAuth();
   const pathname = usePathname();
   const { data: events } = useEvents();
+  useGlobalEventScheduler();
   
   const draftEvent = events?.find((e) => e.status === 'draft');
 
