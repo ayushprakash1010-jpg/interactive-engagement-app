@@ -194,7 +194,10 @@ export function EventForm({
                   id="start-time"
                   type="time"
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  onChange={(e) => {
+                    setStartTime(e.target.value);
+                    e.target.blur();
+                  }}
                   required
                 />
               </div>
@@ -217,7 +220,10 @@ export function EventForm({
                   id="end-time"
                   type="time"
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                  onChange={(e) => {
+                    setEndTime(e.target.value);
+                    e.target.blur();
+                  }}
                   required
                 />
               </div>
