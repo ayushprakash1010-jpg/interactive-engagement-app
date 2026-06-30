@@ -16,6 +16,7 @@ export type RecentCommand = {
 type PaletteState = {
   open: boolean;
   recentCommands: RecentCommand[];
+  favoriteCommands: string[];
 };
 
 // ---------------------------------------------------------------------------
@@ -23,15 +24,16 @@ type PaletteState = {
 // ---------------------------------------------------------------------------
 
 const RECENT_KEY = 'iep:command-palette:recent:v1';
+const FAVORITES_KEY = 'iep:command-palette:favorites:v1';
 const MAX_RECENT = 10;
-const EMPTY_STATE: PaletteState = { open: false, recentCommands: [] };
+const EMPTY_STATE: PaletteState = { open: false, recentCommands: [], favoriteCommands: [] };
 
 // ---------------------------------------------------------------------------
 // Module-level store (same pattern as notification-store.ts)
 // ---------------------------------------------------------------------------
 
 const listeners = new Set<() => void>();
-let state: PaletteState = { open: false, recentCommands: [] };
+let state: PaletteState = { open: false, recentCommands: [], favoriteCommands: [] };
 let hydrated = false;
 
 function emitChange() {
@@ -54,18 +56,21 @@ function hydrate() {
   hydrated = true;
 
   try {
-    const raw = window.localStorage.getItem(RECENT_KEY);
-    if (!raw) return;
+    const rawRecent = window.localStorage.getItem(RECENT_KEY);
+    if (rawRecent) {
+      const parsed: unknown = JSON.parse(rawRecent);
+      if (Array.isArray(parsed)) {
+        state.recentCommands = parsed.filter(isRecentCommand).slice(0, MAX_RECENT);
+      }
+    }
 
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return;
-
-    state = {
-      ...state,
-      recentCommands: parsed
-        .filter(isRecentCommand)
-        .slice(0, MAX_RECENT),
-    };
+    const rawFavs = window.localStorage.getItem(FAVORITES_KEY);
+    if (rawFavs) {
+      const parsed: unknown = JSON.parse(rawFavs);
+      if (Array.isArray(parsed)) {
+        state.favoriteCommands = parsed.filter(id => typeof id === 'string');
+      }
+    }
   } catch {
     // Persistence is best-effort
   }
@@ -75,6 +80,15 @@ function persistRecent(recentCommands: RecentCommand[]) {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(RECENT_KEY, JSON.stringify(recentCommands));
+  } catch {
+    // Best-effort
+  }
+}
+
+function persistFavorites(favoriteCommands: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteCommands));
   } catch {
     // Best-effort
   }
@@ -132,6 +146,20 @@ export function recordRecentCommand(command: Omit<RecentCommand, 'timestamp'>) {
 
   persistRecent(recentCommands);
   setState({ ...state, recentCommands });
+}
+
+export function toggleFavoriteCommand(id: string) {
+  hydrate();
+
+  let favoriteCommands = [...state.favoriteCommands];
+  if (favoriteCommands.includes(id)) {
+    favoriteCommands = favoriteCommands.filter(favId => favId !== id);
+  } else {
+    favoriteCommands = [id, ...favoriteCommands];
+  }
+
+  persistFavorites(favoriteCommands);
+  setState({ ...state, favoriteCommands });
 }
 
 // ---------------------------------------------------------------------------

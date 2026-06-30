@@ -31,20 +31,46 @@ import { useTheme } from '@/lib/theme';
 import {
   closeCommandPalette,
   recordRecentCommand,
+  toggleFavoriteCommand,
   setCommandPaletteOpen,
   useCommandPalette,
 } from '@/lib/command-palette-store';
 import { requestOpenNotificationCenter } from '@/lib/notification-center-store';
+import { useEvents } from '@/lib/use-events';
+import { EVENT_TEMPLATES } from '@/lib/templates';
+import { Star } from 'lucide-react';
+
+
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>;
+  
+  // Simple regex to split text by query (case-insensitive)
+  const regex = new RegExp(`(${query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+  const parts = text.split(regex);
+  
+  return (
+    <>
+      {parts.map((part, i) => 
+        regex.test(part) ? <span key={i} className="text-brand font-bold">{part}</span> : <span key={i}>{part}</span>
+      )}
+    </>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export type CommandGroup =
+  | 'Events'
+  | 'Templates'
   | 'Navigation'
-  | 'Event Actions'
+  | 'Actions'
   | 'AI'
   | 'Appearance'
+  | 'Account'
+  | 'Settings'
   | 'Utilities';
 
 export type CommandItem = {
@@ -56,6 +82,10 @@ export type CommandItem = {
   shortcut?: string[];
   /** badge to show (e.g. "Soon") */
   badge?: string;
+  /** text to show on the far right (e.g. "Event", "Template") */
+  typeLabel?: string;
+  /** secondary text on the far right (e.g. "Yesterday", "5 activities") */
+  metaLabel?: string;
   /** if true, the command is non-actionable (coming soon) */
   disabled?: boolean;
   action: () => void;
@@ -68,16 +98,48 @@ export type CommandItem = {
 function buildCommands(
   router: ReturnType<typeof useRouter>,
   setTheme: (t: 'light' | 'dark' | 'system') => void,
+  events: any[] = [],
 ): CommandItem[] {
+  const eventCommands = events.map(event => ({
+    id: `event-${event._id}`,
+    title: event.name,
+    description: 'Interactive session',
+    typeLabel: 'Event',
+    metaLabel: new Date(event.createdAt).toLocaleDateString(),
+    group: 'Events' as CommandGroup,
+    icon: CalendarDays,
+    action: () => {
+      closeCommandPalette();
+      router.push(`/dashboard/events/${event._id}`);
+    }
+  }));
+
+  const templateCommands = EVENT_TEMPLATES.map(t => ({
+    id: `template-${t.id}`,
+    title: t.name,
+    description: t.description,
+    typeLabel: 'Template',
+    metaLabel: `${t.activities.length} activities`,
+    group: 'Templates' as CommandGroup,
+    icon: t.icon,
+    action: () => {
+      closeCommandPalette();
+      router.push(`/dashboard/events/new?templateId=${t.id}`);
+    }
+  }));
+
   const nav = (href: string) => () => {
     closeCommandPalette();
     router.push(href);
   };
 
   return [
+    ...eventCommands,
+    ...templateCommands,
     // ── Navigation ──────────────────────────────────────────────────────────
     {
       id: 'nav-dashboard',
+      typeLabel: 'Action',
       title: 'Dashboard',
       description: 'Go to your event workspace',
       group: 'Navigation',
@@ -105,6 +167,7 @@ function buildCommands(
     },
     {
       id: 'nav-settings',
+      typeLabel: 'Settings',
       title: 'Settings',
       description: 'Manage your account and preferences',
       group: 'Navigation',
@@ -133,9 +196,10 @@ function buildCommands(
     // ── Event Actions ────────────────────────────────────────────────────────
     {
       id: 'event-create',
+      typeLabel: 'Action',
       title: 'Create Event',
       description: 'Start a new interactive event',
-      group: 'Event Actions',
+      group: 'Actions',
       icon: Plus,
       shortcut: ['C', 'E'],
       action: nav('/dashboard/events/new'),
@@ -144,7 +208,7 @@ function buildCommands(
       id: 'event-browse',
       title: 'Browse Events',
       description: 'View all your events and sessions',
-      group: 'Event Actions',
+      group: 'Actions',
       icon: FolderOpen,
       action: nav('/dashboard'),
     },
@@ -152,6 +216,7 @@ function buildCommands(
     // ── AI ───────────────────────────────────────────────────────────────────
     {
       id: 'ai-studio',
+      typeLabel: 'Action',
       title: 'Open AI Studio',
       description: 'Generate activities with the Pulse AI',
       group: 'AI',
@@ -192,6 +257,8 @@ function buildCommands(
     },
     {
       id: 'ai-summary',
+      typeLabel: 'Analytics',
+      shortcut: ['Cmd', 'A'],
       title: 'AI Summary',
       description: 'View AI-generated session summaries',
       group: 'AI',
@@ -306,20 +373,29 @@ function fuzzyMatch(item: CommandItem, rawQuery: string): boolean {
 // ---------------------------------------------------------------------------
 
 const GROUP_ORDER: CommandGroup[] = [
+  'Actions',
+  'Events',
+  'Templates',
   'Navigation',
-  'Event Actions',
   'AI',
+  'Account',
+  'Settings',
   'Appearance',
   'Utilities',
 ];
 
 function groupIcon(group: CommandGroup): React.ElementType {
   switch (group) {
-    case 'Navigation': return LayoutDashboard;
-    case 'Event Actions': return CalendarDays;
+    case 'Events': return CalendarDays;
+    case 'Templates': return LayoutDashboard;
+    case 'Actions': return Plus;
+    case 'Navigation': return Globe;
     case 'AI': return Sparkles;
+    case 'Account': return User;
+    case 'Settings': return Settings;
     case 'Appearance': return Sun;
     case 'Utilities': return Settings;
+    default: return Settings;
   }
 }
 
@@ -345,13 +421,17 @@ function KbdBadge({ keys }: { keys: string[] }) {
 function CommandRow({
   item,
   isHighlighted,
+  isFavorite,
   onSelect,
   onMouseEnter,
+  onToggleFavorite,
 }: {
   item: CommandItem;
   isHighlighted: boolean;
+  isFavorite?: boolean;
   onSelect: () => void;
   onMouseEnter: () => void;
+  onToggleFavorite?: () => void;
 }) {
   const Icon = item.icon;
 
@@ -364,7 +444,7 @@ function CommandRow({
       aria-disabled={item.disabled}
       disabled={item.disabled}
       className={cn(
-        'flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors duration-fast ease-standard',
+        'group flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors duration-fast ease-standard',
         'focus-visible:outline-none',
         isHighlighted
           ? 'bg-brand-subtle text-brand-subtle-text'
@@ -390,14 +470,24 @@ function CommandRow({
 
       {/* Text */}
       <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2">
-          <span className="block truncate text-sm font-semibold leading-tight text-foreground">
-            {item.title}
-          </span>
-          {item.badge && (
-            <span className="shrink-0 rounded-full bg-surface-sunken px-1.5 py-0.5 text-2xs font-semibold text-ink-muted">
-              {item.badge}
+        <span className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-2">
+            <span className="block truncate text-sm font-semibold leading-tight text-foreground">
+              <HighlightedText text={item.title} query={(document.getElementById('cmd-palette-input') as HTMLInputElement)?.value || ''} />
             </span>
+            {item.badge && (
+              <span className="shrink-0 rounded-full bg-surface-sunken px-1.5 py-0.5 text-2xs font-semibold text-ink-muted">
+                {item.badge}
+              </span>
+            )}
+          </span>
+          
+          {(item.typeLabel || item.metaLabel) && (
+             <span className="flex items-center gap-2 shrink-0 text-xs text-ink-faint">
+               {item.typeLabel && <span className="font-medium text-ink-muted">{item.typeLabel}</span>}
+               {item.typeLabel && item.metaLabel && <span>•</span>}
+               {item.metaLabel && <span>{item.metaLabel}</span>}
+             </span>
           )}
         </span>
         <span className="block truncate text-xs text-ink-muted mt-0.5">
@@ -406,6 +496,17 @@ function CommandRow({
       </span>
 
       {/* Shortcut */}
+      {onToggleFavorite && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+          className={cn('ml-2 p-1.5 rounded-md hover:bg-surface-card transition-opacity',
+            isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+          )}
+        >
+          <Star className={cn('h-4 w-4', isFavorite ? 'fill-amber-400 text-amber-400' : 'text-ink-muted')} />
+        </button>
+      )}
+
       {item.shortcut && <KbdBadge keys={item.shortcut} />}
     </button>
   );
@@ -426,28 +527,51 @@ function GroupHeader({ label, icon: Icon }: { label: string; icon: React.Element
 // Main component
 // ---------------------------------------------------------------------------
 
+const TABS = ['All', 'Events', 'Templates', 'Actions'];
+
 export function CommandPalette() {
-  const { open, recentCommands } = useCommandPalette();
+  const { open, recentCommands, favoriteCommands } = useCommandPalette();
   const router = useRouter();
   const { setTheme } = useTheme();
+  
+  const { data: events } = useEvents();
 
   const [query, setQuery] = React.useState('');
   const [highlightedIndex, setHighlightedIndex] = React.useState(0);
+  const [activeTab, setActiveTab] = React.useState<string>(TABS[0] as string);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
 
   // Build the command list (memoised so it only rebuilds when deps change)
   const allCommands = React.useMemo(
-    () => buildCommands(router, setTheme),
-    [router, setTheme],
+    () => buildCommands(router, setTheme, events || []),
+    [router, setTheme, events],
   );
 
-  // Filter by query
-  const filteredCommands = React.useMemo(
-    () => allCommands.filter((cmd) => fuzzyMatch(cmd, query)),
-    [allCommands, query],
-  );
+  // Filter by query and tab
+  const filteredCommands = React.useMemo(() => {
+    let filtered = allCommands.filter((cmd) => fuzzyMatch(cmd, query));
+    if (activeTab !== 'All') {
+      if (activeTab === 'Events') filtered = filtered.filter(c => c.group === 'Events');
+      if (activeTab === 'Templates') filtered = filtered.filter(c => c.group === 'Templates');
+      if (activeTab === 'Actions') filtered = filtered.filter(c => c.group === 'Actions' || c.group === 'AI');
+    }
+    
+    // Remove favorites from normal filtered results so they can be shown in their own section
+    if (!query.trim()) {
+      filtered = filtered.filter(c => !favoriteCommands.includes(c.id));
+    }
+    return filtered;
+  }, [allCommands, query, activeTab, favoriteCommands]);
+  
+  // Resolve favorites
+  const resolvedFavorites = React.useMemo(() => {
+    if (query.trim() || activeTab !== 'All') return [];
+    return favoriteCommands
+      .map(id => allCommands.find(c => c.id === id))
+      .filter((c): c is CommandItem => !!c);
+  }, [query, activeTab, favoriteCommands, allCommands]);
 
   // Build grouped view
   const groupedCommands = React.useMemo(() => {
@@ -467,24 +591,25 @@ export function CommandPalette() {
 
   // Recent commands (resolved to full command objects)
   const resolvedRecent = React.useMemo(() => {
-    if (query.trim()) return []; // hide recent when searching
+    if (query.trim() || activeTab !== 'All') return []; 
     return recentCommands
       .map((r) => allCommands.find((c) => c.id === r.id))
-      .filter((c): c is CommandItem => !!c)
+      .filter((c): c is CommandItem => !!c && !favoriteCommands.includes(c.id))
       .slice(0, 5);
-  }, [query, recentCommands, allCommands]);
+  }, [query, activeTab, recentCommands, allCommands, favoriteCommands]);
 
   // Combined list for keyboard navigation: recent first (when visible), then filtered
-  const navList = React.useMemo(
-    () => (resolvedRecent.length && !query.trim() ? resolvedRecent : flatList),
-    [resolvedRecent, flatList, query],
-  );
+  const navList = React.useMemo(() => {
+    if (query.trim() || activeTab !== 'All') return flatList;
+    return [...resolvedFavorites, ...resolvedRecent, ...flatList];
+  }, [resolvedFavorites, resolvedRecent, flatList, query, activeTab]);
 
   // Reset state when opening
   React.useEffect(() => {
     if (open) {
       setQuery('');
       setHighlightedIndex(0);
+      setActiveTab('All');
       // Defer focus so Radix has time to mount the dialog
       const t = window.setTimeout(() => inputRef.current?.focus(), 10);
       return () => window.clearTimeout(t);
@@ -494,7 +619,7 @@ export function CommandPalette() {
   // Reset highlight when list changes
   React.useEffect(() => {
     setHighlightedIndex(0);
-  }, [query]);
+  }, [query, activeTab]);
 
   // Scroll highlighted item into view
   React.useEffect(() => {
@@ -528,6 +653,16 @@ export function CommandPalette() {
 
   // Keyboard navigation inside the palette
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      setActiveTab(prev => {
+        const idx = TABS.indexOf(prev);
+        const nextIdx = e.shiftKey ? (idx - 1 + TABS.length) % TABS.length : (idx + 1) % TABS.length;
+        return TABS[nextIdx] as string;
+      });
+      return;
+    }
+    
     switch (e.key) {
       case 'ArrowDown': {
         e.preventDefault();
@@ -613,6 +748,7 @@ export function CommandPalette() {
             </DialogPrimitive.Description>
             <input
               ref={inputRef}
+              id="cmd-palette-input"
               type="text"
               role="combobox"
               aria-expanded={open}
@@ -643,6 +779,23 @@ export function CommandPalette() {
             </DialogPrimitive.Close>
           </div>
 
+
+          {/* Tabs */}
+          <div className="flex items-center gap-1 border-b border-border px-4 py-2">
+            {TABS.map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "px-3 py-1 text-xs font-semibold rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  activeTab === tab ? "bg-foreground text-background" : "text-ink-muted hover:text-foreground hover:bg-surface-sunken"
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
           {/* Results */}
           <div
             ref={listRef}
@@ -668,19 +821,45 @@ export function CommandPalette() {
               </div>
             )}
 
-            {/* Recent commands */}
-            {showRecent && (
-              <section aria-label="Recent commands">
-                <GroupHeader label="Recent" icon={CalendarDays} />
-                {resolvedRecent.map((item, idx) => (
+            {/* Favorites */}
+            {resolvedFavorites.length > 0 && (
+              <section aria-label="Favorites">
+                <GroupHeader label="Favorites" icon={Star} />
+                {resolvedFavorites.map((item, idx) => (
                   <CommandRow
                     key={item.id}
                     item={item}
                     isHighlighted={highlightedIndex === idx}
                     onSelect={() => executeCommand(item)}
                     onMouseEnter={() => setHighlightedIndex(idx)}
+                    isFavorite={favoriteCommands.includes(item.id)}
+                    onToggleFavorite={() => toggleFavoriteCommand(item.id)}
                   />
                 ))}
+                {(resolvedRecent.length > 0 || flatList.length > 0) && (
+                  <div className="mx-3 my-2 border-t border-border" />
+                )}
+              </section>
+            )}
+
+            {/* Recent commands */}
+            {showRecent && (
+              <section aria-label="Recent commands">
+                <GroupHeader label="Recent" icon={CalendarDays} />
+                {resolvedRecent.map((item, idx) => {
+                  const navIdx = resolvedFavorites.length + idx;
+                  return (
+                    <CommandRow
+                      key={item.id}
+                      item={item}
+                      isHighlighted={highlightedIndex === navIdx}
+                      onSelect={() => executeCommand(item)}
+                      onMouseEnter={() => setHighlightedIndex(navIdx)}
+                      isFavorite={favoriteCommands.includes(item.id)}
+                      onToggleFavorite={() => toggleFavoriteCommand(item.id)}
+                    />
+                  );
+                })}
 
                 {/* Divider before grouped commands */}
                 {flatList.length > 0 && (
@@ -698,10 +877,10 @@ export function CommandPalette() {
 
                   const Icon = groupIcon(group);
 
-                  // Offset for keyboard nav: recent commands come first
-                  const groupOffset = showRecent
-                    ? resolvedRecent.length
-                    : 0;
+                  // Offset for keyboard nav
+                  const groupOffset = (query.trim() || activeTab !== 'All')
+                    ? 0
+                    : resolvedFavorites.length + resolvedRecent.length;
 
                   return (
                     <section key={group} aria-label={group}>
@@ -719,6 +898,8 @@ export function CommandPalette() {
                             isHighlighted={highlightedIndex === navIdx}
                             onSelect={() => executeCommand(item)}
                             onMouseEnter={() => setHighlightedIndex(navIdx)}
+                            isFavorite={favoriteCommands.includes(item.id)}
+                            onToggleFavorite={() => toggleFavoriteCommand(item.id)}
                           />
                         );
                       })}
