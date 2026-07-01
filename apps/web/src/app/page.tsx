@@ -568,7 +568,7 @@ export default function LandingPage() {
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-card text-brand shadow-lg">
                   <Sparkles className="h-6 w-6" />
                 </div>
-                <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-bold tracking-tight text-ink-on-dark sm:text-4xl">
+                <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-bold tracking-tight text-ink-primary sm:text-4xl">
                   Ready to make your next session interactive?
                 </h2>
                 <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-ink-muted">
@@ -585,7 +585,7 @@ export default function LandingPage() {
                     asChild
                     size="xl"
                     variant="outline"
-                    className="border-border bg-transparent text-ink-on-dark hover:bg-surface-card/10 hover:text-ink-on-dark"
+                    className="border-border bg-transparent text-ink-primary hover:bg-surface-card/10 hover:text-ink-primary"
                   >
                     <Link href="/login">Log in</Link>
                   </Button>
