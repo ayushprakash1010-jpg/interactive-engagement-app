@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { QuizRunPanel } from '@/components/poll/quiz-run-panel';
 import { FeedbackRunPanel } from '@/components/poll/feedback-run-panel';
 import { WordCloudRunPanel } from '@/components/poll/wordcloud-run-panel';
+import { SurveyRunPanel } from '@/components/poll/survey-run-panel';
 import {
   ActionGroup,
   BackLink,
@@ -499,6 +500,10 @@ export default function EventDetailPage() {
 
     if (activity.type === 'wordcloud') {
       return <WordCloudRunPanel activity={activity} />;
+    }
+
+    if (activity.type === 'survey') {
+      return <SurveyRunPanel activity={activity} eventId={id} />;
     }
 
     return <PollRunPanel activity={activity} />;

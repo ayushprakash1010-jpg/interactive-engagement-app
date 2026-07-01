@@ -6,6 +6,7 @@ import { ConnectionStatus } from '@/components/connection-status';
 import { ProjectorQaView } from '@/components/projector/projector-qa-view';
 import { QuizProjectorView } from '@/components/projector/quiz-projector-view';
 import { WordCloudProjectorView } from '@/components/projector/wordcloud-projector-view';
+import { SurveyProjectorView } from '@/components/poll/survey-projector-view';
 import { EmptyState, SurfacePanel } from '@/components/ui';
 import { useEventRealtime } from '@/lib/use-event-realtime';
 import { usePoll } from '@/hooks/use-poll';
@@ -50,6 +51,7 @@ export default function PresenterPage() {
   const showQuiz = hasQuizState;
   const showWordCloud = activeActivity && activeActivity.type === 'wordcloud';
   const showFeedback = activeActivity && activeActivity.type === 'feedback';
+  const showSurvey = activeActivity && activeActivity.type === 'survey';
   const answeredQuestions = allQuestions.filter(
     (question) => question.status === 'answered',
   );
@@ -198,6 +200,10 @@ export default function PresenterPage() {
               words={wordCloudWords}
             />
           </section>
+        )}
+
+        {showSurvey && activeActivity && (
+          <SurveyProjectorView activity={activeActivity} eventCode={code} />
         )}
 
         <section className="mx-auto w-full max-w-[92rem]">

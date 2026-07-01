@@ -61,6 +61,14 @@ export class SurveySessionController {
     return this.surveySessionService.getSession(activityId, participantAnonId);
   }
 
+  @Get('stats')
+  async getStats(
+    @Param('eventId') eventId: string,
+    @Param('activityId') activityId: string,
+  ) {
+    return this.surveySessionService.getStats(activityId);
+  }
+
   @Patch('answer')
   @HttpCode(HttpStatus.OK)
   async saveAnswer(

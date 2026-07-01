@@ -85,4 +85,13 @@ export class SurveySessionService {
 
     return session;
   }
+
+  async getStats(activityId: string): Promise<{ started: number; completed: number }> {
+    const [started, completed] = await Promise.all([
+      this.surveySessionModel.countDocuments({ activityId: new Types.ObjectId(activityId) }).exec(),
+      this.surveySessionModel.countDocuments({ activityId: new Types.ObjectId(activityId), status: 'completed' }).exec(),
+    ]);
+
+    return { started, completed };
+  }
 }
