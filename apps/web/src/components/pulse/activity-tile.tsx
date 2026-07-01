@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export type ActivityType = 'poll' | 'quiz' | 'wordcloud' | 'qa' | 'feedback' | 'ai';
+export type ActivityType = 'poll' | 'quiz' | 'wordcloud' | 'qa' | 'feedback' | 'ai' | 'survey';
 
 const TONES: Record<ActivityType, string> = {
   poll: 'text-data-1 bg-[color-mix(in_srgb,var(--data-1)_12%,white)]',
@@ -11,6 +11,7 @@ const TONES: Record<ActivityType, string> = {
   wordcloud: 'text-data-7 bg-[color-mix(in_srgb,var(--data-7)_12%,white)]',
   qa: 'text-data-6 bg-[color-mix(in_srgb,var(--data-6)_12%,white)]',
   feedback: 'text-data-3 bg-[color-mix(in_srgb,var(--data-3)_14%,white)]',
+  survey: 'text-data-2 bg-[color-mix(in_srgb,var(--data-2)_14%,white)]',
   ai: 'text-ai bg-ai-subtle',
 };
 

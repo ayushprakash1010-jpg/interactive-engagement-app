@@ -11,6 +11,12 @@ export type NotificationType =
   | 'quiz-finished'
   | 'wordcloud-launched'
   | 'feedback-launched'
+  | 'survey-created'
+  | 'survey-published'
+  | 'survey-started'
+  | 'survey-completed'
+  | 'survey-closed'
+  | 'ai-survey-generated'
   | 'ai-poll-generated'
   | 'ai-quiz-generated'
   | 'ai-feedback-generated'
@@ -159,6 +165,42 @@ const catalog: Record<
     description: 'A feedback form is now live.',
     tone: 'brand',
     category: 'event',
+  },
+  'survey-created': {
+    title: 'Survey Created',
+    description: 'A new survey was created.',
+    tone: 'success',
+    category: 'event',
+  },
+  'survey-published': {
+    title: 'Survey Published',
+    description: 'A survey is ready for participants.',
+    tone: 'info',
+    category: 'event',
+  },
+  'survey-started': {
+    title: 'Survey Started',
+    description: 'A survey is now live.',
+    tone: 'brand',
+    category: 'event',
+  },
+  'survey-completed': {
+    title: 'Survey Completed',
+    description: 'A survey has finished collecting responses.',
+    tone: 'success',
+    category: 'success',
+  },
+  'survey-closed': {
+    title: 'Survey Closed',
+    description: 'The survey was closed.',
+    tone: 'warning',
+    category: 'warning',
+  },
+  'ai-survey-generated': {
+    title: 'AI Survey Generated',
+    description: 'AI generated a survey successfully.',
+    tone: 'ai',
+    category: 'ai',
   },
   'ai-poll-generated': {
     title: 'AI Poll Generated',

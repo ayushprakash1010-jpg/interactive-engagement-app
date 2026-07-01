@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { Toaster } from '@/components/ui/toaster';
-import { CommandPalette } from '@/components/command-palette';
 import { Providers } from '@/lib/providers';
 import type { Theme, ResolvedTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
@@ -44,7 +43,6 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
-          <CommandPalette />
         </Providers>
       </body>
     </html>

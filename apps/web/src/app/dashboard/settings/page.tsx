@@ -691,7 +691,7 @@ export default function SettingsPage() {
               </div>
               
               <div className="space-y-4 border-t border-border pt-4">
-                 <SettingRow label="Auto-generate titles" description="Automatically suggest titles for new polls and quizzes based on context.">
+                 <SettingRow label="Auto-generate titles" description="Automatically suggest titles for new polls, quizzes, and surveys based on context.">
                    <Switch checked={stagedSettings.autoGenerateTitles} onCheckedChange={(v) => updateSetting('autoGenerateTitles', v)} />
                  </SettingRow>
                  <SettingRow label="Remember previous prompts" description="Save recent AI prompts for quick reuse in Studio.">

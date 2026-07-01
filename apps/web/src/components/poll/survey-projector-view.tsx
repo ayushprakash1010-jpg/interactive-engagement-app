@@ -1,13 +1,13 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/events-api';
+import { publicApiFetch } from '@/lib/events-api';
 import { SurfacePanel, EmptyState } from '@/components/ui';
 import { LiveDot } from '@/components/pulse';
 import type { Activity, SurveyConfig } from '@/hooks/use-activities';
 
 interface SurveyProjectorViewProps {
-  activity: Activity;
+  activity: Pick<Activity, '_id' | 'status' | 'config' | 'title'>;
   eventCode: string;
 }
 
@@ -29,7 +29,7 @@ export function SurveyProjectorView({ activity, eventCode }: SurveyProjectorView
       // In the projector, we might not have eventId readily available unless we parse it from somewhere.
       // But we changed the backend to fetch eventId dynamically using activityId. 
       // Thus passing eventCode is perfectly fine for the REST param!
-      return apiFetch<{ started: number; completed: number }>(`events/${eventCode}/activities/${activity._id}/survey/stats`);
+      return publicApiFetch<{ started: number; completed: number }>(`events/${eventCode}/activities/${activity._id}/survey/stats`);
     },
     refetchInterval: isLive ? 3000 : false,
     enabled: isLive || activity.status === 'closed',

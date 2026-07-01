@@ -1,6 +1,7 @@
 import type { Event, CreateEvent, UpdateEvent } from '@iep/types';
 
 const PROXY_BASE = '/api/proxy';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export type EventQr = {
   eventCode: string;
@@ -22,6 +23,39 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   const normalizedPath = path.replace(/^\/+/, '');
 
   const res = await fetch(`${PROXY_BASE}/${normalizedPath}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init?.headers,
+    },
+  });
+
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const body = (await res.json()) as { message?: string | string[] };
+      if (body?.message) {
+        message = Array.isArray(body.message)
+          ? body.message.join(', ')
+          : body.message;
+      }
+    } catch {
+      // keep default message
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
+  return (await res.json()) as T;
+}
+
+export async function publicApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const normalizedPath = path.replace(/^\/+/, '');
+
+  const res = await fetch(`${API_URL}/${normalizedPath}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',

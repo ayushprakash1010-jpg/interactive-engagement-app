@@ -15,6 +15,7 @@ import {
   Trophy,
   Users,
   Zap,
+  ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -59,6 +60,11 @@ const FEATURES = [
     icon: Star,
     title: 'Feedback forms',
     body: 'Rating and open-text feedback captured during or after a session - structured and exportable.',
+  },
+  {
+    icon: ClipboardList,
+    title: 'Surveys',
+    body: 'Multi-step questionnaires perfect for event registration, audience profiling, and comprehensive feedback.',
   },
   {
     icon: LineChart,
@@ -141,6 +147,7 @@ const SHOWCASE_ACTIVITIES = [
   { label: 'Pulse check', type: 'Poll', value: '84%', tone: 'bg-brand' },
   { label: 'Leadership Q&A', type: 'Questions', value: '37', tone: 'bg-ai' },
   { label: 'Product quiz', type: 'Quiz', value: '#1', tone: 'bg-data-3' },
+  { label: 'Event feedback', type: 'Survey', value: '100%', tone: 'bg-data-4' },
 ];
 
 function ProductPreview() {
@@ -201,7 +208,7 @@ function ProductPreview() {
                   Quarterly all-hands
                 </h2>
                 <p className="mt-2 max-w-xl text-sm text-ink-muted">
-                  Polls, Q&A, quiz rounds, and feedback stay in one host view while the room joins
+                  Polls, Q&A, quizzes, surveys, and feedback stay in one host view while the room joins
                   from any device.
                 </p>
               </div>
@@ -318,7 +325,7 @@ export default function LandingPage() {
 
               {/* Slot 2: Description */}
               <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-ink-muted sm:text-xl">
-                Pulse runs live polls, Q&A, quizzes, word clouds, and feedback for meetings,
+                Pulse runs live polls, Q&A, quizzes, word clouds, surveys, and feedback for meetings,
                 webinars, and classrooms. Your audience joins with a code or QR - no app, no login.
               </p>
 

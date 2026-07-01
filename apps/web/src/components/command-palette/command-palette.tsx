@@ -25,6 +25,7 @@ import {
   Sun,
   User,
   X,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
@@ -253,6 +254,14 @@ function buildCommands(
       description: 'Use AI to create a word cloud prompt',
       group: 'AI',
       icon: Cloud,
+      action: nav('/dashboard/ai'),
+    },
+    {
+      id: 'ai-generate-survey',
+      title: 'Generate Survey',
+      description: 'Use AI to draft a comprehensive survey',
+      group: 'AI',
+      icon: ClipboardList,
       action: nav('/dashboard/ai'),
     },
     {

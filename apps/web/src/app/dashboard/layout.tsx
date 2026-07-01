@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  CalendarDays, 
-  CircleUserRound, 
-  LayoutDashboard, 
-  LogOut, 
-  Sparkles, 
-  BarChart3, 
-  Settings, 
+import {
+  CalendarDays,
+  CircleUserRound,
+  LayoutDashboard,
+  LogOut,
+  Sparkles,
+  BarChart3,
+  Settings,
   HelpCircle,
   PlayCircle,
   Terminal,
@@ -26,6 +26,7 @@ import { useAuth } from '@/lib/use-auth';
 import { useEvents } from '@/lib/use-events';
 import { useGlobalEventScheduler } from '@/lib/use-global-event-scheduler';
 import { openCommandPalette } from '@/lib/command-palette-store';
+import { CommandPalette } from '@/components/command-palette';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Events', icon: LayoutDashboard, exact: true },
@@ -52,7 +53,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { data: events } = useEvents();
   useGlobalEventScheduler();
-  
+
   const draftEvent = events?.find((e) => e.status === 'draft');
 
   const isActive = (href: string, exact?: boolean) =>
@@ -83,43 +84,43 @@ export default function DashboardLayout({
     // Build breadcrumbs for each route
     const breadcrumbs = analyticsMatch
       ? [
-          { label: 'Workspace', href: '/dashboard' },
-          { label: 'Events', href: '/dashboard/events' },
-          { label: 'Event detail', href: `/dashboard/events/${eventId}` },
-          { label: 'Analytics' },
-        ]
+        { label: 'Workspace', href: '/dashboard' },
+        { label: 'Events', href: '/dashboard/events' },
+        { label: 'Event detail', href: `/dashboard/events/${eventId}` },
+        { label: 'Analytics' },
+      ]
       : eventDetailMatch
-      ? [
+        ? [
           { label: 'Workspace', href: '/dashboard' },
           { label: 'Events', href: '/dashboard/events' },
           { label: 'Event detail' },
         ]
-      : isEventsListPage
-      ? [
-          { label: 'Workspace', href: '/dashboard' },
-          { label: 'Events' },
-        ]
-      : isAccountPage
-      ? [
-          { label: 'Workspace', href: '/dashboard' },
-          { label: 'Account' },
-        ]
-      : isAIStudioPage
-      ? [
-          { label: 'Workspace', href: '/dashboard' },
-          { label: 'AI Studio' },
-        ]
-      : isSettingsPage
-      ? [
-          { label: 'Workspace', href: '/dashboard' },
-          { label: 'Settings' },
-        ]
-      : isHelpPage
-      ? [
-          { label: 'Workspace', href: '/dashboard' },
-          { label: 'Help Center' },
-        ]
-      : [{ label: 'Overview' }];
+        : isEventsListPage
+          ? [
+            { label: 'Workspace', href: '/dashboard' },
+            { label: 'Events' },
+          ]
+          : isAccountPage
+            ? [
+              { label: 'Workspace', href: '/dashboard' },
+              { label: 'Account' },
+            ]
+            : isAIStudioPage
+              ? [
+                { label: 'Workspace', href: '/dashboard' },
+                { label: 'AI Studio' },
+              ]
+              : isSettingsPage
+                ? [
+                  { label: 'Workspace', href: '/dashboard' },
+                  { label: 'Settings' },
+                ]
+                : isHelpPage
+                  ? [
+                    { label: 'Workspace', href: '/dashboard' },
+                    { label: 'Help Center' },
+                  ]
+                  : [{ label: 'Overview' }];
 
     const displayName = user?.nickname || user?.name?.split('@')[0] || 'User';
     const displayInitial = displayName?.[0]?.toUpperCase() || 'U';
@@ -171,7 +172,7 @@ export default function DashboardLayout({
             <div className="h-4 w-px bg-border mx-1 hidden sm:block" aria-hidden="true" />
             <div className="flex items-center gap-3">
               {user ? (
-                <div 
+                <div
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand text-xs font-semibold uppercase ring-1 ring-brand/20 shadow-sm"
                   title={displayName}
                 >
@@ -306,6 +307,7 @@ export default function DashboardLayout({
       </header>
 
       <main className="container mx-auto max-w-6xl px-4 py-8">{children}</main>
+      <CommandPalette />
     </div>
   );
 }

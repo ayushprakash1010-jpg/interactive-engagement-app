@@ -17,6 +17,8 @@ import { UsersService } from '../users/users.service';
 import type { AuthenticatedUser } from '../auth/jwt.strategy';
 import { RedisService } from '../realtime/redis.service';
 
+import { SurveySessionDocument, SurveySessionEntity } from '../survey-sessions/survey-session.schema';
+
 type MinuteBucket = {
   minute: string;
   responses: number;
@@ -49,6 +51,8 @@ export class AnalyticsService {
     private readonly questionModel: Model<QuestionDocument>,
     @InjectModel(ParticipantEntity.name)
     private readonly participantModel: Model<ParticipantDocument>,
+    @InjectModel(SurveySessionEntity.name)
+    private readonly surveySessionModel: Model<SurveySessionDocument>,
     private readonly usersService: UsersService,
     private readonly redisService: RedisService,
   ) { }
@@ -180,6 +184,7 @@ export class AnalyticsService {
       qaAnalytics,
       wordCloudAnalytics,
       feedbackAnalytics,
+      surveyAnalytics,
       engagementTimeline,
     ] = await Promise.all([
       this.participantModel.countDocuments({ eventId: eventObjectId }).exec(),
@@ -194,6 +199,7 @@ export class AnalyticsService {
       this.buildQaAnalytics(eventObjectId),
       this.buildWordCloudAnalytics(eventObjectId),
       this.buildFeedbackAnalytics(eventObjectId),
+      this.buildSurveyAnalytics(eventObjectId),
       this.buildEngagementTimeline(eventObjectId),
     ]);
 
@@ -217,6 +223,7 @@ export class AnalyticsService {
       qaAnalytics,
       wordCloudAnalytics,
       feedbackAnalytics,
+      surveyAnalytics,
       engagementTimeline,
     };
   }
@@ -697,6 +704,129 @@ export class AnalyticsService {
           prompt: config?.prompt ?? activity.title,
           totalResponses: responses.length,
           fields,
+        };
+      }),
+    );
+  }
+
+  private async buildSurveyAnalytics(eventId: Types.ObjectId) {
+    const surveyActivities = await this.activityModel
+      .find({ eventId, type: 'survey' })
+      .sort({ order: 1, createdAt: 1 })
+      .lean()
+      .exec();
+
+    return Promise.all(
+      surveyActivities.map(async (activity) => {
+        const [sessions, responses] = await Promise.all([
+          this.surveySessionModel.find({ activityId: activity._id }).lean().exec(),
+          this.responseModel.find({ activityId: activity._id }).lean().exec(),
+        ]);
+
+        const totalStarted = sessions.length;
+        const completedSessions = sessions.filter(s => s.status === 'completed');
+        const totalCompleted = completedSessions.length;
+        
+        let totalTimeSec = 0;
+        let validTimeCount = 0;
+        for (const s of completedSessions) {
+          if (s.startedAt && s.completedAt) {
+            const ms = s.completedAt.getTime() - s.startedAt.getTime();
+            if (ms > 0) {
+              totalTimeSec += ms / 1000;
+              validTimeCount++;
+            }
+          }
+        }
+        const averageCompletionTimeSec = validTimeCount > 0 ? Number((totalTimeSec / validTimeCount).toFixed(1)) : 0;
+        const completionRate = totalStarted > 0 ? Number(((totalCompleted / totalStarted) * 100).toFixed(1)) : 0;
+        const abandonmentRate = totalStarted > 0 ? Number((((totalStarted - totalCompleted) / totalStarted) * 100).toFixed(1)) : 0;
+
+        const config = activity.config as any;
+        const configuredQuestions = Array.isArray(config?.questions) ? config.questions : [];
+        
+        const questions = configuredQuestions.map((question: any) => {
+          const qResponses = responses.filter(r => r.surveyQuestionId === question.id);
+          const qTotalResponses = qResponses.length;
+          const pollType = question.type;
+          
+          if (pollType === 'open') {
+            return {
+              activityId: activity._id.toString(), // map to the ActivityID to reuse Poll types
+              title: question.title,
+              pollType,
+              totalResponses: qTotalResponses,
+              responses: qResponses
+                .map((r) => r.textValue)
+                .filter((value): value is string => Boolean(value?.trim())),
+            };
+          }
+
+          if (pollType === 'rating') {
+            const distributionMap = new Map<number, number>();
+            for (const r of qResponses) {
+              if (typeof r.ratingValue === 'number') {
+                distributionMap.set(r.ratingValue, (distributionMap.get(r.ratingValue) ?? 0) + 1);
+              }
+            }
+            const distribution = Object.fromEntries(
+              Array.from(distributionMap.entries())
+                .sort((a, b) => a[0] - b[0])
+                .map(([rating, count]) => [String(rating), count]),
+            );
+            const ratingResponses = qResponses.filter((r) => typeof r.ratingValue === 'number');
+            const average = ratingResponses.length === 0
+              ? 0
+              : Number((ratingResponses.reduce((sum, r) => sum + (r.ratingValue as number), 0) / ratingResponses.length).toFixed(2));
+            return {
+              activityId: activity._id.toString(),
+              title: question.title,
+              pollType,
+              totalResponses: qTotalResponses,
+              average,
+              distribution,
+            };
+          }
+
+          // Single / Multiple choice
+          const optionCounts = new Map<string, number>();
+          const configuredOptions = Array.isArray(question.options) ? question.options : [];
+          for (const opt of configuredOptions) {
+            optionCounts.set(opt.id, 0);
+          }
+          for (const r of qResponses) {
+            const selected = Array.isArray(r.selectedOptionIds) ? r.selectedOptionIds : [];
+            for (const optId of selected) {
+              optionCounts.set(optId, (optionCounts.get(optId) ?? 0) + 1);
+            }
+          }
+          const totalVotes = Array.from(optionCounts.values()).reduce((sum, c) => sum + c, 0);
+          return {
+            activityId: activity._id.toString(),
+            title: question.title,
+            pollType,
+            totalResponses: qTotalResponses,
+            options: configuredOptions.map((opt: any) => {
+              const count = optionCounts.get(opt.id) ?? 0;
+              return {
+                id: opt.id,
+                label: opt.label,
+                count,
+                percentage: totalVotes === 0 ? 0 : Number((count / totalVotes).toFixed(4)),
+              };
+            }),
+          };
+        });
+
+        return {
+          activityId: activity._id.toString(),
+          title: activity.title,
+          totalStarted,
+          totalCompleted,
+          completionRate,
+          abandonmentRate,
+          averageCompletionTimeSec,
+          questions,
         };
       }),
     );

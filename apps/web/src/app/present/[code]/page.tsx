@@ -203,7 +203,7 @@ export default function PresenterPage() {
         )}
 
         {showSurvey && activeActivity && (
-          <SurveyProjectorView activity={activeActivity} eventCode={code} />
+          <SurveyProjectorView activity={activeActivity as any} eventCode={code} />
         )}
 
         <section className="mx-auto w-full max-w-[92rem]">

@@ -8,6 +8,7 @@ import { ActivityEntity } from "../activities/activity.schema";
 import { ResponseEntity } from "../responses/response.schema";
 import { QuestionEntity } from "../questions/question.schema";
 import { ParticipantEntity } from "../participants/participant.schema";
+import { SurveySessionEntity } from "../survey-sessions/survey-session.schema";
 import { UsersService } from "../users/users.service";
 import { RedisService } from "../realtime/redis.service";
 
@@ -55,6 +56,11 @@ describe("AnalyticsService", () => {
     find: jest.fn(),
   };
 
+  const mockSurveySessionModel = {
+    countDocuments: jest.fn(),
+    find: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -73,18 +79,10 @@ describe("AnalyticsService", () => {
           provide: getModelToken(ResponseEntity.name),
           useValue: mockResponseModel,
         },
-        {
-          provide: getModelToken(QuestionEntity.name),
-          useValue: mockQuestionModel,
-        },
-        {
-          provide: getModelToken(ParticipantEntity.name),
-          useValue: mockParticipantModel,
-        },
-        {
-          provide: UsersService,
-          useValue: mockUsersService,
-        },
+        { provide: getModelToken(QuestionEntity.name), useValue: mockQuestionModel },
+        { provide: getModelToken(ParticipantEntity.name), useValue: mockParticipantModel },
+        { provide: getModelToken(SurveySessionEntity.name), useValue: mockSurveySessionModel },
+        { provide: UsersService, useValue: mockUsersService },
         {
           provide: RedisService,
           useValue: mockRedisService,

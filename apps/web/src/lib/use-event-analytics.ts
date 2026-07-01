@@ -86,6 +86,18 @@ export type FeedbackAnalytics = {
   totalResponses: number;
 };
 
+export type SurveyAnalytics = {
+  activityId: string;
+  title: string;
+  totalStarted: number;
+  totalCompleted: number;
+  averageCompletionTimeSec: number;
+  completionRate: number;
+  abandonmentRate: number;
+  questions: PollAnalytics[];
+};
+
+
 export type EngagementPoint = {
   minute: string;
   responses: number;
@@ -106,6 +118,7 @@ export type EventAnalytics = {
   qaAnalytics: QaAnalytics;
   wordCloudAnalytics: WordCloudAnalytics[];
   feedbackAnalytics: FeedbackAnalytics[];
+  surveyAnalytics: SurveyAnalytics[];
   engagementTimeline: EngagementPoint[];
 };
 

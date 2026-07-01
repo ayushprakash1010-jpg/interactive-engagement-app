@@ -249,6 +249,43 @@ Topic: ${topic}
     );
   }
 
+  async generateSurvey(topic: string, userId: string) {
+    return this.generateJson(
+      `
+Generate ONE professional survey consisting of 2-5 questions.
+Optimize for event workflows (e.g. Registration, Feedback, Profiling).
+
+Rules:
+- Questions can be 'single', 'multiple', 'rating', or 'open'.
+- Each 'single' or 'multiple' question MUST have an "options" array with strings.
+- Each option maximum 50 characters.
+- Return ONLY valid JSON.
+
+Topic: ${topic}
+
+{
+  "questions": [
+    {
+      "pollType": "single",
+      "title": "string",
+      "options": ["", ""]
+    },
+    {
+      "pollType": "rating",
+      "title": "string"
+    },
+    {
+      "pollType": "open",
+      "title": "string"
+    }
+  ]
+}
+`,
+      'generate survey',
+      userId,
+    );
+  }
+
   async generateFeedback(topic: string, userId: string) {
     return this.generateJson(
       `
@@ -431,18 +468,44 @@ The JSON must follow this exact structure (the "activities" array contains 2-4 i
           { "id": "text-1", "type": "text", "label": "string" }
         ]
       }
+    },
+    {
+      "type": "survey",
+      "title": "string",
+      "description": "string",
+      "config": {
+        "questions": [
+          {
+            "id": "q1",
+            "pollType": "single",
+            "title": "string",
+            "options": [
+              { "id": "q1-opt1", "label": "string" },
+              { "id": "q1-opt2", "label": "string" }
+            ],
+            "required": true
+          },
+          {
+            "id": "q2",
+            "pollType": "open",
+            "title": "string",
+            "required": false
+          }
+        ]
+      }
     }
   ]
 }
 
 CRITICAL RULES — violation will break the application:
 - Generate between 2 and 4 activities total.
-- Allowed activity types: poll, quiz, wordcloud, feedback. No other types.
-- Include at least one poll or quiz.
+- Allowed activity types: poll, quiz, wordcloud, feedback, survey. No other types.
+- Include at least one poll, quiz, or survey.
 - POLL: must have exactly 4 options; each option "id" must be a unique non-empty string.
 - QUIZ: each question MUST have a unique "id" field (e.g. "question-1"). Each option in a question MUST have a unique "id" scoped to that question (e.g. "q1-option-1", "q1-option-2"). The "correctOptionId" value MUST exactly match one of the option "id" strings listed in that same question — do NOT use an integer index. "points" and "timeLimitSec" must be whole integers (no decimals).
 - WORDCLOUD: must include "prompt" (non-empty string) and "maxWordsPerParticipant" (whole integer between 1 and 20).
 - FEEDBACK: must include "prompt" (non-empty string) and "fields" array with at least 1 item. Each field "type" must be exactly "rating" or "text".
+- SURVEY: must include "questions" array with at least 1 item. Each question must have a unique "id". "pollType" can be "single", "multiple", "rating", or "open". If type is "single" or "multiple", it MUST have an "options" array. Each option MUST have a unique "id".
 - All "id" fields must be non-empty strings.
 - All title, description, and text fields must be non-empty strings.
 `,

@@ -39,7 +39,7 @@ export function SiteFooter() {
               <Wordmark width={116} />
             </Link>
             <p className="mt-4 text-sm leading-6 text-ink-muted">
-              Pulse turns any audience into a conversation - live polls, Q&A, quizzes, word clouds,
+              Pulse turns any audience into a conversation - live polls, Q&A, quizzes, word clouds, and surveys
               and feedback for meetings, webinars, and classrooms.
             </p>
             <a

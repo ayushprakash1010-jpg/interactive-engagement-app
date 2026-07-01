@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '@/lib/events-api';
+import { publicApiFetch } from '@/lib/events-api';
 
 interface SaveAnswerPayload {
   eventId: string;
@@ -10,12 +10,6 @@ interface SaveAnswerPayload {
   selectedOptionIds?: string[];
   textValue?: string;
   ratingValue?: number;
-}
-
-interface CompleteSessionPayload {
-  eventId: string;
-  activityId: string;
-  participantAnonId: string;
 }
 
 export function useSurveySession(eventId: string, activityId: string, participantAnonId: string | null) {
@@ -32,11 +26,19 @@ export function useSurveySession(eventId: string, activityId: string, participan
       if (!participantAnonId) return null;
       try {
         // Try getting the session first
-        return await apiFetch<any>(`events/${eventId}/activities/${activityId}/survey/session/${participantAnonId}`);
+        const existingSession = await publicApiFetch<any>(`events/${eventId}/activities/${activityId}/survey/session/${participantAnonId}`);
+        if (existingSession) {
+          return existingSession;
+        }
+        // If not found (backend returned null), start it
+        return await publicApiFetch<any>(`events/${eventId}/activities/${activityId}/survey/session`, {
+          method: 'POST',
+          body: JSON.stringify({ participantAnonId }),
+        });
       } catch (err: any) {
         if (err?.status === 404 || err?.message?.includes('not found')) {
-          // If not found, start it
-          return await apiFetch<any>(`events/${eventId}/activities/${activityId}/survey/session`, {
+          // Fallback if backend still throws 404 (e.g. cached response)
+          return await publicApiFetch<any>(`events/${eventId}/activities/${activityId}/survey/session`, {
             method: 'POST',
             body: JSON.stringify({ participantAnonId }),
           });
@@ -74,7 +76,7 @@ export function useSurveySession(eventId: string, activityId: string, participan
 
   const saveMutation = useMutation({
     mutationFn: async (payload: SaveAnswerPayload) => {
-      return apiFetch(`events/${eventId}/activities/${activityId}/survey/answer`, {
+      return publicApiFetch(`events/${eventId}/activities/${activityId}/survey/answer`, {
         method: 'PATCH',
         body: JSON.stringify(payload),
       });
@@ -85,10 +87,10 @@ export function useSurveySession(eventId: string, activityId: string, participan
   });
 
   const completeMutation = useMutation({
-    mutationFn: async (payload: CompleteSessionPayload) => {
-      return apiFetch(`events/${eventId}/activities/${activityId}/survey/complete`, {
+    mutationFn: async () => {
+      return publicApiFetch(`events/${eventId}/activities/${activityId}/survey/complete`, {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ eventId, activityId, participantAnonId }),
       });
     },
     onSuccess: () => {
@@ -122,10 +124,13 @@ export function useSurveySession(eventId: string, activityId: string, participan
     } finally {
       isSaving.current = false;
       if (saveQueue.current.size > 0 && navigator.onLine) {
-        setTimeout(processQueue, 1000); // Debounce next batch
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        debounceTimer.current = setTimeout(processQueue, 2000); // Backoff for retries
       }
     }
   }, [saveMutation]);
+
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Debounced save queue
   const saveAnswer = useCallback((questionId: string, answer: Partial<SaveAnswerPayload>) => {
@@ -144,16 +149,17 @@ export function useSurveySession(eventId: string, activityId: string, participan
     saveQueue.current.set(questionId, payload);
     setSaveStatus('saving');
 
-    // Debounce processing the queue
-    setTimeout(() => {
-      processQueue();
-    }, 500);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    // Proper debounce: wait 1 second after last keystroke before saving
+    debounceTimer.current = setTimeout(processQueue, 1000);
   }, [eventId, activityId, participantAnonId, isCompleted, processQueue]);
 
   const completeSession = useCallback(() => {
     if (!participantAnonId || isCompleted) return;
-    completeMutation.mutate({ eventId, activityId, participantAnonId });
-  }, [completeMutation, eventId, activityId, participantAnonId, isCompleted]);
+    completeMutation.mutate();
+  }, [completeMutation, participantAnonId, isCompleted]);
 
   return {
     session,

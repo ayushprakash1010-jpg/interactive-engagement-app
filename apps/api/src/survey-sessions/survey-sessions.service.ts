@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { SurveySessionEntity, SurveySessionDocument } from './survey-session.schema';
 import { ActivityService } from '../activities/activity.service';
-import { ResponseService } from '../responses/response.service';
+
 
 export interface StartSurveySessionDto {
   eventId: string;
@@ -23,7 +23,6 @@ export class SurveySessionService {
     @InjectModel(SurveySessionEntity.name)
     private readonly surveySessionModel: Model<SurveySessionDocument>,
     private readonly activityService: ActivityService,
-    private readonly responseService: ResponseService,
   ) {}
 
   async startSession(dto: StartSurveySessionDto): Promise<SurveySessionDocument> {
@@ -58,10 +57,12 @@ export class SurveySessionService {
   }
 
   async getSession(activityId: string, participantAnonId: string): Promise<SurveySessionDocument | null> {
-    return this.surveySessionModel.findOne({
+    const session = await this.surveySessionModel.findOne({
       activityId: new Types.ObjectId(activityId),
       participantAnonId,
     }).exec();
+    
+    return session;
   }
 
   async completeSession(dto: CompleteSurveySessionDto): Promise<SurveySessionDocument> {

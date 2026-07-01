@@ -408,6 +408,43 @@ function AnalyticsSkeleton() {
   );
 }
 
+function SurveySection({
+  survey,
+}: {
+  survey: import("@/hooks/use-analytics").SurveyAnalytic;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-md border p-3">
+          <p className="text-xs font-medium text-muted-foreground">Completion Rate</p>
+          <p className="text-2xl font-bold">{survey.completionRate}%</p>
+          <p className="text-xs text-muted-foreground mt-1">{survey.totalCompleted} of {survey.totalStarted} completed</p>
+        </div>
+        <div className="rounded-md border p-3">
+          <p className="text-xs font-medium text-muted-foreground">Avg. Time</p>
+          <p className="text-2xl font-bold">{survey.averageCompletionTimeSec}s</p>
+          <p className="text-xs text-muted-foreground mt-1">{survey.abandonmentRate}% abandonment</p>
+        </div>
+      </div>
+      {survey.questions.map((q, i) => (
+        <div key={`${q.activityId}-${i}`} className="space-y-2 border-t pt-4">
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <h4 className="text-sm font-medium leading-snug">
+              <span className="text-muted-foreground mr-2">Q{i + 1}.</span>
+              {q.title}
+            </h4>
+            <span className="text-xs text-muted-foreground whitespace-nowrap bg-muted px-2 py-1 rounded">
+              {q.totalResponses} res
+            </span>
+          </div>
+          <PollChart poll={q} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export interface AiReportData {
   executiveSummary: string;
   keyInsights: string[];
@@ -513,6 +550,7 @@ export default function AnalyticsPage() {
     qaAnalytics,
     wordCloudAnalytics,
     feedbackAnalytics,
+    surveyAnalytics,
     engagementTimeline,
   } = report;
 
@@ -527,6 +565,7 @@ Participation Rate: ${formatPercentFromRatio(headlineStats?.participationRate)}
 Questions Asked: ${qaAnalytics?.totalQuestions ?? 0}
 Word Clouds: ${wordCloudAnalytics?.length ?? 0}
 Feedback Forms: ${feedbackAnalytics?.length ?? 0}
+Surveys: ${surveyAnalytics?.length ?? 0}
 Quizzes: ${quizAnalytics?.length ?? 0}
 Polls: ${pollAnalytics?.length ?? 0}
 `;
@@ -872,6 +911,31 @@ Polls: ${pollAnalytics?.length ?? 0}
                 </CardHeader>
                 <CardContent>
                   <FeedbackSection feedback={fb} />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {surveyAnalytics?.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Surveys
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2">
+            {surveyAnalytics.map((survey) => (
+              <Card key={survey.activityId}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {survey.title}
+                  </CardTitle>
+                  <CardDescription>
+                    {survey.totalStarted} started · {survey.totalCompleted} completed
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SurveySection survey={survey} />
                 </CardContent>
               </Card>
             ))}

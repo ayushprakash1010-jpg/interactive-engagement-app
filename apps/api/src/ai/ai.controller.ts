@@ -30,6 +30,11 @@ export class AiController {
     return this.aiService.generateQuiz(body.topic, this.getUserId(req), body.count ?? 1);
   }
 
+  @Post('generate-survey')
+  async generateSurvey(@Body() body: { topic: string }, @Req() req: Request) {
+    return this.aiService.generateSurvey(body.topic, this.getUserId(req));
+  }
+
   @Post('generate-feedback')
   async generateFeedback(@Body() body: { topic: string }, @Req() req: Request) {
     return this.aiService.generateFeedback(body.topic, this.getUserId(req));

@@ -5,12 +5,14 @@ import { SurveySessionService } from './survey-sessions.service';
 import { SurveySessionController } from './survey-sessions.controller';
 import { ActivityModule } from '../activities/activity.module';
 import { ResponseModule } from '../responses/response.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: SurveySessionEntity.name, schema: SurveySessionSchema }]),
     forwardRef(() => ActivityModule),
     forwardRef(() => ResponseModule),
+    RealtimeModule,
   ],
   controllers: [SurveySessionController],
   providers: [SurveySessionService],

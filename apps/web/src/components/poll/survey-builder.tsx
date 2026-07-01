@@ -1,12 +1,14 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Sparkles, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SurfacePanel } from "@/components/ui/surface-panel";
+import { apiFetch } from "@/lib/events-api";
+import { notify } from "@/lib/notification-store";
 import type {
   SurveyConfig,
   SurveyQuestion,
@@ -64,6 +66,9 @@ export function SurveyBuilder({
       : [createQuestion()],
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiTopic, setAiTopic] = useState("");
 
   const updateQuestion = (questionId: string, patch: Partial<SurveyQuestion>) => {
     setQuestions((prev) =>
@@ -177,6 +182,78 @@ export function SurveyBuilder({
     return Object.keys(nextErrors).length === 0;
   };
 
+  const handleGenerateWithAI = async () => {
+    const topic = aiTopic.trim();
+
+    if (!topic) return;
+
+    try {
+      setIsGenerating(true);
+
+      let data: { questions?: any[] } | null = null;
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          data = await apiFetch<{ questions?: any[] }>(
+            "ai/generate-survey",
+            {
+              method: "POST",
+              body: JSON.stringify({ topic }),
+            },
+          );
+          break;
+        } catch (error) {
+          if (attempt === 3) {
+            throw error;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1200));
+        }
+      }
+
+      if (!data || !Array.isArray(data.questions)) {
+        throw new Error("Failed to generate survey after retries");
+      }
+
+      const generatedQuestions: SurveyQuestion[] = data.questions.map((q: any) => {
+        const type = ["single", "multiple", "rating", "open"].includes(q.pollType) ? q.pollType : "single";
+        return {
+          id: uid(),
+          type,
+          text: q.title || "Untitled Question",
+          options: (type === "single" || type === "multiple") && Array.isArray(q.options) 
+            ? q.options.map((opt: any) => ({
+                id: uid(),
+                label: typeof opt === 'string' ? opt : opt?.label || ""
+              }))
+            : undefined,
+          ratingScale: type === "rating" ? 5 : undefined,
+          required: q.required ?? true
+        };
+      });
+
+      if (generatedQuestions.length > 0) {
+        setQuestions(generatedQuestions);
+      }
+
+      if (!title.trim()) {
+        setTitle(`${topic} Survey`);
+      }
+
+      notify({
+        type: "ai-poll-generated",
+        description: "AI generated a survey successfully.",
+        href: window.location.pathname,
+      });
+      setAiTopic("");
+      setShowAiModal(false);
+    } catch (error) {
+      console.error("Survey AI generation failed:", error);
+      alert("AI could not generate the survey right now. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validate()) return;
@@ -218,13 +295,26 @@ export function SurveyBuilder({
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-6">
       <SurfacePanel tone="sunken" className="space-y-4">
-        <div>
-          <h3 className="font-display text-sm font-semibold text-foreground">
-            Survey details
-          </h3>
-          <p className="mt-1 text-xs text-ink-muted">
-            Configure the name and optional welcome/thank you messages.
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-sm font-semibold text-foreground">
+              Survey details
+            </h3>
+            <p className="mt-1 text-xs text-ink-muted">
+              Configure the name and optional welcome/thank you messages.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ai"
+            size="sm"
+            onClick={() => setShowAiModal(true)}
+            disabled={isGenerating || isSaving}
+            loading={isGenerating}
+          >
+            <Sparkles className="h-4 w-4" />
+            Generate with AI
+          </Button>
         </div>
 
         <div className="space-y-1.5">
@@ -493,6 +583,52 @@ export function SurveyBuilder({
           {isEditing ? "Update survey" : "Create survey"}
         </Button>
       </div>
+
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-lg border border-ai-border bg-surface-card p-6 shadow-xl">
+            <div className="mb-4">
+              <h3 className="font-display text-lg font-semibold text-foreground">
+                Generate survey with AI
+              </h3>
+              <p className="mt-1 text-sm text-ink-muted">
+                Enter a topic and AI will draft a full survey for you.
+              </p>
+            </div>
+
+            <Input
+              placeholder="e.g. Workshop Registration"
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              disabled={isGenerating}
+            />
+
+            <div className="mt-4 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowAiModal(false);
+                  setAiTopic("");
+                }}
+                disabled={isGenerating}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                variant="ai"
+                disabled={!aiTopic.trim() || isGenerating}
+                onClick={handleGenerateWithAI}
+                loading={isGenerating}
+              >
+                Generate
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

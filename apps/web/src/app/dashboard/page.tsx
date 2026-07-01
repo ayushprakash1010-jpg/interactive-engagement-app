@@ -32,6 +32,7 @@ import {
   TrendingUp,
   Users,
   Zap,
+  ClipboardList,
 } from 'lucide-react';
 import {
   Button,
@@ -97,9 +98,10 @@ function getNotificationIcon(notification: Notification) {
   const t = notification.type;
   if (t.startsWith('ai-')) return Sparkles;
   if (t.includes('poll')) return RadioTower;
+  if (t.includes('survey')) return ClipboardList;
   if (t.includes('quiz')) return BrainCircuit;
-  if (t.includes('feedback')) return FileText;
   if (t.includes('wordcloud')) return Cloud;
+  if (t.includes('feedback')) return FileText;
   if (t.includes('participant')) return Users;
   if (t.includes('analytics')) return BarChart3;
   if (t.includes('session')) return Clock;
@@ -388,12 +390,14 @@ function AIWorkspacePanel({ notifications }: { notifications: Notification[] }) 
 
   const pollsGen = aiNotifications.filter(n => n.title.toLowerCase().includes('poll')).length;
   const quizGen = aiNotifications.filter(n => n.title.toLowerCase().includes('quiz')).length;
+  const surveyGen = aiNotifications.filter(n => n.title.toLowerCase().includes('survey')).length;
   const feedbackGen = aiNotifications.filter(n => n.title.toLowerCase().includes('feedback')).length;
   const cloudGen = aiNotifications.filter(n => n.title.toLowerCase().includes('word')).length;
 
   const quickGenActions = [
     { icon: RadioTower, label: 'Poll', href: '/dashboard/ai' },
     { icon: BrainCircuit, label: 'Quiz', href: '/dashboard/ai' },
+    { icon: ClipboardList, label: 'Survey', href: '/dashboard/ai' },
     { icon: MessageSquareDashed, label: 'Feedback', href: '/dashboard/ai' },
   ];
 
@@ -428,6 +432,10 @@ function AIWorkspacePanel({ notifications }: { notifications: Notification[] }) 
             <p className="text-[10px] uppercase tracking-wider text-ink-muted mt-1">Quizzes</p>
           </div>
           <div className="rounded-md bg-surface-sunken/50 p-2 border border-border/50">
+            <p className="text-xl font-display font-semibold">{surveyGen}</p>
+            <p className="text-[10px] uppercase tracking-wider text-ink-muted mt-1">Surveys</p>
+          </div>
+          <div className="rounded-md bg-surface-sunken/50 p-2 border border-border/50">
             <p className="text-xl font-display font-semibold">{feedbackGen}</p>
             <p className="text-[10px] uppercase tracking-wider text-ink-muted mt-1">Feedback</p>
           </div>
@@ -450,7 +458,7 @@ function AIWorkspacePanel({ notifications }: { notifications: Notification[] }) 
         {/* Quick generate buttons */}
         <div>
           <p className="mb-2 text-xs font-semibold text-ink-muted">Quick Generate</p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {quickGenActions.map(({ icon: Icon, label, href }) => (
               <Button key={label} asChild variant="outline" size="sm" className="justify-center gap-1.5 h-8 text-xs hover:border-ai/50 hover:bg-ai/5 transition-all">
                 <Link href={href}>
@@ -530,7 +538,7 @@ function WorkspaceEmptyState() {
     <EmptyState
       icon={<LayoutDashboard className="h-8 w-8 text-brand" />}
       title="Welcome to Pulse"
-      description="Create your first event to start engaging your audience with live polls, quizzes, word clouds, and Q&amp;A — all in real time."
+      description="Create your first event to start engaging your audience with live polls, quizzes, surveys, word clouds, and Q&amp;A — all in real time."
       className="py-16"
       action={
         <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
@@ -592,6 +600,15 @@ export default function DashboardOverviewPage() {
       icon: BrainCircuit,
       label: 'Generate Quiz',
       description: 'Build a trivia game instantly',
+      color: 'bg-ai-subtle',
+      iconColor: 'text-ai',
+      href: '/dashboard/ai',
+    },
+    {
+      id: 'generate-survey',
+      icon: ClipboardList,
+      label: 'Generate Survey',
+      description: 'Multi-step questionnaires',
       color: 'bg-ai-subtle',
       iconColor: 'text-ai',
       href: '/dashboard/ai',

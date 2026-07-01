@@ -482,13 +482,6 @@ export default function EventDetailPage() {
   };
 
   const renderActivityRunPanel = (activity: Activity) => {
-    if (activity.type === 'survey') {
-      return (
-        <div className="p-4 text-center text-sm text-ink-muted">
-          Survey Host Experience will be implemented in Phase 5.
-        </div>
-      );
-    }
 
     if (activity.type === 'quiz') {
       return <QuizRunPanel activity={activity} eventId={id} />;
@@ -779,7 +772,7 @@ export default function EventDetailPage() {
               <SectionHeader
                 eyebrow="Session complete"
                 title="Analytics available"
-                description="Your session has ended. View the full analytics report including polls, quizzes, word clouds, feedback, and Q&A."
+                description="Your session has ended. View the full analytics report including polls, quizzes, surveys, word clouds, feedback, and Q&A."
                 actions={
                   <Link href={`/dashboard/events/${id}/analytics`}>
                     <Button>
@@ -860,7 +853,7 @@ export default function EventDetailPage() {
         <div className="space-y-5">
           <SectionHeader
             title="Activities"
-            description="Create and run polls, quizzes, feedback forms, and word clouds for this event."
+            description="Create and run polls, quizzes, surveys, feedback forms, and word clouds for this event."
             actions={
               <ActionGroup>
                 <Button variant="outline" onClick={() => openCreateBuilder('poll')}>
@@ -874,6 +867,10 @@ export default function EventDetailPage() {
                 <Button variant="outline" onClick={() => openCreateBuilder('wordcloud')}>
                   <Plus className="h-4 w-4" />
                   New word cloud
+                </Button>
+                <Button variant="outline" onClick={() => openCreateBuilder('survey')}>
+                  <Plus className="h-4 w-4" />
+                  New survey
                 </Button>
                 <Button onClick={() => openCreateBuilder('quiz')}>
                   <Plus className="h-4 w-4" />
@@ -891,7 +888,8 @@ export default function EventDetailPage() {
           ) : pollActivities.length === 0 &&
             quizActivities.length === 0 &&
             feedbackActivities.length === 0 &&
-            wordcloudActivities.length === 0 ? (
+            wordcloudActivities.length === 0 &&
+            surveyActivities.length === 0 ? (
             <div className="space-y-4">
               <EmptyState
                 title="Add your first activity"
@@ -925,6 +923,13 @@ export default function EventDetailPage() {
                   title="Feedback"
                   description="Gather ratings and open comments after the session."
                   onClick={() => openCreateBuilder('feedback')}
+                />
+                <ActivityTile
+                  type="survey"
+                  icon={<ClipboardList className="h-5 w-5" />}
+                  title="Survey"
+                  description="Comprehensive multi-question feedback and data collection."
+                  onClick={() => openCreateBuilder('survey')}
                 />
               </div>
             </div>
@@ -1004,7 +1009,9 @@ export default function EventDetailPage() {
                     ? 'feedback'
                     : builderType === 'wordcloud'
                       ? 'word cloud'
-                      : 'poll'
+                      : builderType === 'survey'
+                        ? 'survey'
+                        : 'poll'
               }`}
             </DialogTitle>
             <DialogDescription className="text-ink-secondary">
@@ -1014,12 +1021,14 @@ export default function EventDetailPage() {
                   ? 'Configure a feedback form with rating and text fields.'
                   : builderType === 'wordcloud'
                     ? 'Configure a live word cloud prompt for this event.'
-                    : 'Configure a live poll for this event.'}
+                    : builderType === 'survey'
+                      ? 'Configure a multi-question survey for this event.'
+                      : 'Configure a live poll for this event.'}
             </DialogDescription>
           </DialogHeader>
 
           {!editingActivity && (
-            <div className="mx-6 mt-5 shrink-0 grid gap-2 rounded-lg border border-border bg-surface-sunken p-1 sm:grid-cols-4">
+            <div className="mx-6 mt-5 shrink-0 grid gap-2 rounded-lg border border-border bg-surface-sunken p-1 sm:grid-cols-5">
               <Button
                 type="button"
                 variant={builderType === 'poll' ? 'default' : 'ghost'}
@@ -1055,6 +1064,15 @@ export default function EventDetailPage() {
               >
                 <ListChecks className="h-4 w-4" />
                 Quiz
+              </Button>
+              <Button
+                type="button"
+                variant={builderType === 'survey' ? 'default' : 'ghost'}
+                onClick={() => setBuilderType('survey')}
+                className="justify-center"
+              >
+                <ClipboardList className="h-4 w-4" />
+                Survey
               </Button>
             </div>
           )}

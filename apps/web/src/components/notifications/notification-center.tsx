@@ -20,6 +20,7 @@ import {
   Trash2,
   Users,
   X,
+  ClipboardList,
 } from 'lucide-react';
 import {
   Dialog,
@@ -130,6 +131,9 @@ function NotificationIcon({ notification }: { notification: Notification }) {
   if (notification.type.includes('analytics')) return <BarChart3 className={className} />;
   if (notification.type.includes('poll') || notification.type.includes('quiz')) {
     return <Radio className={className} />;
+  }
+  if (notification.type.includes('survey')) {
+    return <ClipboardList className={className} />;
   }
   if (notification.type.includes('feedback') || notification.type.includes('reply')) {
     return <MessageSquareText className={className} />;

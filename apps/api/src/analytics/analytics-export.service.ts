@@ -149,6 +149,43 @@ export class AnalyticsExportService {
       }
     }
 
+    for (const survey of (data as any).surveyAnalytics ?? []) {
+      row('survey', `${survey.title} :: totalStarted`, survey.totalStarted ?? 0);
+      row('survey', `${survey.title} :: totalCompleted`, survey.totalCompleted ?? 0);
+      row('survey', `${survey.title} :: completionRate`, survey.completionRate ?? 0);
+      row('survey', `${survey.title} :: abandonmentRate`, survey.abandonmentRate ?? 0);
+      row('survey', `${survey.title} :: averageCompletionTimeSec`, survey.averageCompletionTimeSec ?? 0);
+
+      for (const q of survey.questions ?? []) {
+        if (q.pollType === 'open') {
+          for (const text of q.responses ?? []) {
+            row('survey-open', `${survey.title} :: ${q.title}`, text);
+          }
+        } else if (q.pollType === 'rating') {
+          row('survey-rating', `${survey.title} :: ${q.title} :: average`, q.average ?? 0);
+          const distribution = Array.isArray(q.distribution)
+            ? Object.fromEntries(
+                q.distribution.map(
+                  (entry: { rating: number | string; count: number }) => [
+                    String(entry.rating),
+                    entry.count,
+                  ],
+                ),
+              )
+            : (q.distribution ?? {});
+          for (const [rating, count] of Object.entries(distribution)) {
+            const totalResponses = Number(q.totalResponses ?? 0);
+            const percentage = totalResponses === 0 ? 0 : Number(((Number(count) / totalResponses) * 100).toFixed(1));
+            row('survey-rating-dist', `${survey.title} :: ${q.title} :: rating ${rating}`, `${count} (${percentage}%)`);
+          }
+        } else {
+          for (const opt of q.options ?? []) {
+            row('survey-choice', `${survey.title} :: ${q.title} :: ${opt.label}`, `${opt.count} (${Number(((opt.percentage ?? 0) * 100).toFixed(1))}%)`);
+          }
+        }
+      }
+    }
+
     for (const point of data.engagementTimeline ?? []) {
       row('timeline', point.minute, point.responses);
     }

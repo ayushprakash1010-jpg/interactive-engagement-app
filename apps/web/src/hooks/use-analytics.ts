@@ -106,6 +106,17 @@ export type FeedbackAnalytic = {
   totalResponses: number;
 };
 
+export type SurveyAnalytic = {
+  activityId: string;
+  title: string;
+  totalStarted: number;
+  totalCompleted: number;
+  completionRate: number; // percentage
+  abandonmentRate: number; // percentage
+  averageCompletionTimeSec: number; // in seconds
+  questions: PollAnalytic[]; // Reuse PollAnalytic for question stats since the types map exactly
+};
+
 export type TimelineBucket = {
   minute: string;
   responses: number;
@@ -120,6 +131,7 @@ export type AnalyticsReport = {
   qaAnalytics: QaAnalytic;
   wordCloudAnalytics: WordCloudAnalytic[];
   feedbackAnalytics: FeedbackAnalytic[];
+  surveyAnalytics: SurveyAnalytic[];
   engagementTimeline: TimelineBucket[];
 };
 

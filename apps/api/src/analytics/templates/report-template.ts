@@ -249,6 +249,60 @@ const resolveParticipantName = (entry: any): string => {
         .join('')
     : `<p class="empty">No feedback analytics available.</p>`;
 
+  const surveyAnalytics = Array.isArray(data?.surveyAnalytics) ? data.surveyAnalytics : [];
+  const surveyBody = surveyAnalytics.length
+    ? surveyAnalytics
+        .map((survey: any) => {
+          const intro = kvTable([
+            ['Started', survey.totalStarted ?? 0],
+            ['Completed', survey.totalCompleted ?? 0],
+            ['Completion Rate', pct(Number(survey.completionRate ?? 0))],
+            ['Abandonment Rate', pct(Number(survey.abandonmentRate ?? 0))],
+            ['Avg Completion Time', `${survey.averageCompletionTimeSec ?? 0}s`],
+          ]);
+
+          const questionsContent = (survey.questions ?? [])
+            .map((q: any) => {
+              let content = kvTable([
+                ['Type', q.pollType ?? 'unknown'],
+                ['Total Responses', q.totalResponses ?? 0],
+              ]);
+
+              if (q.pollType === 'open') {
+                content += list((q.responses ?? []).map((r: string) => e(r)));
+              } else if (q.pollType === 'rating') {
+                const distributionEntries = normalizeRatingDistribution(q.distribution);
+                content += `<p><strong>Average rating:</strong> ${e(q.average ?? 0)}</p>`;
+                content += list(
+                  distributionEntries.map(({ rating, count }) => {
+                    const totalResponses = Number(q.totalResponses ?? 0);
+                    const percentage = totalResponses === 0 ? 0 : (count / totalResponses) * 100;
+                    return `Rating ${e(rating)} - ${e(count)} (${pct(percentage)})`;
+                  }),
+                );
+              } else {
+                content += list(
+                  (q.options ?? []).map(
+                    (o: any) =>
+                      `${e(o.label)} - ${e(o.count)} (${pct(Number((o.percentage ?? 0) * 100))})`,
+                  ),
+                );
+              }
+
+              return `
+                <div class="sub-block">
+                  <p><strong>${e(q.title ?? 'Untitled Question')}</strong></p>
+                  ${content}
+                </div>
+              `;
+            })
+            .join('');
+
+          return block(survey.title ?? 'Untitled Survey', intro + questionsContent);
+        })
+        .join('')
+    : `<p class="empty">No survey analytics available.</p>`;
+
   const timelineBody = engagementTimeline.length
     ? list(
         engagementTimeline.map(
@@ -377,6 +431,7 @@ const resolveParticipantName = (entry: any): string => {
     ${section('Q&A Analytics', qaBody)}
     ${section('Word Cloud Analytics', wordCloudBody)}
     ${section('Feedback Analytics', feedbackBody)}
+    ${section('Survey Analytics', surveyBody)}
     ${section('Engagement Timeline', timelineBody)}
   </body>
 </html>`;

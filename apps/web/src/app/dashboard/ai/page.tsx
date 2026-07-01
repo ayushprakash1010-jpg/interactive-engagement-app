@@ -14,6 +14,7 @@ import {
   Lightbulb,
   MessageSquareText,
   WandSparkles,
+  ClipboardList,
 } from 'lucide-react';
 import {
   ActionGroup,
@@ -80,6 +81,7 @@ const ICON_BY_TYPE: Record<ActivityType, React.ReactNode> = {
   wordcloud: <Cloud className="h-5 w-5" />,
   qa: <HelpCircle className="h-5 w-5" />,
   feedback: <Star className="h-5 w-5" />,
+  survey: <ClipboardList className="h-5 w-5" />,
   ai: <Sparkles className="h-5 w-5" />,
 };
 
@@ -99,6 +101,11 @@ const FEATURE_CARDS = [
     title: 'Quiz generation',
     description: 'Draft knowledge checks with ready-to-review questions.',
     icon: <ListChecks className="h-4 w-4" />,
+  },
+  {
+    title: 'Survey generation',
+    description: 'Create multi-part feedback forms tailored to your session.',
+    icon: <ClipboardList className="h-4 w-4" />,
   },
   {
     title: 'Feedback generation',

@@ -105,7 +105,7 @@ const FeedbackConfigSchema = z.object({
 const SurveyQuestionSchema = z.object({
   id: z.string().min(1),
   type: z.enum(['single', 'multiple', 'rating', 'open']),
-  label: z.string().min(1).max(500),
+  text: z.string().min(1).max(500),
   options: z
     .array(
       z.object({
@@ -114,11 +114,14 @@ const SurveyQuestionSchema = z.object({
       }),
     )
     .optional(),
-  isRequired: z.boolean().optional().default(false),
+  ratingScale: z.number().int().min(2).max(10).optional(),
+  required: z.boolean().optional().default(true),
   pageIndex: z.number().int().min(0).default(0),
 });
 
 const SurveyConfigSchema = z.object({
+  welcomeMessage: z.string().optional(),
+  thankYouMessage: z.string().optional(),
   displayMode: z.enum(['stepper', 'scroll']).optional().default('stepper'),
   questions: z.array(SurveyQuestionSchema).default([]),
   timeLimitSec: z.number().int().min(5).max(600).optional(),

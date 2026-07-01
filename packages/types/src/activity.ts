@@ -70,14 +70,17 @@ export type SurveyQuestionType = z.infer<typeof surveyQuestionType>;
 export const surveyQuestionSchema = z.object({
   id: z.string().min(1),
   type: surveyQuestionType,
-  label: z.string().min(1),
+  text: z.string().min(1),
   options: z.array(pollOptionSchema).optional(),
-  isRequired: z.boolean().default(false),
+  ratingScale: z.number().int().min(2).max(10).optional(),
+  required: z.boolean().default(false),
   pageIndex: z.number().int().min(0).default(0), // For pagination/sections
 });
 export type SurveyQuestion = z.infer<typeof surveyQuestionSchema>;
 
 export const surveyConfigSchema = z.object({
+  welcomeMessage: z.string().optional(),
+  thankYouMessage: z.string().optional(),
   displayMode: z.enum(['stepper', 'scroll']).default('stepper'),
   questions: z.array(surveyQuestionSchema).default([]),
   timeLimitSec: z.number().int().min(5).max(600).optional(),

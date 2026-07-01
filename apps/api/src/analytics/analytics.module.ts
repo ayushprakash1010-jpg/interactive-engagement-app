@@ -11,6 +11,10 @@ import {
   ParticipantEntity,
   ParticipantEntitySchema,
 } from '../participants/participant.schema';
+import {
+  SurveySessionEntity,
+  SurveySessionSchema,
+} from '../survey-sessions/survey-session.schema';
 import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { RedisModule } from '../realtime/redis.module';
@@ -24,6 +28,7 @@ import { WorkspaceOverviewController } from './workspace-overview.controller';
       { name: ResponseEntity.name, schema: ResponseSchema },
       { name: QuestionEntity.name, schema: QuestionEntitySchema },
       { name: ParticipantEntity.name, schema: ParticipantEntitySchema },
+      { name: SurveySessionEntity.name, schema: SurveySessionSchema },
     ]),
     UsersModule,
     AuthModule,
