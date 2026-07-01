@@ -57,6 +57,7 @@ export function SurveyBuilder({
   const [title, setTitle] = useState(initialConfig?.title ?? "");
   const [welcomeMessage, setWelcomeMessage] = useState(initialConfig?.welcomeMessage ?? "");
   const [thankYouMessage, setThankYouMessage] = useState(initialConfig?.thankYouMessage ?? "");
+  const [displayMode, setDisplayMode] = useState<'scroll' | 'stepper'>(initialConfig?.displayMode ?? 'scroll');
   const [questions, setQuestions] = useState<SurveyQuestion[]>(
     initialConfig?.questions?.length
       ? initialConfig.questions
@@ -183,6 +184,7 @@ export function SurveyBuilder({
     const config: SurveyConfig = {
       welcomeMessage: welcomeMessage.trim() || undefined,
       thankYouMessage: thankYouMessage.trim() || undefined,
+      displayMode,
       questions: questions.map((question) => {
         const trimmedOptions = (question.options ?? [])
           .filter((option) => option.label.trim())
@@ -258,6 +260,18 @@ export function SurveyBuilder({
               onChange={(e) => setThankYouMessage(e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor={`${formId}-display`}>Display mode</Label>
+          <Select
+            id={`${formId}-display`}
+            value={displayMode}
+            onChange={(e) => setDisplayMode(e.target.value as 'scroll' | 'stepper')}
+          >
+            <option value="scroll">Scroll (All questions on one page)</option>
+            <option value="stepper">Stepper (One question per page)</option>
+          </Select>
         </div>
       </SurfacePanel>
 

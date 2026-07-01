@@ -19,6 +19,7 @@ import { WordCloudParticipant } from "@/components/poll/wordcloud-participant";
 import { PollResultsChart } from "@/components/poll/poll-results-chart";
 import { QaTab } from "@/components/participant/qa-tab";
 import { FeedbackParticipant } from "@/components/poll/feedback-participant";
+import { SurveyParticipant } from "@/components/poll/survey-participant";
 import { getAnonId } from "@/lib/anon-id";
 import {
   Eyebrow,
@@ -210,6 +211,10 @@ export default function EventPage() {
     activeActivity &&
     activeActivity.type === "feedback" &&
     (hasSubmitted || activeActivity.status === "closed");
+
+  const showSurveyInput =
+    activeActivity &&
+    activeActivity.type === "survey";
 
   function handleAskQuestion(payload: { text: string; displayName?: string }) {
     askQuestion(payload);
@@ -465,6 +470,16 @@ export default function EventPage() {
                     ? "This feedback form is now closed."
                     : "Thanks. Your feedback has been submitted."}
                 </SurfacePanel>
+              </div>
+            )}
+
+            {showSurveyInput && activeActivity && (
+              <div className="mt-6 h-full flex-1">
+                <SurveyParticipant
+                  key={activeActivity._id}
+                  activity={activeActivity}
+                  participantAnonId={anonId}
+                />
               </div>
             )}
           </>

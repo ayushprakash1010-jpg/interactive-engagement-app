@@ -62,6 +62,7 @@ export interface SurveyQuestion {
 export interface SurveyConfig {
   welcomeMessage?: string;
   thankYouMessage?: string;
+  displayMode?: 'scroll' | 'stepper';
   questions: SurveyQuestion[];
 }
 
