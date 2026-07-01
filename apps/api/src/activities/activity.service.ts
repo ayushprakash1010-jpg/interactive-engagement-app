@@ -10,7 +10,7 @@ import { ActivityEntity, ActivityDocument } from './activity.schema';
 import { EventsService } from '../events/events.service';
 
 export interface CreateActivityDto {
-  type: 'poll' | 'quiz' | 'wordcloud' | 'feedback';
+  type: 'poll' | 'quiz' | 'wordcloud' | 'feedback' | 'survey';
   title: string;
   config: Record<string, unknown>;
 }

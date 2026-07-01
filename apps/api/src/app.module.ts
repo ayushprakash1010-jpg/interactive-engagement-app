@@ -19,6 +19,7 @@ import { QuestionsModule } from './questions/questions.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
+import { SurveySessionsModule } from './survey-sessions/survey-sessions.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { AiModule } from './ai/ai.module';
     AnalyticsModule,
     AdminModule,
     AiModule,
+    SurveySessionsModule,
   ],
   providers: [
     {

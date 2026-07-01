@@ -57,6 +57,16 @@ export interface SaveWordCloudResponseDto {
   words: string[];
 }
 
+export interface SaveSurveyAnswerDto {
+  activityId: string;
+  eventId: string;
+  participantAnonId: string;
+  questionId: string;
+  selectedOptionIds?: string[];
+  textValue?: string;
+  ratingValue?: number;
+}
+
 type FeedbackField = {
   id: string;
   type: 'rating' | 'text';
@@ -502,6 +512,60 @@ export class ResponseService {
             eventId: new Types.ObjectId(dto.eventId),
             activityId: new Types.ObjectId(dto.activityId),
             participantAnonId: dto.participantAnonId,
+          },
+        },
+        {
+          upsert: true,
+          new: true,
+          runValidators: true,
+        },
+      )
+      .exec();
+
+    return response as ResponseDocument;
+  }
+
+  async saveSurveyAnswer(dto: SaveSurveyAnswerDto): Promise<ResponseDocument> {
+    const filter = {
+      activityId: new Types.ObjectId(dto.activityId),
+      participantAnonId: dto.participantAnonId,
+      surveyQuestionId: dto.questionId,
+    };
+
+    const setFields: Record<string, unknown> = {
+      quizQuestionId: null,
+      isCorrect: null,
+      awardedPoints: null,
+      words: [],
+      feedbackAnswers: [],
+    };
+
+    if (dto.textValue !== undefined) {
+      setFields.textValue = sanitizeText(dto.textValue, 2000);
+      setFields.ratingValue = null;
+      setFields.selectedOptionIds = [];
+    } else if (dto.ratingValue !== undefined) {
+      setFields.ratingValue = dto.ratingValue;
+      setFields.textValue = null;
+      setFields.selectedOptionIds = [];
+    } else if (dto.selectedOptionIds !== undefined) {
+      setFields.selectedOptionIds = dto.selectedOptionIds;
+      setFields.textValue = null;
+      setFields.ratingValue = null;
+    } else {
+      throw new BadRequestException('At least one answer field is required');
+    }
+
+    const response = await this.responseModel
+      .findOneAndUpdate(
+        filter,
+        {
+          $set: setFields,
+          $setOnInsert: {
+            eventId: new Types.ObjectId(dto.eventId),
+            activityId: new Types.ObjectId(dto.activityId),
+            participantAnonId: dto.participantAnonId,
+            surveyQuestionId: dto.questionId,
           },
         },
         {

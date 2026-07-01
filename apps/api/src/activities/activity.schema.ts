@@ -67,6 +67,47 @@ class WordcloudConfig {
   timeLimitSec?: number;
 }
 
+// ── Survey config subdocument ─────────────────────────────────────────────────
+
+class SurveyOption {
+  @Prop({ required: true })
+  id!: string;
+
+  @Prop({ required: true })
+  label!: string;
+}
+
+class SurveyQuestion {
+  @Prop({ required: true })
+  id!: string;
+
+  @Prop({ required: true, enum: ['single', 'multiple', 'rating', 'open'] })
+  type!: 'single' | 'multiple' | 'rating' | 'open';
+
+  @Prop({ required: true })
+  label!: string;
+
+  @Prop({ type: [{ id: String, label: String }], default: undefined })
+  options?: SurveyOption[];
+
+  @Prop({ default: false })
+  isRequired!: boolean;
+
+  @Prop({ default: 0 })
+  pageIndex!: number;
+}
+
+class SurveyConfig {
+  @Prop({ required: true, enum: ['stepper', 'scroll'], default: 'stepper' })
+  displayMode!: 'stepper' | 'scroll';
+
+  @Prop({ type: [SurveyQuestion], default: [] })
+  questions!: SurveyQuestion[];
+
+  @Prop({ min: 5, max: 600 })
+  timeLimitSec?: number;
+}
+
 // ── Activity entity ───────────────────────────────────────────────────────────
 
 @Schema({ timestamps: true, collection: 'activities' })
@@ -81,9 +122,9 @@ export class ActivityEntity {
 
   @Prop({
     required: true,
-    enum: ['poll', 'quiz', 'wordcloud', 'feedback'],
+    enum: ['poll', 'quiz', 'wordcloud', 'feedback', 'survey'],
   })
-  type!: 'poll' | 'quiz' | 'wordcloud' | 'feedback';
+  type!: 'poll' | 'quiz' | 'wordcloud' | 'feedback' | 'survey';
 
   @Prop({ required: true, trim: true, maxlength: 200 })
   title!: string;
@@ -101,7 +142,7 @@ export class ActivityEntity {
   // Stored as a flexible Mixed type to support all activity config shapes.
   // Validated at the service layer via Zod before persistence.
   @Prop({ type: MongooseSchema.Types.Mixed, required: true })
-  config!: PollConfig | FeedbackConfig | WordcloudConfig | Record<string, unknown>;
+  config!: PollConfig | FeedbackConfig | WordcloudConfig | SurveyConfig | Record<string, unknown>;
 }
 
 export const ActivityEntitySchema =

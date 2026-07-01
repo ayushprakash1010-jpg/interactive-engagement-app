@@ -50,16 +50,32 @@ export interface WordCloudConfig {
   timeLimitSec?: number;
 }
 
+export interface SurveyQuestion {
+  id: string;
+  type: 'single' | 'multiple' | 'rating' | 'open';
+  text: string;
+  options?: { id: string; label: string }[];
+  ratingScale?: number;
+  required: boolean;
+}
+
+export interface SurveyConfig {
+  welcomeMessage?: string;
+  thankYouMessage?: string;
+  questions: SurveyQuestion[];
+}
+
 export type ActivityConfig =
   | PollConfig
   | QuizConfig
   | FeedbackConfig
-  | WordCloudConfig;
+  | WordCloudConfig
+  | SurveyConfig;
 
 export interface Activity {
   _id: string;
   eventId: string;
-  type: 'poll' | 'quiz' | 'wordcloud' | 'feedback';
+  type: 'poll' | 'quiz' | 'wordcloud' | 'feedback' | 'survey';
   title: string;
   order: number;
   status: 'idle' | 'live' | 'closed';
@@ -88,6 +104,11 @@ export type CreateActivityPayload =
       type: 'feedback';
       title: string;
       config: FeedbackConfig;
+    }
+  | {
+      type: 'survey';
+      title: string;
+      config: SurveyConfig;
     };
 
 export interface UpdateActivityPayload {

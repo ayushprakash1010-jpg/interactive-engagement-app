@@ -56,10 +56,12 @@ export const responseSchema = z.object({
   textValue: z.string().optional(),
   ratingValue: z.number().optional(),
   quizQuestionId: z.string().optional(),
+  surveyQuestionId: z.string().optional(),
   isCorrect: z.boolean().optional(),
   awardedPoints: z.number().optional(),
   words: z.array(z.string().min(1)).default([]),
   feedbackAnswers: z.array(feedbackAnswerSchema).default([]),
+  // Note: Survey answers are stored as one document per question, utilizing selectedOptionIds, textValue, ratingValue, and surveyQuestionId.
   createdAt: isoDate,
 });
 export type Response = z.infer<typeof responseSchema>;
@@ -85,3 +87,26 @@ export const activityRespondSchema = z
   );
 
 export type ActivityRespond = z.infer<typeof activityRespondSchema>;
+
+// ---- Survey Session ----
+
+export const surveySessionStatus = z.enum(['started', 'completed']);
+export type SurveySessionStatus = z.infer<typeof surveySessionStatus>;
+
+export const surveySessionSchema = z.object({
+  _id: objectId,
+  eventId: objectId,
+  activityId: objectId,
+  participantAnonId: anonId,
+  status: surveySessionStatus,
+  startedAt: isoDate,
+  completedAt: isoDate.optional(),
+});
+export type SurveySession = z.infer<typeof surveySessionSchema>;
+
+export const surveySessionCreateSchema = z.object({
+  eventId: objectId,
+  activityId: objectId,
+  participantAnonId: anonId,
+});
+export type SurveySessionCreate = z.infer<typeof surveySessionCreateSchema>;

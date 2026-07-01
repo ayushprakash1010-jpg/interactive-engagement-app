@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { objectId, timestamps } from './common.js';
 
-export const activityType = z.enum(['poll', 'quiz', 'wordcloud', 'feedback']);
+export const activityType = z.enum(['poll', 'quiz', 'wordcloud', 'feedback', 'survey']);
 export type ActivityType = z.infer<typeof activityType>;
 
 export const activityStatus = z.enum(['idle', 'live', 'closed']);
@@ -62,12 +62,35 @@ export const feedbackConfigSchema = z.object({
 });
 export type FeedbackConfig = z.infer<typeof feedbackConfigSchema>;
 
+// ---- Survey ----
+
+export const surveyQuestionType = z.enum(['single', 'multiple', 'rating', 'open']);
+export type SurveyQuestionType = z.infer<typeof surveyQuestionType>;
+
+export const surveyQuestionSchema = z.object({
+  id: z.string().min(1),
+  type: surveyQuestionType,
+  label: z.string().min(1),
+  options: z.array(pollOptionSchema).optional(),
+  isRequired: z.boolean().default(false),
+  pageIndex: z.number().int().min(0).default(0), // For pagination/sections
+});
+export type SurveyQuestion = z.infer<typeof surveyQuestionSchema>;
+
+export const surveyConfigSchema = z.object({
+  displayMode: z.enum(['stepper', 'scroll']).default('stepper'),
+  questions: z.array(surveyQuestionSchema).default([]),
+  timeLimitSec: z.number().int().min(5).max(600).optional(),
+});
+export type SurveyConfig = z.infer<typeof surveyConfigSchema>;
+
 /** Discriminated union keyed by `type` so config is validated per activity type. */
 export const activityConfigSchema = z.union([
   pollConfigSchema,
   quizConfigSchema,
   wordcloudConfigSchema,
   feedbackConfigSchema,
+  surveyConfigSchema,
 ]);
 export type ActivityConfig = z.infer<typeof activityConfigSchema>;
 

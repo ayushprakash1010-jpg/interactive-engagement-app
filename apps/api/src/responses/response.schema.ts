@@ -45,6 +45,9 @@ export class ResponseEntity {
   @Prop({ type: String, default: null, index: true })
   quizQuestionId!: string | null;
 
+  @Prop({ type: String, default: null, index: true })
+  surveyQuestionId!: string | null;
+
   @Prop({ type: Boolean, default: null })
   isCorrect!: boolean | null;
 
@@ -76,7 +79,7 @@ ResponseSchema.index(
   { activityId: 1, participantAnonId: 1 },
   {
     unique: true,
-    partialFilterExpression: { quizQuestionId: null },
+    partialFilterExpression: { quizQuestionId: null, surveyQuestionId: null },
     name: 'uniq_non_quiz_response_per_participant',
   },
 );
@@ -87,5 +90,14 @@ ResponseSchema.index(
     unique: true,
     partialFilterExpression: { quizQuestionId: { $type: 'string' } },
     name: 'uniq_quiz_question_response_per_participant',
+  },
+);
+
+ResponseSchema.index(
+  { activityId: 1, participantAnonId: 1, surveyQuestionId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { surveyQuestionId: { $type: 'string' } },
+    name: 'uniq_survey_question_response_per_participant',
   },
 );

@@ -102,6 +102,28 @@ const FeedbackConfigSchema = z.object({
   timeLimitSec: z.number().int().min(5).max(600).optional(), // <--- THE FINAL FIX IS HERE!
 });
 
+const SurveyQuestionSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(['single', 'multiple', 'rating', 'open']),
+  label: z.string().min(1).max(500),
+  options: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        label: z.string().min(1).max(200),
+      }),
+    )
+    .optional(),
+  isRequired: z.boolean().optional().default(false),
+  pageIndex: z.number().int().min(0).default(0),
+});
+
+const SurveyConfigSchema = z.object({
+  displayMode: z.enum(['stepper', 'scroll']).optional().default('stepper'),
+  questions: z.array(SurveyQuestionSchema).default([]),
+  timeLimitSec: z.number().int().min(5).max(600).optional(),
+});
+
 const CreateActivitySchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('poll'),
@@ -123,6 +145,11 @@ const CreateActivitySchema = z.discriminatedUnion('type', [
     title: z.string().min(1).max(200),
     config: FeedbackConfigSchema,
   }),
+  z.object({
+    type: z.literal('survey'),
+    title: z.string().min(1).max(200),
+    config: SurveyConfigSchema,
+  }),
 ]);
 
 const UpdateActivitySchema = z.object({
@@ -133,6 +160,7 @@ const UpdateActivitySchema = z.object({
       QuizConfigSchema,
       WordcloudConfigSchema,
       FeedbackConfigSchema,
+      SurveyConfigSchema,
     ])
     .optional(),
 });

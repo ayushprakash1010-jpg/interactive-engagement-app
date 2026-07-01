@@ -71,9 +71,12 @@ import { QuizBuilder } from '@/components/poll/quiz-builder';
 import { PollRunPanel } from '@/components/poll/poll-run-panel';
 import { WordCloudBuilder } from '@/components/poll/wordcloud-builder';
 import { FeedbackBuilder, type FeedbackConfig } from '@/components/poll/feedback-builder';
+import { SurveyBuilder } from '@/components/poll/survey-builder';
+import { ClipboardList } from 'lucide-react';
+import type { SurveyConfig } from '@/hooks/use-activities';
 
 type Tab = 'overview' | 'polls' | 'qa';
-type BuilderType = 'poll' | 'quiz' | 'feedback' | 'wordcloud';
+type BuilderType = 'poll' | 'quiz' | 'feedback' | 'wordcloud' | 'survey';
 
 function isPollConfig(config: Activity['config']): config is PollConfig {
   return (
@@ -111,6 +114,16 @@ function isWordCloudConfig(config: Activity['config']): config is WordCloudConfi
   );
 }
 
+function isSurveyConfig(config: Activity['config']): config is SurveyConfig {
+  return (
+    typeof config === 'object' &&
+    config !== null &&
+    'questions' in config &&
+    Array.isArray((config as SurveyConfig).questions) &&
+    !('points' in ((config as SurveyConfig).questions[0] || {}))
+  );
+}
+
 const defaultFeedbackConfig: FeedbackConfig = {
   prompt: '',
   fields: [],
@@ -136,6 +149,11 @@ const ACTIVITY_TYPE_META = {
     label: 'Word cloud',
     icon: Cloud,
     description: 'Short responses visualized by popularity.',
+  },
+  survey: {
+    label: 'Survey',
+    icon: ClipboardList,
+    description: 'Comprehensive multi-question feedback and data collection.',
   },
 } satisfies Record<
   BuilderType,
@@ -213,6 +231,7 @@ export default function EventDetailPage() {
   const quizActivities = activities.filter((activity) => activity.type === 'quiz');
   const feedbackActivities = activities.filter((activity) => activity.type === 'feedback');
   const wordcloudActivities = activities.filter((activity) => activity.type === 'wordcloud');
+  const surveyActivities = activities.filter((activity) => activity.type === 'survey');
 
   const pendingQuestions = React.useMemo(
     () =>
@@ -288,7 +307,9 @@ export default function EventDetailPage() {
           ? 'feedback'
           : payload.type === 'wordcloud'
             ? 'word cloud'
-            : 'poll';
+            : payload.type === 'survey'
+              ? 'survey'
+              : 'poll';
 
     const titleCaseLabel =
       activityLabel === 'quiz'
@@ -297,7 +318,9 @@ export default function EventDetailPage() {
           ? 'Feedback'
           : activityLabel === 'word cloud'
             ? 'Word cloud'
-            : 'Poll';
+            : activityLabel === 'survey'
+              ? 'Survey'
+              : 'Poll';
 
     try {
       if (editingActivity) {
@@ -382,6 +405,9 @@ export default function EventDetailPage() {
     } else if (activity.type === 'wordcloud') {
       setBuilderType('wordcloud');
       setFeedbackDraft(defaultFeedbackConfig);
+    } else if (activity.type === 'survey') {
+      setBuilderType('survey');
+      setFeedbackDraft(defaultFeedbackConfig);
     } else {
       setBuilderType('poll');
       setFeedbackDraft(defaultFeedbackConfig);
@@ -455,6 +481,14 @@ export default function EventDetailPage() {
   };
 
   const renderActivityRunPanel = (activity: Activity) => {
+    if (activity.type === 'survey') {
+      return (
+        <div className="p-4 text-center text-sm text-ink-muted">
+          Survey Host Experience will be implemented in Phase 5.
+        </div>
+      );
+    }
+
     if (activity.type === 'quiz') {
       return <QuizRunPanel activity={activity} eventId={id} />;
     }
@@ -576,6 +610,16 @@ export default function EventDetailPage() {
     editingActivity &&
     editingActivity.type === 'wordcloud' &&
     isWordCloudConfig(editingActivity.config)
+      ? {
+          ...editingActivity.config,
+          title: editingActivity.title,
+        }
+      : undefined;
+
+  const editingSurveyConfig =
+    editingActivity &&
+    editingActivity.type === 'survey' &&
+    isSurveyConfig(editingActivity.config)
       ? {
           ...editingActivity.config,
           title: editingActivity.title,
@@ -705,7 +749,8 @@ export default function EventDetailPage() {
           {pollActivities.length +
             quizActivities.length +
             feedbackActivities.length +
-            wordcloudActivities.length}
+            wordcloudActivities.length +
+            surveyActivities.length}
           )
         </button>
         <button
@@ -1052,6 +1097,14 @@ export default function EventDetailPage() {
                   </Button>
                 </ActionGroup>
               </div>
+            ) : builderType === 'survey' ? (
+              <SurveyBuilder
+                eventId={id}
+                initialConfig={editingSurveyConfig}
+                onSave={handleSaveActivity}
+                onCancel={resetBuilderState}
+                isSaving={createActivity.isPending || updateActivity.isPending}
+              />
             ) : (
               <PollBuilder
                 eventId={id}
