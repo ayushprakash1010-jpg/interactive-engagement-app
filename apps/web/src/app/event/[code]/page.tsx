@@ -479,6 +479,7 @@ export default function EventPage() {
                   key={activeActivity._id}
                   activity={activeActivity}
                   participantAnonId={anonId}
+                  eventCode={code}
                 />
               </div>
             )}

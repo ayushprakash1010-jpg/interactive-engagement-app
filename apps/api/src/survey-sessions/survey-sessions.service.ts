@@ -44,7 +44,7 @@ export class SurveySessionService {
       },
       {
         $setOnInsert: {
-          eventId: new Types.ObjectId(dto.eventId),
+          eventId: activity.eventId,
           activityId: new Types.ObjectId(dto.activityId),
           participantAnonId: dto.participantAnonId,
           status: 'started',

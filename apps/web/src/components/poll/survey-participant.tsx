@@ -8,14 +8,16 @@ import { SurfacePanel } from "@/components/ui/surface-panel";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useSurveySession } from "@/hooks/use-survey-session";
-import type { LiveActivity, SurveyConfig, SurveyQuestion } from "@/hooks/use-activities";
+import type { LiveActivity } from "@/hooks/use-poll";
+import type { SurveyConfig, SurveyQuestion } from "@/hooks/use-activities";
 
 interface SurveyParticipantProps {
   activity: LiveActivity;
   participantAnonId: string | null;
+  eventCode: string;
 }
 
-export function SurveyParticipant({ activity, participantAnonId }: SurveyParticipantProps) {
+export function SurveyParticipant({ activity, participantAnonId, eventCode }: SurveyParticipantProps) {
   const config = activity.config as SurveyConfig;
   const questions = config.questions ?? [];
   const displayMode = config.displayMode ?? "scroll";
@@ -29,7 +31,7 @@ export function SurveyParticipant({ activity, participantAnonId }: SurveyPartici
     saveStatus,
     isCompleted,
     isCompleting,
-  } = useSurveySession(activity.eventId, activity._id, participantAnonId);
+  } = useSurveySession(eventCode, activity._id, participantAnonId);
 
   // Local state to hold answers so UI updates immediately (optimistic)
   const [localAnswers, setLocalAnswers] = useState<Record<string, any>>({});

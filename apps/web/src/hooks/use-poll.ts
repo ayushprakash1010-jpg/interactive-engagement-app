@@ -76,7 +76,7 @@ export interface FeedbackConfig {
 
 export interface LiveActivity {
   _id: string;
-  type: 'poll' | 'quiz' | 'wordcloud' | 'feedback';
+  type: 'poll' | 'quiz' | 'wordcloud' | 'feedback' | 'survey';
   title: string;
   status: 'idle' | 'live' | 'closed';
   config: {
