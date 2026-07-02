@@ -16,6 +16,7 @@ import {
   ListChecks,
   Star,
   Cloud,
+  Monitor,
 } from 'lucide-react';
 import { JoinCode, LiveDot, ActivityTile } from '@/components/pulse';
 import { cn } from '@/lib/utils';
@@ -658,6 +659,12 @@ export default function EventDetailPage() {
         }
         actions={
           <ActionGroup>
+            <Link href={`/dashboard/events/${id}/present`} target="_blank">
+              <Button variant="outline" size="sm">
+                <Monitor className="h-4 w-4" />
+                Present
+              </Button>
+            </Link>
             <Button
               variant="secondary"
               size="sm"

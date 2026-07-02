@@ -205,6 +205,7 @@ export default function DashboardLayout({
         }
       >
         {children}
+        <CommandPalette />
       </DashboardShell>
     );
   }

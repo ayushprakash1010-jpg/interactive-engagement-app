@@ -26,6 +26,8 @@ import {
   User,
   X,
   ClipboardList,
+  LogOut,
+  CircleUserRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
@@ -177,6 +179,15 @@ function buildCommands(
       action: nav('/dashboard/settings'),
     },
     {
+      id: 'nav-account',
+      title: 'Account',
+      description: 'Manage your profile and subscription',
+      group: 'Account',
+      icon: CircleUserRound,
+      shortcut: ['G', 'C'],
+      action: nav('/dashboard/account'),
+    },
+    {
       id: 'nav-help',
       title: 'Help Center',
       description: 'Browse documentation and support articles',
@@ -307,6 +318,19 @@ function buildCommands(
       action: () => {
         setTheme('system');
         closeCommandPalette();
+      },
+    },
+
+    // ── Account ─────────────────────────────────────────────────────────────
+    {
+      id: 'auth-logout',
+      title: 'Log out',
+      description: 'Sign out of your Pulse account',
+      group: 'Account',
+      icon: LogOut,
+      action: () => {
+        closeCommandPalette();
+        window.location.href = '/api/auth/logout';
       },
     },
 
@@ -896,9 +920,7 @@ export function CommandPalette() {
                       <GroupHeader label={group} icon={Icon} />
                       {items.map((item) => {
                         const flatIdx = flatList.indexOf(item);
-                        const navIdx = showRecent
-                          ? flatIdx + groupOffset
-                          : flatIdx;
+                        const navIdx = flatIdx + groupOffset;
 
                         return (
                           <CommandRow
