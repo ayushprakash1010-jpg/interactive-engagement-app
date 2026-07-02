@@ -11,6 +11,9 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  Copy,
+  Check,
+  Download,
   LayoutDashboard,
   LogOut,
   Mail,
@@ -19,7 +22,9 @@ import {
   ShieldCheck,
   Sparkles,
   Terminal,
+  TrendingUp,
   UserRound,
+  Zap,
 } from 'lucide-react';
 import {
   Badge,
@@ -153,6 +158,120 @@ export default function AccountPage() {
   const activeEvents = events?.filter(e => e.status === 'live').length || 0;
   const aiGenerations = notifications.filter(n => n.category === 'ai').length;
 
+  // Derive real account timestamps from Auth0 user metadata
+  const memberSince = React.useMemo(() => {
+    const raw = (user as any)?.updated_at || (user as any)?.created_at;
+    if (!raw) return '—';
+    return new Date(raw).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  }, [user]);
+
+  // Account age label e.g. "Member for 3 months"
+  const accountAge = React.useMemo(() => {
+    const raw = (user as any)?.updated_at || (user as any)?.created_at;
+    if (!raw) return null;
+    const diffMs = Date.now() - new Date(raw).getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 1) return 'Member since today';
+    if (diffDays < 7) return `Member for ${diffDays} day${diffDays !== 1 ? 's' : ''}`;
+    if (diffDays < 30) return `Member for ${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) !== 1 ? 's' : ''}`;
+    if (diffDays < 365) return `Member for ${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) !== 1 ? 's' : ''}`;
+    return `Member for ${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) !== 1 ? 's' : ''}`;
+  }, [user]);
+
+  // Email verified from Auth0
+  const emailVerified = (user as any)?.email_verified === true;
+
+  const lastLogin = React.useMemo(() => {
+    const raw = (user as any)?.updated_at;
+    if (!raw) return 'Today';
+    const date = new Date(raw);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${Math.floor(diffHours)}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }, [user]);
+
+  // Real computed metrics from actual data
+  const scheduledEvents = events?.filter(e => {
+    if (!e.scheduledStart) return false;
+    return new Date(e.scheduledStart) > new Date();
+  }).length || 0;
+
+  // 30-day activity heatmap: count events updated/created per day
+  const heatmapData = React.useMemo(() => {
+    const today = new Date();
+    const days: { date: Date; count: number; label: string }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      const dayStr = d.toDateString();
+      const count = (events || []).filter(e => {
+        const ts = new Date(e.updatedAt || e.createdAt);
+        ts.setHours(0, 0, 0, 0);
+        return ts.toDateString() === dayStr;
+      }).length;
+      days.push({
+        date: d,
+        count,
+        label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      });
+    }
+    return days;
+  }, [events]);
+  const maxHeatmapCount = Math.max(...heatmapData.map(d => d.count), 1);
+
+  // Plan limits (for free tier display)
+  const PLAN_LIMITS = { events: 50, aiGenerations: 30, sessions: 100 };
+  const planUsage = {
+    events: Math.min(totalEvents, PLAN_LIMITS.events),
+    aiGenerations: Math.min(aiGenerations, PLAN_LIMITS.aiGenerations),
+    sessions: Math.min(completedEvents, PLAN_LIMITS.sessions),
+  };
+
+  // Export data handler
+  const [exporting, setExporting] = React.useState(false);
+  const [copiedId, setCopiedId] = React.useState(false);
+  const handleCopyUserId = React.useCallback(() => {
+    const uid = (user as any)?.sub;
+    if (!uid) return;
+    navigator.clipboard.writeText(uid).then(() => {
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    });
+  }, [user]);
+  const handleExport = React.useCallback(() => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const rows = [
+        ['Name', 'Status', 'Created', 'Updated', 'Event Code'],
+        ...(events || []).map(e => [
+          e.name,
+          e.status,
+          new Date(e.createdAt).toISOString(),
+          new Date(e.updatedAt).toISOString(),
+          e.eventCode,
+        ]),
+      ];
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pulse-events-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setTimeout(() => setExporting(false), 1500);
+    }
+  }, [events, exporting]);
+
   // Recent 5 events
   const recentEvents = [...(events || [])]
     .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
@@ -214,15 +333,38 @@ export default function AccountPage() {
                     <p className="text-sm text-ink-muted flex items-center gap-2">
                       <Mail className="h-3.5 w-3.5" />
                       {email}
+                      {emailVerified && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-semibold text-success">
+                          <Check className="h-2.5 w-2.5" />
+                          Verified
+                        </span>
+                      )}
                     </p>
+                    {accountAge && (
+                      <p className="mt-1 text-xs text-ink-faint">{accountAge}</p>
+                    )}
                   </div>
                 </div>
-                
-                <div className="mt-6 pt-4 border-t border-border/40">
+
+                <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between gap-3">
                   <p className="text-xs text-ink-muted flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-brand" />
-                    Profile information is managed by your identity provider ({provider}).
+                    Profile is managed by your identity provider ({provider}).
                   </p>
+                  {(user as any)?.sub && (
+                    <button
+                      type="button"
+                      onClick={handleCopyUserId}
+                      title="Copy User ID"
+                      className="flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-surface-sunken px-2.5 py-1.5 text-xs font-medium text-ink-secondary transition-all hover:border-brand/40 hover:text-brand hover:bg-brand/5 active:scale-95"
+                    >
+                      {copiedId ? (
+                        <><Check className="h-3 w-3 text-success" /> Copied!</>
+                      ) : (
+                        <><Copy className="h-3 w-3" /> Copy User ID</>
+                      )}
+                    </button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -253,15 +395,15 @@ export default function AccountPage() {
                     className="bg-surface-card border-border/40 shadow-xs"
                   />
                   <MetricCard 
-                    label="Est. Participants" 
-                    value={totalEvents * 32} 
-                    icon={<UserRound className="h-4 w-4" />} 
+                    label="Active Sessions" 
+                    value={activeEvents} 
+                    icon={<Activity className="h-4 w-4 text-success" />} 
                     className="bg-surface-card border-border/40 shadow-xs"
                   />
                   <MetricCard 
-                    label="Est. Responses" 
-                    value={totalEvents * 147} 
-                    icon={<Activity className="h-4 w-4" />} 
+                    label="Scheduled" 
+                    value={scheduledEvents} 
+                    icon={<Clock className="h-4 w-4 text-brand" />} 
                     className="bg-surface-card border-border/40 shadow-xs"
                   />
                   <MetricCard 
@@ -380,11 +522,126 @@ export default function AccountPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* SECTION 5: 30-DAY ACTIVITY HEATMAP */}
+          <Card className="border-border/40 shadow-xs">
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base">Activity Heatmap</CardTitle>
+                  <CardDescription>Events created or updated in the last 30 days.</CardDescription>
+                </div>
+                <TrendingUp className="h-4 w-4 text-ink-muted" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-5">
+              <div className="flex items-end gap-1 h-14">
+                {heatmapData.map((day, i) => {
+                  const intensity = day.count === 0 ? 0 : Math.ceil((day.count / maxHeatmapCount) * 4);
+                  const bgClass = [
+                    'bg-surface-sunken',
+                    'bg-brand/20',
+                    'bg-brand/40',
+                    'bg-brand/65',
+                    'bg-brand',
+                  ][intensity] ?? 'bg-brand';
+                  const isToday = i === heatmapData.length - 1;
+                  return (
+                    <div
+                      key={day.label}
+                      title={`${day.label}: ${day.count} event${day.count !== 1 ? 's' : ''}`}
+                      className={cn(
+                        'flex-1 rounded-sm transition-all duration-200 cursor-default',
+                        bgClass,
+                        isToday && 'ring-1 ring-brand',
+                      )}
+                      style={{ height: `${day.count === 0 ? 20 : 20 + (day.count / maxHeatmapCount) * 36}%` }}
+                    />
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-xs text-ink-faint">30 days ago</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-ink-faint">Less</span>
+                  {['bg-surface-sunken', 'bg-brand/20', 'bg-brand/40', 'bg-brand/65', 'bg-brand'].map(c => (
+                    <span key={c} className={cn('h-3 w-3 rounded-sm', c)} />
+                  ))}
+                  <span className="text-xs text-ink-faint">More</span>
+                </div>
+                <span className="text-xs text-ink-faint">Today</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* RIGHT COLUMN */}
         <div className="space-y-6">
-          
+
+          {/* PLAN CARD */}
+          <Card className="border-brand/20 shadow-xs bg-gradient-to-b from-brand-subtle/40 to-surface-card overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-subtle ring-1 ring-brand/20">
+                    <Zap className="h-3.5 w-3.5 text-brand" />
+                  </span>
+                  <CardTitle className="text-base">Free Plan</CardTitle>
+                </div>
+                <Button asChild variant="outline" size="sm" className="h-7 text-xs border-brand/30 text-brand hover:bg-brand/10">
+                  <a href="#">Upgrade</a>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Events Usage */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-ink-secondary font-medium">Events</span>
+                  <span className="font-semibold text-foreground">{planUsage.events} <span className="text-ink-faint font-normal">/ {PLAN_LIMITS.events}</span></span>
+                </div>
+                <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-brand transition-all duration-700"
+                    style={{ width: `${Math.min((planUsage.events / PLAN_LIMITS.events) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              {/* AI Generations Usage */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-ink-secondary font-medium">AI Generations</span>
+                  <span className="font-semibold text-foreground">{planUsage.aiGenerations} <span className="text-ink-faint font-normal">/ {PLAN_LIMITS.aiGenerations}</span></span>
+                </div>
+                <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+                  <div
+                    className={cn(
+                      'h-full rounded-full transition-all duration-700',
+                      planUsage.aiGenerations / PLAN_LIMITS.aiGenerations > 0.8 ? 'bg-warning' : 'bg-ai',
+                    )}
+                    style={{ width: `${Math.min((planUsage.aiGenerations / PLAN_LIMITS.aiGenerations) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              {/* Sessions Usage */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <span className="text-ink-secondary font-medium">Completed Sessions</span>
+                  <span className="font-semibold text-foreground">{planUsage.sessions} <span className="text-ink-faint font-normal">/ {PLAN_LIMITS.sessions}</span></span>
+                </div>
+                <div className="h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-success transition-all duration-700"
+                    style={{ width: `${Math.min((planUsage.sessions / PLAN_LIMITS.sessions) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-ink-faint pt-1 border-t border-border/40">
+                Usage resets monthly. <a href="#" className="text-brand hover:underline">View pricing →</a>
+              </p>
+            </CardContent>
+          </Card>
+
           {/* SECTION 2: ACCOUNT DETAILS */}
           <Card className="border-border/40 shadow-xs bg-surface-card">
             <CardHeader className="pb-4">
@@ -393,19 +650,15 @@ export default function AccountPage() {
             <CardContent className="space-y-3">
               <SurfacePanel tone="sunken" className="p-3 flex justify-between items-center">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Member Since</span>
-                <span className="text-sm font-medium text-foreground">Jun 2026</span>
+                <span className="text-sm font-medium text-foreground">{memberSince}</span>
               </SurfacePanel>
               <SurfacePanel tone="sunken" className="p-3 flex justify-between items-center">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Last Login</span>
-                <span className="text-sm font-medium text-foreground">Today</span>
+                <span className="text-sm font-medium text-foreground">{lastLogin}</span>
               </SurfacePanel>
               <SurfacePanel tone="sunken" className="p-3 flex justify-between items-center">
                 <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Provider</span>
                 <span className="text-sm font-medium capitalize text-foreground">{provider}</span>
-              </SurfacePanel>
-              <SurfacePanel tone="sunken" className="p-3 flex justify-between items-center">
-                <span className="text-xs font-semibold uppercase tracking-wider text-ink-muted">Account Type</span>
-                <span className="text-sm font-medium text-foreground">Pro (Trial)</span>
               </SurfacePanel>
             </CardContent>
           </Card>
@@ -501,6 +754,38 @@ export default function AccountPage() {
                   <Link href="/dashboard/settings#ai">Edit</Link>
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* DATA EXPORT CARD */}
+          <Card className="border-border/40 shadow-xs">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Export Data</CardTitle>
+              <CardDescription>Download your workspace data as CSV.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="rounded-lg border border-border/40 bg-surface-sunken/50 p-3 flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-card border border-border shadow-sm">
+                  <Calendar className="h-4 w-4 text-ink-muted" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">Events &amp; Sessions</p>
+                  <p className="text-xs text-ink-muted">{totalEvents} records &middot; CSV format</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0"
+                  onClick={handleExport}
+                  disabled={exporting || eventsLoading || totalEvents === 0}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  {exporting ? 'Exporting…' : 'Export'}
+                </Button>
+              </div>
+              <p className="text-xs text-ink-faint">
+                Exports event names, statuses, event codes, and timestamps.
+              </p>
             </CardContent>
           </Card>
 

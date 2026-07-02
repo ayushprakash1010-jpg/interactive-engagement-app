@@ -28,6 +28,8 @@ import {
   ClipboardList,
   LogOut,
   CircleUserRound,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/lib/theme';
@@ -367,9 +369,7 @@ function buildCommands(
       description: 'View and edit your profile',
       group: 'Utilities',
       icon: User,
-      badge: 'Soon',
-      disabled: true,
-      action: () => {/* coming soon */},
+      action: nav('/dashboard/account'),
     },
     {
       id: 'util-session-history',
@@ -377,9 +377,7 @@ function buildCommands(
       description: 'Browse past engagement sessions',
       group: 'Utilities',
       icon: CalendarDays,
-      badge: 'Soon',
-      disabled: true,
-      action: () => {/* coming soon */},
+      action: nav('/dashboard/events'),
     },
   ];
 }
@@ -572,6 +570,9 @@ export function CommandPalette() {
   const [query, setQuery] = React.useState('');
   const [highlightedIndex, setHighlightedIndex] = React.useState(0);
   const [activeTab, setActiveTab] = React.useState<string>(TABS[0] as string);
+  const [expandedGroups, setExpandedGroups] = React.useState<Record<string, boolean>>({});
+  const lastScrolledIndex = React.useRef(-1);
+  const isKeyboardNav = React.useRef(false);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
   const listRef = React.useRef<HTMLDivElement>(null);
@@ -610,11 +611,44 @@ export function CommandPalette() {
   const groupedCommands = React.useMemo(() => {
     const map = new Map<CommandGroup, CommandItem[]>();
     for (const group of GROUP_ORDER) {
-      const items = filteredCommands.filter((c) => c.group === group);
+      let items = filteredCommands.filter((c) => c.group === group);
+      
+      // If there's no search query and the group has many items, collapse it
+      if (!query.trim() && items.length > 5) {
+        const isExpanded = expandedGroups[group];
+        if (!isExpanded) {
+          const originalLength = items.length;
+          items = items.slice(0, 5);
+          items.push({
+            id: `show-more-${group}`,
+            title: `Show ${originalLength - 5} more...`,
+            description: '',
+            group,
+            icon: ChevronDown,
+            action: () => {
+              setExpandedGroups(prev => ({ ...prev, [group]: true }));
+              document.getElementById('cmd-palette-input')?.focus();
+            }
+          });
+        } else {
+          items.push({
+            id: `show-less-${group}`,
+            title: `Show less`,
+            description: '',
+            group,
+            icon: ChevronUp,
+            action: () => {
+              setExpandedGroups(prev => ({ ...prev, [group]: false }));
+              document.getElementById('cmd-palette-input')?.focus();
+            }
+          });
+        }
+      }
+
       if (items.length > 0) map.set(group, items);
     }
     return map;
-  }, [filteredCommands]);
+  }, [filteredCommands, query, expandedGroups]);
 
   // Flat ordered list for keyboard navigation
   const flatList = React.useMemo(
@@ -651,13 +685,18 @@ export function CommandPalette() {
 
   // Reset highlight when list changes
   React.useEffect(() => {
+    isKeyboardNav.current = true; // allow scroll to top
     setHighlightedIndex(0);
+    lastScrolledIndex.current = -1; // Force a scroll to top
   }, [query, activeTab]);
 
   // Scroll highlighted item into view
   React.useEffect(() => {
-    const el = document.getElementById(`cmd-item-${navList[highlightedIndex]?.id ?? ''}`);
-    el?.scrollIntoView({ block: 'nearest' });
+    if (isKeyboardNav.current && lastScrolledIndex.current !== highlightedIndex) {
+      lastScrolledIndex.current = highlightedIndex;
+      const el = document.getElementById(`cmd-item-${navList[highlightedIndex]?.id ?? ''}`);
+      el?.scrollIntoView({ block: 'nearest' });
+    }
   }, [highlightedIndex, navList]);
 
   // Global Ctrl+K / Cmd+K listener
@@ -699,6 +738,7 @@ export function CommandPalette() {
     switch (e.key) {
       case 'ArrowDown': {
         e.preventDefault();
+        isKeyboardNav.current = true;
         setHighlightedIndex((i) => {
           const next = i + 1;
           // Skip disabled items
@@ -711,6 +751,7 @@ export function CommandPalette() {
       }
       case 'ArrowUp': {
         e.preventDefault();
+        isKeyboardNav.current = true;
         setHighlightedIndex((i) => {
           const prev = i - 1;
           for (let j = prev; j >= 0; j--) {
@@ -733,7 +774,9 @@ export function CommandPalette() {
 
   const executeCommand = (item: CommandItem) => {
     if (item.disabled) return;
-    recordRecentCommand({ id: item.id, title: item.title, group: item.group });
+    if (!item.id.startsWith('show-more-') && !item.id.startsWith('show-less-')) {
+      recordRecentCommand({ id: item.id, title: item.title, group: item.group });
+    }
     item.action();
   };
 
@@ -864,7 +907,10 @@ export function CommandPalette() {
                     item={item}
                     isHighlighted={highlightedIndex === idx}
                     onSelect={() => executeCommand(item)}
-                    onMouseEnter={() => setHighlightedIndex(idx)}
+                    onMouseEnter={() => {
+                      isKeyboardNav.current = false;
+                      setHighlightedIndex(idx);
+                    }}
                     isFavorite={favoriteCommands.includes(item.id)}
                     onToggleFavorite={() => toggleFavoriteCommand(item.id)}
                   />
@@ -887,7 +933,10 @@ export function CommandPalette() {
                       item={item}
                       isHighlighted={highlightedIndex === navIdx}
                       onSelect={() => executeCommand(item)}
-                      onMouseEnter={() => setHighlightedIndex(navIdx)}
+                      onMouseEnter={() => {
+                        isKeyboardNav.current = false;
+                        setHighlightedIndex(navIdx);
+                      }}
                       isFavorite={favoriteCommands.includes(item.id)}
                       onToggleFavorite={() => toggleFavoriteCommand(item.id)}
                     />
@@ -928,7 +977,10 @@ export function CommandPalette() {
                             item={item}
                             isHighlighted={highlightedIndex === navIdx}
                             onSelect={() => executeCommand(item)}
-                            onMouseEnter={() => setHighlightedIndex(navIdx)}
+                            onMouseEnter={() => {
+                              isKeyboardNav.current = false;
+                              setHighlightedIndex(navIdx);
+                            }}
                             isFavorite={favoriteCommands.includes(item.id)}
                             onToggleFavorite={() => toggleFavoriteCommand(item.id)}
                           />
