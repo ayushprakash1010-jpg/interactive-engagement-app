@@ -396,6 +396,10 @@ The JSON must follow this exact structure (the "activities" array contains 2-4 i
     "title": "string",
     "description": "string"
   },
+  "engagement": {
+    "score": "number (0-100, predicting audience engagement based on pace and variety)",
+    "tip": "string (A short, actionable tip about the session pacing or structure. e.g. 'You have 5 polls back-to-back. Consider adding a Wordcloud in the middle to break up the pace.')"
+  },
   "activities": [
     {
       "type": "poll",
@@ -607,13 +611,24 @@ CRITICAL RULES — violation will break the application:
     }
 
     if (unique.length === 0) {
-      return {
-        hasResponses: false,
-        message: 'There are no audience responses to summarize yet.',
-        summary: null,
-        themes: [],
-        responseCount: 0,
-      };
+      if (process.env.NODE_ENV === 'development') {
+        unique.push("I really loved the interactive elements, made the session very engaging!");
+        unique.push("Could we have more time for Q&A in the next town hall?");
+        unique.push("The new product features look amazing, especially the AI tools.");
+        unique.push("I'm a bit concerned about the timeline for the Q3 deliverables.");
+        unique.push("Great presentation! The slides were very clear and easy to follow.");
+        unique.push("Please provide more documentation on the new API endpoints.");
+        unique.push("I think the pricing model needs to be simplified.");
+        unique.push("Awesome energy from the speakers today!");
+      } else {
+        return {
+          hasResponses: false,
+          message: 'There are no audience responses to summarize yet.',
+          summary: null,
+          themes: [],
+          responseCount: 0,
+        };
+      }
     }
 
     let payload = '';
@@ -630,7 +645,8 @@ Audience responses (${count} items):
 ${payload}
 
 Rules:
-- Write a short, professional 2-4 sentence summary the host can read aloud.
+- Write a detailed, insightful summary (2-3 short paragraphs) that deeply analyzes the audience's sentiment, key takeaways, and actionable insights.
+- The summary should be professional, engaging, and highlight nuances in the responses.
 - Identify 3 to 5 clear themes from the actual responses.
 - Do NOT invent facts not present in the responses.
 - Return ONLY valid JSON with no markdown or code fences.
@@ -669,5 +685,31 @@ Return this exact shape:
       this.logger.error(`Gemini error for event ${eventId}: ${message}`, err as Error);
       throw new InternalServerErrorException('Failed to generate the summary. Please try again.');
     }
+  }
+
+  async modifyDraft(activity: any, instruction: string, userId: string) {
+    const activityType = activity.type;
+    return this.generateJson(
+      `
+You are an AI assistant for an interactive audience engagement platform.
+The user wants to modify an existing drafted activity based on their instruction.
+
+Activity Type: ${activityType}
+Current Draft Configuration JSON:
+${JSON.stringify(activity.config, null, 2)}
+
+User Instruction:
+${instruction}
+
+Rules:
+- Apply the user's instruction to modify the current draft configuration.
+- Maintain the same JSON structure as the provided Current Draft Configuration JSON.
+- Return ONLY valid JSON.
+- Do NOT return markdown or code fences.
+`,
+      'modify draft',
+      userId,
+      { retries: 1 }
+    );
   }
 }

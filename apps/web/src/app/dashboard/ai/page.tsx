@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 import {
   Sparkles,
@@ -62,18 +63,18 @@ type GeneratedEvent = {
 
 type LiveSummaryResult =
   | {
-      hasResponses: true;
-      summary: string;
-      themes: Array<{ label: string; count?: number }>;
-      responseCount: number;
-    }
+    hasResponses: true;
+    summary: string;
+    themes: Array<{ label: string; count?: number }>;
+    responseCount: number;
+  }
   | {
-      hasResponses: false;
-      message: string;
-      summary: null;
-      themes: [];
-      responseCount: 0;
-    };
+    hasResponses: false;
+    message: string;
+    summary: null;
+    themes: [];
+    responseCount: 0;
+  };
 
 const ICON_BY_TYPE: Record<ActivityType, React.ReactNode> = {
   poll: <BarChart3 className="h-5 w-5" />,
@@ -85,10 +86,25 @@ const ICON_BY_TYPE: Record<ActivityType, React.ReactNode> = {
   ai: <Sparkles className="h-5 w-5" />,
 };
 
-const SUGGESTIONS = [
-  'A 30-minute product kickoff for 80 people',
-  'An icebreaker plus a 5-question trivia round',
-  'A retro that gathers wins, blockers, and a mood rating',
+const SESSION_TEMPLATES = [
+  {
+    title: 'Sprint Retro',
+    description: 'Gather wins, blockers, and mood ratings.',
+    prompt: 'A retro that gathers wins, blockers, and a mood rating',
+    gradient: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30',
+  },
+  {
+    title: 'All-Hands Kickoff',
+    description: 'Icebreakers and Q&A for large groups.',
+    prompt: 'A 30-minute product kickoff for 80 people with an icebreaker',
+    gradient: 'from-emerald-500/20 to-teal-500/20 border-emerald-500/30',
+  },
+  {
+    title: 'Trivia Night',
+    description: 'Fun 5-question trivia round.',
+    prompt: 'An icebreaker plus a 5-question trivia round',
+    gradient: 'from-orange-500/20 to-rose-500/20 border-orange-500/30',
+  },
 ];
 
 const FEATURE_CARDS = [
@@ -404,8 +420,7 @@ function sanitiseQuizConfig(
           // As a last resort, log the mismatch and default to the first option
           // so the activity can still be created — the host can edit it.
           console.warn(
-            `[AI Studio] Quiz "${activityTitle}" Q${qIndex + 1}: correctOptionId "${
-              q.correctOptionId
+            `[AI Studio] Quiz "${activityTitle}" Q${qIndex + 1}: correctOptionId "${q.correctOptionId
             }" does not match any option id [${optionIds.join(', ')}]. Defaulting to first option.`,
           );
           correctOptionId = sanitisedOptions[0]!.id;
@@ -461,8 +476,7 @@ function sanitiseQuizConfig(
     const ids = q.options.map((o) => o.id);
     if (!ids.includes(q.correctOptionId)) {
       throw new Error(
-        `AI generated quiz "${activityTitle}" Q${qi + 1}: correctOptionId "${
-          q.correctOptionId
+        `AI generated quiz "${activityTitle}" Q${qi + 1}: correctOptionId "${q.correctOptionId
         }" does not match any option id after normalisation [${ids.join(', ')}]. Please regenerate.`,
       );
     }
@@ -533,6 +547,11 @@ export default function AIStudioPage() {
   const [generatedEvent, setGeneratedEvent] =
     React.useState<GeneratedEvent | null>(null);
 
+  const [engagementInfo, setEngagementInfo] = React.useState<{
+    score: number;
+    tip: string;
+  } | null>(null);
+
   const [drafts, setDrafts] = React.useState<DraftActivity[]>([]);
   const [accepted, setAccepted] = React.useState<DraftActivity[]>([]);
 
@@ -540,6 +559,8 @@ export default function AIStudioPage() {
   const [createEventError, setCreateEventError] = React.useState<string | null>(
     null,
   );
+
+  const [modifyingDraftId, setModifyingDraftId] = React.useState<string | null>(null);
 
   const [events, setEvents] = React.useState<
     Array<{ id: string; name: string; eventCode?: string }>
@@ -605,6 +626,7 @@ export default function AIStudioPage() {
     setAccepted([]);
     setGeneratedEvent(null);
     setSummaryResult(null);
+    setEngagementInfo(null);
 
     try {
       // Use the Next.js proxy so the Auth0 Bearer token is forwarded automatically.
@@ -652,6 +674,7 @@ export default function AIStudioPage() {
 
       const data = (await res.json()) as {
         event?: { title?: string; description?: string };
+        engagement?: { score: number; tip: string };
         activities?: {
           type: string;
           title: string;
@@ -672,6 +695,13 @@ export default function AIStudioPage() {
           data.event?.description ??
           'An event generated using Pulse AI Studio.',
       });
+
+      if (data.engagement) {
+        setEngagementInfo({
+          score: Number(data.engagement.score) || 85,
+          tip: data.engagement.tip || 'Looking good!',
+        });
+      }
 
       setDrafts(
         activities.map((activity, index) =>
@@ -703,6 +733,40 @@ export default function AIStudioPage() {
 
   const dismissDraft = (id: string) => {
     setDrafts((previous) => previous.filter((activity) => activity.id !== id));
+  };
+
+  const handleModifyDraft = async (draft: DraftActivity, instruction: string) => {
+    setModifyingDraftId(draft.id);
+    setGenerateError(null);
+    try {
+      const res = await fetch('/api/proxy/ai/modify-draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activity: draft, instruction }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to modify draft.');
+      }
+
+      const updatedConfig = await res.json();
+
+      const updatedDraft = normaliseActivity({
+        ...draft,
+        config: updatedConfig
+      }, drafts.findIndex(d => d.id === draft.id));
+
+      updatedDraft.id = draft.id; // Preserve original ID
+
+      setDrafts(current => current.map(d => d.id === draft.id ? updatedDraft : d));
+    } catch (error) {
+      console.error('Modify draft failed:', error);
+      setGenerateError(
+        error instanceof Error ? error.message : 'Failed to modify draft.'
+      );
+    } finally {
+      setModifyingDraftId(null);
+    }
   };
 
   const handleCreateEventFromDraft = async () => {
@@ -801,8 +865,7 @@ export default function AIStudioPage() {
             ? errorData.message.join(', ')
             : errorData?.message;
           throw new Error(
-            `Could not create "${activity.title}" (${activity.type}). ${
-              details || `Server returned ${activityResponse.status}`
+            `Could not create "${activity.title}" (${activity.type}). ${details || `Server returned ${activityResponse.status}`
             }`,
           );
         }
@@ -888,12 +951,30 @@ export default function AIStudioPage() {
             description="Pulse keeps the workflow editable: generate suggestions, accept the useful ones, then create the event when the draft is ready."
           />
 
+          <div className="mb-4">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Inspiration Gallery</h3>
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
+              {SESSION_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.title}
+                  type="button"
+                  onClick={() => setPrompt(tpl.prompt)}
+                  className={`group relative flex w-60 shrink-0 flex-col items-start gap-1 overflow-hidden rounded-xl border bg-gradient-to-br p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg ${tpl.gradient}`}
+                >
+                  <div className="absolute inset-0 bg-white/5 opacity-0 transition-opacity group-hover:opacity-100" />
+                  <span className="font-semibold text-foreground">{tpl.title}</span>
+                  <span className="text-xs text-ink-muted">{tpl.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <AIComposer
             value={prompt}
             onChange={setPrompt}
             onGenerate={handleGenerate}
             loading={generating}
-            suggestions={SUGGESTIONS}
+            suggestions={[]}
             placeholder="Describe your session - Pulse drafts the activities..."
             className="bg-surface-card"
           />
@@ -927,11 +1008,28 @@ export default function AIStudioPage() {
                 </span>
               </div>
 
+              {engagementInfo && (
+                <div className="mb-2 mt-2 flex flex-col gap-2 rounded-lg border border-ai/20 bg-ai/5 p-3 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-ai/10 to-transparent pointer-events-none" />
+                  <div className="relative flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-ai">Engagement Predictor</span>
+                    <span className={cn(
+                      "rounded-full px-2 py-0.5 text-xs font-bold shadow-sm",
+                      engagementInfo.score >= 80 ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                    )}>
+                      {engagementInfo.score} Score
+                    </span>
+                  </div>
+                  <p className="relative text-sm text-ink-secondary leading-relaxed"><strong className="text-foreground">Tip:</strong> {engagementInfo.tip}</p>
+                </div>
+              )}
+
               <div className="grid gap-2">
                 {drafts.map((draft) => (
                   <SuggestionChip
                     key={draft.id}
                     className="rounded-lg"
+                    activityDetails={{ type: draft.type, config: draft.config }}
                     text={
                       <span>
                         <span className="font-semibold">{draft.title}</span>
@@ -943,6 +1041,11 @@ export default function AIStudioPage() {
                     }
                     onAccept={() => acceptDraft(draft)}
                     onDismiss={() => dismissDraft(draft.id)}
+                    onTweak={
+                      modifyingDraftId === draft.id
+                        ? undefined
+                        : (instruction) => handleModifyDraft(draft, instruction)
+                    }
                   />
                 ))}
               </div>
@@ -951,7 +1054,7 @@ export default function AIStudioPage() {
         </SurfacePanel>
 
         <div className="space-y-4">
-          <SurfacePanel className="space-y-3">
+          <SurfacePanel className="space-y-3 border border-white/10 bg-surface-panel/60 shadow-lg backdrop-blur-xl">
             <div className="flex items-center gap-2">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-ai-subtle text-ai">
                 <WandSparkles className="h-4 w-4" />
@@ -966,13 +1069,13 @@ export default function AIStudioPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-md border border-border bg-surface-sunken p-3">
+              <div className="rounded-md border border-border/50 bg-surface-sunken/50 p-3 backdrop-blur-sm">
                 <p className="font-mono text-lg font-semibold text-foreground">
                   {drafts.length}
                 </p>
                 <p className="text-xs text-ink-muted">Open suggestions</p>
               </div>
-              <div className="rounded-md border border-border bg-surface-sunken p-3">
+              <div className="rounded-md border border-border/50 bg-surface-sunken/50 p-3 backdrop-blur-sm">
                 <p className="font-mono text-lg font-semibold text-foreground">
                   {accepted.length}
                 </p>
@@ -983,7 +1086,7 @@ export default function AIStudioPage() {
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
             {FEATURE_CARDS.map((feature) => (
-              <Card key={feature.title} className="shadow-xs">
+              <Card key={feature.title} className="border-white/10 bg-surface-card/60 shadow-xs backdrop-blur-xl transition-all hover:bg-surface-card/80">
                 <CardHeader className="flex-row items-start gap-3 space-y-0 p-4">
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-ai-subtle text-ai">
                     {feature.icon}
@@ -1029,12 +1132,24 @@ export default function AIStudioPage() {
         )}
 
         {accepted.length === 0 ? (
-          <EmptyState
-            tone="ai"
-            icon={<FileText className="h-6 w-6" />}
-            title="Nothing drafted yet"
-            description="Generate a session above, then accept the suggestions you want to keep."
-          />
+          <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-ai-border/50 bg-surface-card/30 p-12 text-center backdrop-blur-sm">
+            <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] grayscale">
+              <div className="grid grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-32 w-48 rounded-xl bg-foreground" />
+                ))}
+              </div>
+            </div>
+            <div className="relative z-10 space-y-3">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-ai-subtle text-ai shadow-[0_0_20px_rgba(139,92,246,0.3)]">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <h3 className="font-display text-xl font-semibold text-foreground">Waiting for inspiration...</h3>
+              <p className="max-w-sm text-sm text-ink-muted">
+                Generate a session using the AI composer above. We'll draft some activities here for you to review and keep.
+              </p>
+            </div>
+          </div>
         ) : (
           <div className="space-y-4">
             {generatedEvent && (
@@ -1128,6 +1243,16 @@ export default function AIStudioPage() {
                 summarizing
                   ? undefined
                   : `Summarized from ${summaryResult.responseCount} real response${summaryResult.responseCount === 1 ? '' : 's'}${selectedEvent ? ` - ${selectedEvent.name}` : ''}`
+              }
+              exportConfig={
+                summarizing
+                  ? undefined
+                  : {
+                    summary: summaryResult.summary,
+                    themes: summaryThemes,
+                    footnote: `Summarized from ${summaryResult.responseCount} real response${summaryResult.responseCount === 1 ? '' : 's'}${selectedEvent ? ` - ${selectedEvent.name}` : ''}`,
+                    eventName: selectedEvent?.name,
+                  }
               }
             />
           ) : (

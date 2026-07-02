@@ -64,4 +64,9 @@ export class AiController {
   async summarizeLiveAnswers(@Param('eventId') eventId: string, @Req() req: Request) {
     return this.aiService.summarizeLiveAnswers(eventId, this.getUserId(req));
   }
+
+  @Post('modify-draft')
+  async modifyDraft(@Body() body: { activity: any; instruction: string }, @Req() req: Request) {
+    return this.aiService.modifyDraft(body.activity, body.instruction, this.getUserId(req));
+  }
 }

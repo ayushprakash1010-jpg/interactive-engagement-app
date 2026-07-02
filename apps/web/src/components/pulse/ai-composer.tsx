@@ -31,7 +31,7 @@ export function AIComposer({
         className,
       )}
     >
-      <div className="flex items-start gap-2.5 rounded-md border border-ai-border bg-card px-3.5 py-3">
+      <div className="flex items-start gap-2.5 rounded-md border border-ai-border bg-card px-3.5 py-3 transition-all duration-300 focus-within:border-ai focus-within:ring-2 focus-within:ring-ai/30 focus-within:shadow-[0_0_15px_rgba(139,92,246,0.15)]">
         <Sparkles className="mt-0.5 h-[18px] w-[18px] shrink-0 text-ai" />
         <textarea
           rows={2}
@@ -62,9 +62,9 @@ export function AIComposer({
           type="button"
           onClick={onGenerate}
           disabled={loading || !value.trim()}
-          className="inline-flex h-10 items-center gap-2 rounded-sm bg-ai px-[1.125rem] text-sm font-semibold text-white transition-colors hover:bg-ai-hover disabled:cursor-not-allowed disabled:bg-ai-border"
+          className="group inline-flex h-10 items-center gap-2 rounded-sm bg-ai px-[1.125rem] text-sm font-semibold text-white transition-all hover:bg-ai-hover hover:shadow-[0_0_15px_rgba(139,92,246,0.4)] disabled:cursor-not-allowed disabled:bg-ai-border disabled:hover:shadow-none"
         >
-          <Sparkles className={cn('h-[15px] w-[15px]', loading && 'animate-spin')} />
+          <Sparkles className={cn('h-[15px] w-[15px]', loading ? 'animate-spin' : 'animate-pulse group-hover:animate-none')} />
           {loading ? 'Generating…' : 'Generate'}
         </button>
       </div>
