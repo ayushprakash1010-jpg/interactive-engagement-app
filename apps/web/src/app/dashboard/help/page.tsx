@@ -27,6 +27,7 @@ import {
   Star,
   Trophy,
   WandSparkles,
+  Link,
 } from 'lucide-react';
 import {
   Badge,
@@ -42,6 +43,8 @@ import {
   SectionHeader,
   SurfacePanel,
 } from '@/components/ui';
+import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 
 type GuideItem = {
   title: string;
@@ -298,9 +301,71 @@ function ComingSoonBadge() {
   );
 }
 
-function HelpNav({ query, setQuery }: {
+function CopyLinkButton({ id }: { id: string }) {
+  const { toast } = useToast();
+  return (
+    <button
+      type="button"
+      className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md text-ink-muted opacity-0 transition-opacity hover:bg-surface-sunken hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const url = new URL(window.location.href);
+        url.hash = id;
+        navigator.clipboard.writeText(url.toString());
+        toast({ title: 'Link copied to clipboard' });
+      }}
+      aria-label="Copy link to this section"
+    >
+      <Link className="h-3 w-3" />
+    </button>
+  );
+}
+
+function FaqAccordion({ faq }: { faq: { question: string; answer: string } }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const id = `faq-${faq.question.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  
+  return (
+    <div id={id} className="group rounded-lg border border-border bg-surface-card shadow-xs scroll-mt-24">
+      <div 
+        role="button"
+        tabIndex={0}
+        onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
+        className="flex w-full cursor-pointer items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+      >
+        <span className="flex items-center">
+          {faq.question}
+          <CopyLinkButton id={id} />
+        </span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-ink-muted transition-transform duration-200", isOpen && "rotate-180")} />
+      </div>
+      <div 
+        className={cn(
+          "grid transition-all duration-200 ease-in-out",
+          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="border-t border-border px-5 py-4 text-sm leading-relaxed text-ink-secondary">
+            {faq.answer}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HelpNav({ query, setQuery, activeSection }: {
   query: string;
   setQuery: (query: string) => void;
+  activeSection: string;
 }) {
   return (
     <SurfacePanel className="space-y-4 p-3">
@@ -324,9 +389,17 @@ function HelpNav({ query, setQuery }: {
             <a
               key={item.id}
               href={`#${item.id}`}
-              className="group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className={cn(
+                "group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                activeSection === item.id 
+                  ? "bg-brand/10 text-brand"
+                  : "text-foreground hover:bg-surface-sunken"
+              )}
             >
-              <Icon className="h-4 w-4 shrink-0 text-ink-muted group-hover:text-foreground" />
+              <Icon className={cn(
+                "h-4 w-4 shrink-0 transition-colors",
+                activeSection === item.id ? "text-brand" : "text-ink-muted group-hover:text-foreground"
+              )} />
               <span className="truncate">{item.label}</span>
             </a>
           );
@@ -338,14 +411,18 @@ function HelpNav({ query, setQuery }: {
 
 function QuickGuideCard({ guide }: { guide: GuideItem }) {
   const Icon = guide.icon;
+  const id = `guide-${guide.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
-    <Card className="shadow-xs">
+    <Card id={id} className="group shadow-xs scroll-mt-24">
       <CardHeader className="flex-row items-start gap-3 space-y-0 p-5">
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-subtle text-brand">
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0 space-y-1">
-          <CardTitle className="text-base leading-tight">{guide.title}</CardTitle>
+          <CardTitle className="text-base leading-tight flex items-center">
+            {guide.title}
+            <CopyLinkButton id={id} />
+          </CardTitle>
           <CardDescription className="leading-relaxed">
             {guide.description}
           </CardDescription>
@@ -357,14 +434,18 @@ function QuickGuideCard({ guide }: { guide: GuideItem }) {
 
 function FeatureCard({ guide }: { guide: FeatureGuide }) {
   const Icon = guide.icon;
+  const id = `feature-${guide.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return (
-    <Card className="shadow-xs">
+    <Card id={id} className="group shadow-xs scroll-mt-24">
       <CardHeader className="flex-row items-start gap-3 space-y-0 p-5">
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-sunken text-ink-secondary">
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0 space-y-1">
-          <CardTitle className="text-base leading-tight">{guide.title}</CardTitle>
+          <CardTitle className="text-base leading-tight flex items-center">
+            {guide.title}
+            <CopyLinkButton id={id} />
+          </CardTitle>
           <CardDescription className="leading-relaxed">
             {guide.description}
           </CardDescription>
@@ -385,6 +466,27 @@ function FeatureCard({ guide }: { guide: FeatureGuide }) {
 
 export default function HelpCenterPage() {
   const [query, setQuery] = React.useState('');
+  const [activeSection, setActiveSection] = React.useState<string>('getting-started');
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+        const first = visibleEntries[0];
+        if (first) {
+          setActiveSection(first.target.id);
+        }
+      },
+      { rootMargin: '-20% 0px -60% 0px' }
+    );
+
+    HELP_SECTIONS.forEach((item) => {
+      const el = document.getElementById(item.id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [query]);
 
   const visibleQuickGuides = gettingStarted.filter((guide) =>
     matchesSearch(query, [guide.title, guide.description, ...guide.tags]),
@@ -427,13 +529,13 @@ export default function HelpCenterPage() {
           <ChevronDown className="h-4 w-4 text-ink-muted" />
         </summary>
         <div className="pt-3">
-          <HelpNav query={query} setQuery={setQuery} />
+          <HelpNav query={query} setQuery={setQuery} activeSection={activeSection} />
         </div>
       </details>
 
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <aside className="hidden lg:sticky lg:top-24 lg:block lg:self-start">
-          <HelpNav query={query} setQuery={setQuery} />
+          <HelpNav query={query} setQuery={setQuery} activeSection={activeSection} />
         </aside>
 
         <div className="min-w-0 space-y-8">
@@ -450,207 +552,208 @@ export default function HelpCenterPage() {
             />
           ) : null}
 
-          <section id="getting-started" className="scroll-mt-24 space-y-4">
-            <SectionHeader
-              title="Getting Started"
-              description="Short guides for the actions most hosts need in their first session."
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              {visibleQuickGuides.map((guide) => (
-                <QuickGuideCard key={guide.title} guide={guide} />
-              ))}
-            </div>
-          </section>
-
-          <section id="feature-guides" className="scroll-mt-24 space-y-4">
-            <SectionHeader
-              title="Feature Guides"
-              description="A compact reference for each product area and the actions it supports today."
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              {visibleFeatureGuides.map((guide) => (
-                <FeatureCard key={guide.title} guide={guide} />
-              ))}
-            </div>
-          </section>
-
-          <section id="faq" className="scroll-mt-24 space-y-4">
-            <SectionHeader
-              title="Frequently Asked Questions"
-              description="Practical answers about participants, moderation, AI, analytics, and browser support."
-            />
-            <div className="space-y-3">
-              {visibleFaqs.map((faq) => (
-                <details
-                  key={faq.question}
-                  className="group rounded-lg border border-border bg-surface-card shadow-xs"
-                >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
-                    {faq.question}
-                    <ChevronDown className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" />
-                  </summary>
-                  <div className="border-t border-border px-5 py-4 text-sm leading-relaxed text-ink-secondary">
-                    {faq.answer}
-                  </div>
-                </details>
-              ))}
-            </div>
-          </section>
-
-          <section id="shortcuts" className="scroll-mt-24 space-y-4">
-            <SectionHeader
-              title="Keyboard Shortcuts"
-              description="Current keyboard behavior plus upcoming command shortcuts."
-            />
-            <Card className="shadow-xs">
-              <CardContent className="divide-y divide-border p-0">
-                {shortcuts.map((shortcut) => (
-                  <div
-                    key={shortcut.label}
-                    className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">
-                          {shortcut.label}
-                        </p>
-                        {shortcut.future ? <ComingSoonBadge /> : null}
-                      </div>
-                      <p className="text-sm text-ink-muted">
-                        {shortcut.description}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap gap-1.5">
-                      {shortcut.keys.map((key) => (
-                        <kbd
-                          key={key}
-                          className="rounded-md border border-border bg-surface-sunken px-2 py-1 font-mono text-xs font-semibold text-foreground"
-                        >
-                          {key}
-                        </kbd>
-                      ))}
-                    </div>
-                  </div>
+          {visibleQuickGuides.length > 0 && (
+            <section id="getting-started" className="scroll-mt-24 space-y-4">
+              <SectionHeader
+                title="Getting Started"
+                description="Short guides for the actions most hosts need in their first session."
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                {visibleQuickGuides.map((guide) => (
+                  <QuickGuideCard key={guide.title} guide={guide} />
                 ))}
-              </CardContent>
-            </Card>
-          </section>
+              </div>
+            </section>
+          )}
 
-          <section id="support" className="scroll-mt-24 space-y-4">
-            <SectionHeader
-              title="Contact & Support"
-              description="Support workflows are planned; no backend ticketing or messaging API is connected yet."
-            />
-            <div className="grid gap-4 md:grid-cols-3">
-              {[
-                {
-                  title: 'Report a bug',
-                  description:
-                    'Share reproducible issues with event setup, live delivery, or analytics.',
-                  icon: Bug,
-                },
-                {
-                  title: 'Request a feature',
-                  description:
-                    'Suggest improvements for host workflows, participant experiences, or AI tools.',
-                  icon: Lightbulb,
-                },
-                {
-                  title: 'Contact support',
-                  description:
-                    'Reach the product team when support channels are connected.',
-                  icon: Send,
-                },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Card key={item.title} className="shadow-xs">
-                    <CardHeader className="space-y-3 p-5">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-surface-sunken text-ink-secondary">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <div className="space-y-1">
+          {visibleFeatureGuides.length > 0 && (
+            <section id="feature-guides" className="scroll-mt-24 space-y-4">
+              <SectionHeader
+                title="Feature Guides"
+                description="A compact reference for each product area and the actions it supports today."
+              />
+              <div className="grid gap-4 md:grid-cols-2">
+                {visibleFeatureGuides.map((guide) => (
+                  <FeatureCard key={guide.title} guide={guide} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {visibleFaqs.length > 0 && (
+            <section id="faq" className="scroll-mt-24 space-y-4">
+              <SectionHeader
+                title="Frequently Asked Questions"
+                description="Practical answers about participants, moderation, AI, analytics, and browser support."
+              />
+              <div className="space-y-3">
+                {visibleFaqs.map((faq) => (
+                  <FaqAccordion key={faq.question} faq={faq} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {(!query.trim() || matchesSearch(query, ['shortcuts', 'keyboard'])) && (
+            <section id="shortcuts" className="scroll-mt-24 space-y-4">
+              <SectionHeader
+                title="Keyboard Shortcuts"
+                description="Current keyboard behavior plus upcoming command shortcuts."
+              />
+              <Card className="shadow-xs">
+                <CardContent className="divide-y divide-border p-0">
+                  {shortcuts.map((shortcut) => (
+                    <div
+                      key={shortcut.label}
+                      className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="min-w-0 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <CardTitle className="text-base">
-                            {item.title}
-                          </CardTitle>
-                          <ComingSoonBadge />
+                          <p className="text-sm font-semibold text-foreground">
+                            {shortcut.label}
+                          </p>
+                          {shortcut.future ? <ComingSoonBadge /> : null}
                         </div>
-                        <CardDescription>{item.description}</CardDescription>
+                        <p className="text-sm text-ink-muted">
+                          {shortcut.description}
+                        </p>
                       </div>
-                    </CardHeader>
-                    <CardContent className="p-5 pt-0">
-                      <Button type="button" variant="outline" disabled className="w-full">
-                        Coming Soon
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-
-          <section id="whats-new" className="scroll-mt-24 space-y-4">
-            <SectionHeader
-              title="What's New"
-              description="Recent product updates presented as a lightweight changelog."
-            />
-            <SurfacePanel className="p-0">
-              <ol className="divide-y divide-border">
-                {updates.map(([title, description], index) => (
-                  <li key={title} className="flex gap-4 p-5">
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand">
-                      {index === 0 ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <span className="h-2 w-2 rounded-full bg-brand" />
-                      )}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground">
-                        {title}
-                      </p>
-                      <p className="text-sm text-ink-muted">{description}</p>
+                      <div className="flex shrink-0 flex-wrap gap-1.5">
+                        {shortcut.keys.map((key) => (
+                          <kbd
+                            key={key}
+                            className="rounded-md border border-border bg-surface-sunken px-2 py-1 font-mono text-xs font-semibold text-foreground"
+                          >
+                            {key}
+                          </kbd>
+                        ))}
+                      </div>
                     </div>
-                  </li>
-                ))}
-              </ol>
-            </SurfacePanel>
-          </section>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+          )}
 
-          <section id="product-info" className="scroll-mt-24 space-y-4">
-            <SectionHeader
-              title="Product Information"
-              description="Static environment details for the current Pulse dashboard experience."
-            />
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                ['Pulse version', '0.1.0'],
-                ['UI version', 'Pulse SaaS redesign'],
-                ['Theme support', 'Light, Dark, System'],
-                ['Powered by AI', 'AI Studio and insights'],
-                ['Last updated', 'June 27, 2026'],
-              ].map(([label, value]) => (
-                <SurfacePanel key={label} tone="sunken" className="space-y-1 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                    {label}
-                  </p>
-                  <p className="text-sm font-semibold text-foreground">{value}</p>
-                </SurfacePanel>
-              ))}
-              <SurfacePanel tone="ai" className="space-y-1 p-4">
-                <div className="flex items-center gap-2">
-                  <Command className="h-4 w-4 text-ai" />
-                  <p className="text-xs font-semibold uppercase tracking-wider text-ai">
-                    Documentation search
-                  </p>
-                </div>
-                <p className="text-sm font-semibold text-ai-subtle-text">
-                  Local filtering only
-                </p>
+          {(!query.trim() || matchesSearch(query, ['support', 'contact'])) && (
+            <section id="support" className="scroll-mt-24 space-y-4">
+              <SectionHeader
+                title="Contact & Support"
+                description="Use these links to get in touch with our team directly via email."
+              />
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  {
+                    title: 'Report a bug',
+                    description: 'Share reproducible issues with event setup or delivery.',
+                    icon: Bug,
+                    action: 'mailto:support@pulse.com?subject=Bug%20Report',
+                    actionLabel: 'Send email',
+                  },
+                  {
+                    title: 'Request a feature',
+                    description: 'Suggest improvements for host workflows or AI tools.',
+                    icon: Lightbulb,
+                    action: 'mailto:support@pulse.com?subject=Feature%20Request',
+                    actionLabel: 'Send email',
+                  },
+                  {
+                    title: 'Contact support',
+                    description: 'Reach the product team for general assistance.',
+                    icon: Send,
+                    action: 'mailto:support@pulse.com?subject=Support%20Request',
+                    actionLabel: 'Send email',
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Card key={item.title} className="shadow-xs">
+                      <CardHeader className="space-y-3 p-5">
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-surface-sunken text-ink-secondary">
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <div className="space-y-1">
+                          <CardTitle className="text-base">{item.title}</CardTitle>
+                          <CardDescription>{item.description}</CardDescription>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-5 pt-0">
+                        <Button asChild variant="outline" className="w-full">
+                          <a href={item.action}>{item.actionLabel}</a>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {(!query.trim() || matchesSearch(query, ['updates', "what's new"])) && (
+            <section id="whats-new" className="scroll-mt-24 space-y-4">
+              <SectionHeader
+                title="What's New"
+                description="Recent product updates presented as a lightweight changelog."
+              />
+              <SurfacePanel className="p-0">
+                <ol className="divide-y divide-border">
+                  {updates.map(([title, description], index) => (
+                    <li key={title} className="flex gap-4 p-5">
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand">
+                        {index === 0 ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          <span className="h-2 w-2 rounded-full bg-brand" />
+                        )}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          {title}
+                        </p>
+                        <p className="text-sm text-ink-muted">{description}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
               </SurfacePanel>
-            </div>
-          </section>
+            </section>
+          )}
+
+          {(!query.trim() || matchesSearch(query, ['product info', 'version', 'theme'])) && (
+            <section id="product-info" className="scroll-mt-24 space-y-4">
+              <SectionHeader
+                title="Product Information"
+                description="Static environment details for the current Pulse dashboard experience."
+              />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  ['Pulse version', '0.1.0'],
+                  ['UI version', 'Pulse SaaS redesign'],
+                  ['Theme support', 'Light, Dark, System'],
+                  ['Powered by AI', 'AI Studio and insights'],
+                  ['Last updated', 'June 27, 2026'],
+                ].map(([label, value]) => (
+                  <SurfacePanel key={label} tone="sunken" className="space-y-1 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                      {label}
+                    </p>
+                    <p className="text-sm font-semibold text-foreground">{value}</p>
+                  </SurfacePanel>
+                ))}
+                <SurfacePanel tone="ai" className="space-y-1 p-4">
+                  <div className="flex items-center gap-2">
+                    <Command className="h-4 w-4 text-ai" />
+                    <p className="text-xs font-semibold uppercase tracking-wider text-ai">
+                      Documentation search
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold text-ai-subtle-text">
+                    Local filtering only
+                  </p>
+                </SurfacePanel>
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>

@@ -125,6 +125,7 @@ const SurveyConfigSchema = z.object({
   displayMode: z.enum(['stepper', 'scroll']).optional().default('stepper'),
   questions: z.array(SurveyQuestionSchema).default([]),
   timeLimitSec: z.number().int().min(5).max(600).optional(),
+  maxResponses: z.number().int().min(1).max(10000).optional(),
 });
 
 const CreateActivitySchema = z.discriminatedUnion('type', [

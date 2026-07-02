@@ -9,12 +9,15 @@ const e = (value: unknown): string => {
 
 const pct = (value: number) => `${Number((value ?? 0).toFixed(1))}%`;
 
-const section = (title: string, body: string) => `
+const section = (title: string, body: string, hasData = true) =>
+  hasData
+    ? `
   <section class="section">
     <h2>${e(title)}</h2>
     ${body}
   </section>
-`;
+`
+    : '';
 
 const list = (items: string[]) =>
   items.length
@@ -359,7 +362,11 @@ const resolveParticipantName = (entry: any): string => {
 
       .section {
         margin: 0 0 18px 0;
-        page-break-inside: avoid;
+      }
+
+      .section + .section {
+        border-top: 2px solid #000;
+        padding-top: 14px;
       }
 
       .block,
@@ -426,13 +433,13 @@ const resolveParticipantName = (entry: any): string => {
     </div>
 
     ${section('Headline Stats', headlineBody)}
-    ${section('Poll Analytics', pollBody)}
-    ${section('Quiz Analytics', quizBody)}
-    ${section('Q&A Analytics', qaBody)}
-    ${section('Word Cloud Analytics', wordCloudBody)}
-    ${section('Feedback Analytics', feedbackBody)}
-    ${section('Survey Analytics', surveyBody)}
-    ${section('Engagement Timeline', timelineBody)}
+    ${section('Poll Analytics', pollBody, pollAnalytics.length > 0)}
+    ${section('Quiz Analytics', quizBody, quizAnalytics.length > 0)}
+    ${section('Q&A Analytics', qaBody, (data?.qaAnalytics?.totalQuestions ?? 0) > 0)}
+    ${section('Word Cloud Analytics', wordCloudBody, wordCloudAnalytics.length > 0)}
+    ${section('Feedback Analytics', feedbackBody, feedbackAnalytics.length > 0)}
+    ${section('Survey Analytics', surveyBody, surveyAnalytics.length > 0)}
+    ${section('Engagement Timeline', timelineBody, engagementTimeline.length > 0)}
   </body>
 </html>`;
 }

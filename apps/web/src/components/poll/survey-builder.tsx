@@ -60,6 +60,7 @@ export function SurveyBuilder({
   const [welcomeMessage, setWelcomeMessage] = useState(initialConfig?.welcomeMessage ?? "");
   const [thankYouMessage, setThankYouMessage] = useState(initialConfig?.thankYouMessage ?? "");
   const [displayMode, setDisplayMode] = useState<'scroll' | 'stepper'>(initialConfig?.displayMode ?? 'scroll');
+  const [maxResponses, setMaxResponses] = useState(initialConfig?.maxResponses?.toString() ?? "");
   const [questions, setQuestions] = useState<SurveyQuestion[]>(
     initialConfig?.questions?.length
       ? initialConfig.questions
@@ -258,10 +259,13 @@ export function SurveyBuilder({
     e.preventDefault();
     if (!validate()) return;
 
+    const parsedMaxResponses = parseInt(maxResponses, 10);
+
     const config: SurveyConfig = {
       welcomeMessage: welcomeMessage.trim() || undefined,
       thankYouMessage: thankYouMessage.trim() || undefined,
       displayMode,
+      maxResponses: !isNaN(parsedMaxResponses) && parsedMaxResponses > 0 ? parsedMaxResponses : undefined,
       questions: questions.map((question) => {
         const trimmedOptions = (question.options ?? [])
           .filter((option) => option.label.trim())
@@ -352,16 +356,29 @@ export function SurveyBuilder({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor={`${formId}-display`}>Display mode</Label>
-          <Select
-            id={`${formId}-display`}
-            value={displayMode}
-            onChange={(e) => setDisplayMode(e.target.value as 'scroll' | 'stepper')}
-          >
-            <option value="scroll">Scroll (All questions on one page)</option>
-            <option value="stepper">Stepper (One question per page)</option>
-          </Select>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor={`${formId}-display`}>Display mode</Label>
+            <Select
+              id={`${formId}-display`}
+              value={displayMode}
+              onChange={(e) => setDisplayMode(e.target.value as 'scroll' | 'stepper')}
+            >
+              <option value="scroll">Scroll (All questions on one page)</option>
+              <option value="stepper">Stepper (One question per page)</option>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor={`${formId}-max-responses`}>Response limit (Optional)</Label>
+            <Input
+              id={`${formId}-max-responses`}
+              type="number"
+              min="1"
+              placeholder="e.g. 100"
+              value={maxResponses}
+              onChange={(e) => setMaxResponses(e.target.value)}
+            />
+          </div>
         </div>
       </SurfacePanel>
 

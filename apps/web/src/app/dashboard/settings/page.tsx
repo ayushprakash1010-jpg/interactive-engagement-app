@@ -49,6 +49,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Slider,
+  RadioCardGroup,
   SettingsSkeleton,
 } from '@/components/ui';
 import { useAuth } from '@/lib/use-auth';
@@ -57,6 +59,8 @@ import { useEvents } from '@/lib/use-events';
 import { useNotifications } from '@/lib/notification-store';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+
+const SettingsSearchContext = React.createContext('');
 
 type SectionId =
   | 'profile'
@@ -193,8 +197,14 @@ function SettingsCard({
   title: string;
   badge?: React.ReactNode;
 }) {
+  const searchQuery = React.useContext(SettingsSearchContext).toLowerCase();
+  const isMatch = !searchQuery || title.toLowerCase().includes(searchQuery) || description.toLowerCase().includes(searchQuery);
+
   return (
-    <Card className="shadow-xs transition-shadow duration-300">
+    <Card className={cn(
+      "shadow-xs transition-shadow duration-300",
+      searchQuery && !isMatch && "[&:not(:has(.setting-item))]:hidden"
+    )}>
       <CardHeader className="flex-row items-start gap-3 space-y-0 p-5 border-b border-border/40">
         <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-surface-sunken text-ink-secondary">
           {icon}
@@ -207,7 +217,57 @@ function SettingsCard({
           <CardDescription className="leading-relaxed">{description}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 p-5">{children}</CardContent>
+      <CardContent className="space-y-4 p-5">
+        {isMatch ? (
+          <SettingsSearchContext.Provider value="">
+            {children}
+          </SettingsSearchContext.Provider>
+        ) : children}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SettingsDangerCard({
+  children,
+  description,
+  icon,
+  title,
+  badge,
+}: {
+  children: React.ReactNode;
+  description: string;
+  icon: React.ReactNode;
+  title: string;
+  badge?: React.ReactNode;
+}) {
+  const searchQuery = React.useContext(SettingsSearchContext).toLowerCase();
+  const isMatch = !searchQuery || title.toLowerCase().includes(searchQuery) || description.toLowerCase().includes(searchQuery);
+
+  return (
+    <Card className={cn(
+      "shadow-xs border-destructive/20 bg-destructive/5 transition-all duration-300",
+      searchQuery && !isMatch && "[&:not(:has(.setting-item))]:hidden"
+    )}>
+      <CardHeader className="flex-row items-start gap-3 space-y-0 p-5 border-b border-destructive/20 bg-destructive/10">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-destructive/20 text-destructive">
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle className="text-base leading-tight text-destructive">{title}</CardTitle>
+            {badge}
+          </div>
+          <CardDescription className="leading-relaxed text-destructive/80">{description}</CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 p-5">
+        {isMatch ? (
+          <SettingsSearchContext.Provider value="">
+            {children}
+          </SettingsSearchContext.Provider>
+        ) : children}
+      </CardContent>
     </Card>
   );
 }
@@ -223,8 +283,12 @@ function SettingRow({
   label: string;
   badge?: React.ReactNode;
 }) {
+  const searchQuery = React.useContext(SettingsSearchContext).toLowerCase();
+  if (searchQuery && !label.toLowerCase().includes(searchQuery) && !description.toLowerCase().includes(searchQuery)) {
+    return null;
+  }
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-border bg-surface-card p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:border-brand/40">
+    <div className="setting-item flex flex-col gap-3 rounded-md border border-border bg-surface-card p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:border-brand/40">
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{label}</p>
@@ -241,13 +305,20 @@ function Field({
   children,
   hint,
   label,
+  className,
 }: {
   children: React.ReactNode;
   hint?: string;
-  label: string;
+  label: React.ReactNode;
+  className?: string;
 }) {
+  const searchQuery = React.useContext(SettingsSearchContext).toLowerCase();
+  const labelText = typeof label === 'string' ? label.toLowerCase() : '';
+  if (searchQuery && !labelText.includes(searchQuery) && (!hint || !hint.toLowerCase().includes(searchQuery))) {
+    return null;
+  }
   return (
-    <div className="space-y-2">
+    <div className={cn("setting-item space-y-2", className)}>
       <Label className="text-sm font-semibold text-foreground">{label}</Label>
       {children}
       {hint && <p className="text-xs text-ink-muted">{hint}</p>}
@@ -266,6 +337,7 @@ export default function SettingsPage() {
   const [stagedSettings, setStagedSettings] = React.useState<LocalSettings>(defaultLocalSettings);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [activeSection, setActiveSection] = React.useState<SectionId>('profile');
 
   React.useEffect(() => {
     try {
@@ -281,6 +353,25 @@ export default function SettingsPage() {
     }
     setIsLoaded(true);
   }, []);
+
+  React.useEffect(() => {
+    if (!isLoaded) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+        const first = visibleEntries[0];
+        if (first) {
+          setActiveSection(first.target.id as SectionId);
+        }
+      },
+      { rootMargin: '-20% 0px -60% 0px' }
+    );
+    SECTION_NAV.forEach((item) => {
+      const el = document.getElementById(item.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [isLoaded, searchQuery]);
 
   const hasUnsavedChanges = JSON.stringify(settings) !== JSON.stringify(stagedSettings);
 
@@ -347,37 +438,49 @@ export default function SettingsPage() {
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-24 lg:self-start hidden lg:block">
-          <SurfacePanel className="space-y-2 p-3">
-            <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-              Settings
-            </p>
-            <nav aria-label="Settings sections" className="space-y-1">
-              {SECTION_NAV.map((item) => {
-                const Icon = item.icon;
-                if (searchQuery && !item.label.toLowerCase().includes(searchQuery.toLowerCase())) return null;
-                return (
-                  <a
-                    key={item.id}
-                    href={`#${item.id}`}
-                    className="group flex items-start gap-3 rounded-md px-3 py-2.5 text-sm transition-colors hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted group-hover:text-foreground" />
-                    <span className="min-w-0">
-                      <span className="block font-semibold text-foreground">
-                        {item.label}
+      <SettingsSearchContext.Provider value={searchQuery}>
+        <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+          <aside className="lg:sticky lg:top-24 lg:self-start hidden lg:block">
+            <SurfacePanel className="space-y-2 p-3">
+              <p className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                Settings
+              </p>
+              <nav aria-label="Settings sections" className="space-y-1">
+                {SECTION_NAV.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeSection === item.id;
+                  if (searchQuery && !item.label.toLowerCase().includes(searchQuery.toLowerCase()) && !item.description.toLowerCase().includes(searchQuery.toLowerCase())) {
+                    return null;
+                  }
+                  return (
+                    <a
+                      key={item.id}
+                      href={`#${item.id}`}
+                      className={cn(
+                        "group flex items-start gap-3 rounded-md px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                        isActive 
+                          ? "bg-brand/10 text-brand"
+                          : "hover:bg-surface-sunken text-foreground"
+                      )}
+                    >
+                      <Icon className={cn(
+                        "mt-0.5 h-4 w-4 shrink-0 transition-colors",
+                        isActive ? "text-brand" : "text-ink-muted group-hover:text-foreground"
+                      )} />
+                      <span className="min-w-0">
+                        <span className={cn("block font-semibold", isActive ? "text-brand" : "text-foreground")}>
+                          {item.label}
+                        </span>
+                        <span className={cn("block text-xs line-clamp-1", isActive ? "text-brand/80" : "text-ink-muted")}>
+                          {item.description}
+                        </span>
                       </span>
-                      <span className="block text-xs text-ink-muted line-clamp-1">
-                        {item.description}
-                      </span>
-                    </span>
-                  </a>
-                );
-              })}
-            </nav>
-          </SurfacePanel>
-        </aside>
+                    </a>
+                  );
+                })}
+              </nav>
+            </SurfacePanel>
+          </aside>
 
         <div className="min-w-0 space-y-12">
           
@@ -630,15 +733,15 @@ export default function SettingsPage() {
                 <Switch checked={stagedSettings.showRecentCommands} onCheckedChange={(v) => updateSetting('showRecentCommands', v)} />
               </SettingRow>
               <div className="grid gap-4 sm:grid-cols-2 mt-4">
-                <Field label="Maximum recent commands">
-                  <Select value={stagedSettings.maxRecentCommands} onChange={(e) => updateSetting('maxRecentCommands', e.target.value)} disabled={!stagedSettings.showRecentCommands}>
+                <Field label={<span className="flex items-center gap-2">Maximum recent commands <ComingSoonBadge /></span>}>
+                  <Select value={stagedSettings.maxRecentCommands} onChange={(e) => updateSetting('maxRecentCommands', e.target.value)} disabled>
                     <option value="3">3</option>
                     <option value="5">5</option>
                     <option value="10">10</option>
                   </Select>
                 </Field>
-                <Field label="Search behavior">
-                  <Select value={stagedSettings.searchBehavior} onChange={(e) => updateSetting('searchBehavior', e.target.value)}>
+                <Field label={<span className="flex items-center gap-2">Search behavior <ComingSoonBadge /></span>}>
+                  <Select value={stagedSettings.searchBehavior} onChange={(e) => updateSetting('searchBehavior', e.target.value)} disabled>
                     <option value="fuzzy">Fuzzy match</option>
                     <option value="exact">Exact match</option>
                   </Select>
@@ -659,35 +762,47 @@ export default function SettingsPage() {
               icon={<Sparkles className="h-5 w-5" />}
             >
               <div className="grid gap-4 sm:grid-cols-2 mb-4">
-                <Field label="Preferred AI model">
-                  <Select value={stagedSettings.aiModel} onChange={(e) => updateSetting('aiModel', e.target.value)}>
-                    <option value="default">Pulse default</option>
-                    <option value="fast">Fast drafting</option>
-                    <option value="deep">Deeper reasoning</option>
-                  </Select>
+                <Field label="Preferred AI model" className="sm:col-span-2">
+                  <RadioCardGroup
+                    columns={3}
+                    value={stagedSettings.aiModel}
+                    onValueChange={(v) => updateSetting('aiModel', v)}
+                    options={[
+                      { value: 'default', label: 'Pulse Default', description: 'Fast and balanced' },
+                      { value: 'fast', label: 'Fast Drafting', description: 'Low latency' },
+                      { value: 'deep', label: 'Deeper Reasoning', description: 'Complex analysis' },
+                    ]}
+                  />
                 </Field>
-                <Field label="Response tone">
-                  <Select value={stagedSettings.aiTone} onChange={(e) => updateSetting('aiTone', e.target.value)}>
-                    <option value="balanced">Balanced</option>
-                    <option value="concise">Concise</option>
-                    <option value="facilitative">Facilitative</option>
-                    <option value="executive">Executive</option>
-                  </Select>
+                <Field label="Response tone" className="sm:col-span-2">
+                  <RadioCardGroup
+                    columns={2}
+                    value={stagedSettings.aiTone}
+                    onValueChange={(v) => updateSetting('aiTone', v)}
+                    options={[
+                      { value: 'balanced', label: 'Balanced', description: 'Even and natural' },
+                      { value: 'concise', label: 'Concise', description: 'Direct and to the point' },
+                      { value: 'facilitative', label: 'Facilitative', description: 'Engaging for audiences' },
+                      { value: 'executive', label: 'Executive', description: 'Formal and professional' },
+                    ]}
+                  />
                 </Field>
-                <Field label="Creativity">
-                  <Select value={stagedSettings.creativity} onChange={(e) => updateSetting('creativity', e.target.value)}>
-                    <option value="focused">Focused</option>
-                    <option value="balanced">Balanced</option>
-                    <option value="exploratory">Exploratory</option>
-                  </Select>
-                </Field>
-                <Field label="Response length">
-                  <Select value={stagedSettings.responseLength} onChange={(e) => updateSetting('responseLength', e.target.value)}>
-                    <option value="short">Short</option>
-                    <option value="medium">Medium</option>
-                    <option value="long">Long</option>
-                  </Select>
-                </Field>
+                <div className="sm:col-span-2 grid gap-6 sm:grid-cols-2 mt-2">
+                  <Field label="Creativity" hint={`Current: ${stagedSettings.creativity.charAt(0).toUpperCase() + stagedSettings.creativity.slice(1)}`}>
+                    <Slider 
+                      min={0} max={2} step={1}
+                      value={['focused', 'balanced', 'exploratory'].indexOf(stagedSettings.creativity)}
+                      onValueChange={(v) => updateSetting('creativity', ['focused', 'balanced', 'exploratory'][v] as 'focused' | 'balanced' | 'exploratory')}
+                    />
+                  </Field>
+                  <Field label="Response length" hint={`Current: ${stagedSettings.responseLength.charAt(0).toUpperCase() + stagedSettings.responseLength.slice(1)}`}>
+                    <Slider 
+                      min={0} max={2} step={1}
+                      value={['short', 'medium', 'long'].indexOf(stagedSettings.responseLength)}
+                      onValueChange={(v) => updateSetting('responseLength', ['short', 'medium', 'long'][v] as 'short' | 'medium' | 'long')}
+                    />
+                  </Field>
+                </div>
               </div>
               
               <div className="space-y-4 border-t border-border pt-4">
@@ -735,7 +850,7 @@ export default function SettingsPage() {
                 </SurfacePanel>
               </div>
               <SettingRow label="Current session" description={`Signed in as ${email}.`}>
-                <Button asChild variant="outline">
+                <Button asChild variant="destructive">
                   <a href={logoutUrl}>
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign out
@@ -743,7 +858,11 @@ export default function SettingsPage() {
                 </Button>
               </SettingRow>
               <SettingRow label="Last login" description="Session history is managed externally." badge={<ManagedBadge />}>
-                <span className="text-sm font-medium text-foreground">Today at 10:14 AM</span>
+                <span className="text-sm font-medium text-foreground">
+                  {user?.updated_at 
+                    ? new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(user.updated_at))
+                    : 'Unknown'}
+                </span>
               </SettingRow>
               <SettingRow label="Two-factor authentication" description="Additional verification is planned for account security." badge={<ComingSoonBadge />}>
                 <Switch disabled aria-label="Two-factor authentication coming soon" />
@@ -765,7 +884,7 @@ export default function SettingsPage() {
               description="Aggregated data from your local events and notifications."
               icon={<Briefcase className="h-5 w-5" />}
             >
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="setting-item grid grid-cols-2 sm:grid-cols-4 gap-4">
                  <div className="p-4 rounded-lg bg-surface-sunken border border-border">
                    <p className="text-2xl font-display font-semibold">{events?.length || 0}</p>
                    <p className="text-xs text-ink-muted font-medium mt-1">Total Events</p>
@@ -783,12 +902,12 @@ export default function SettingsPage() {
                    <p className="text-xs text-ink-muted font-medium mt-1">AI Generations</p>
                  </div>
                  <div className="p-4 rounded-lg bg-surface-sunken border border-border col-span-2">
-                   <p className="text-2xl font-display font-semibold">{(events?.length || 0) * 32}</p>
-                   <p className="text-xs text-ink-muted font-medium mt-1">Est. Participants</p>
+                   <p className="text-2xl font-display font-semibold">{events?.filter(e => e.status === 'live').length || 0}</p>
+                   <p className="text-xs text-ink-muted font-medium mt-1">Live Now</p>
                  </div>
                  <div className="p-4 rounded-lg bg-surface-sunken border border-border col-span-2">
-                   <p className="text-2xl font-display font-semibold">{(events?.length || 0) * 147}</p>
-                   <p className="text-xs text-ink-muted font-medium mt-1">Est. Responses</p>
+                   <p className="text-2xl font-display font-semibold">{events?.filter(e => e.scheduledStart && new Date(e.scheduledStart) > new Date()).length || 0}</p>
+                   <p className="text-xs text-ink-muted font-medium mt-1">Scheduled</p>
                  </div>
               </div>
             </SettingsCard>
@@ -800,7 +919,7 @@ export default function SettingsPage() {
               title="Data Management"
               description="Export your preferences or clear local data safely."
             />
-            <SettingsCard
+            <SettingsDangerCard
               title="Storage controls"
               description="Manage the data stored in this browser."
               icon={<Database className="h-5 w-5" />}
@@ -880,7 +999,7 @@ export default function SettingsPage() {
                   </DialogContent>
                 </Dialog>
               </div>
-            </SettingsCard>
+            </SettingsDangerCard>
           </section>
 
           {/* ABOUT */}
@@ -939,7 +1058,8 @@ export default function SettingsPage() {
             <Badge variant="info" dot>No new APIs</Badge>
           </SurfacePanel>
         </div>
-      </div>
+        </div>
+      </SettingsSearchContext.Provider>
 
       {/* Floating Action Bar for Unsaved Changes */}
       {hasUnsavedChanges && (

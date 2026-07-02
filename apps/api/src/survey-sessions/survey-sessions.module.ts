@@ -6,6 +6,7 @@ import { SurveySessionController } from './survey-sessions.controller';
 import { ActivityModule } from '../activities/activity.module';
 import { ResponseModule } from '../responses/response.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
     forwardRef(() => ActivityModule),
     forwardRef(() => ResponseModule),
     RealtimeModule,
+    EventsModule,
   ],
   controllers: [SurveySessionController],
   providers: [SurveySessionService],

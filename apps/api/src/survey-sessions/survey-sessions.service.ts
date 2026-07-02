@@ -3,8 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { SurveySessionEntity, SurveySessionDocument } from './survey-session.schema';
 import { ActivityService } from '../activities/activity.service';
-
-
+import { EventsService } from '../events/events.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { forwardRef, Inject } from '@nestjs/common';
+import { ServerEvents, rooms } from '@iep/types';
 export interface StartSurveySessionDto {
   eventId: string;
   activityId: string;
@@ -22,7 +24,10 @@ export class SurveySessionService {
   constructor(
     @InjectModel(SurveySessionEntity.name)
     private readonly surveySessionModel: Model<SurveySessionDocument>,
+    @Inject(forwardRef(() => ActivityService))
     private readonly activityService: ActivityService,
+    private readonly eventsService: EventsService,
+    private readonly realtimeGateway: RealtimeGateway,
   ) {}
 
   async startSession(dto: StartSurveySessionDto): Promise<SurveySessionDocument> {
@@ -82,6 +87,21 @@ export class SurveySessionService {
 
     if (!session) {
       throw new NotFoundException('Survey session not found');
+    }
+
+    const activity = await this.activityService.findById(dto.activityId);
+    const config = activity.config as any;
+
+    if (config.maxResponses && config.maxResponses > 0) {
+      const { completed } = await this.getStats(dto.activityId);
+      if (completed >= config.maxResponses && activity.status === 'live') {
+        const eventId = activity.eventId.toString();
+        await this.activityService.setStatus(dto.activityId, 'closed');
+        await this.eventsService.setActiveActivity(eventId, null);
+        this.realtimeGateway.server.to(rooms.event(eventId)).emit(ServerEvents.ACTIVITY_CLOSED, {
+          activityId: dto.activityId,
+        });
+      }
     }
 
     return session;

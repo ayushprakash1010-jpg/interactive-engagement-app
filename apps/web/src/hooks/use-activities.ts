@@ -64,6 +64,7 @@ export interface SurveyConfig {
   thankYouMessage?: string;
   displayMode?: 'scroll' | 'stepper';
   questions: SurveyQuestion[];
+  maxResponses?: number;
 }
 
 export type ActivityConfig =

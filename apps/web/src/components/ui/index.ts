@@ -19,6 +19,8 @@ export {
 export { Input, type InputProps } from './input';
 export { Label } from './label';
 export { Select, type SelectProps } from './select';
+export { Slider, type SliderProps } from './slider';
+export { RadioCardGroup, type RadioCardGroupProps } from './radio-card-group';
 export { Textarea } from './textarea';
 export { Switch } from './switch';
 export { MetricCard, type MetricCardProps } from './metric-card';

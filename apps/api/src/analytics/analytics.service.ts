@@ -752,8 +752,8 @@ export class AnalyticsService {
           
           if (pollType === 'open') {
             return {
-              activityId: activity._id.toString(), // map to the ActivityID to reuse Poll types
-              title: question.title,
+              activityId: activity._id.toString(),
+              title: question.text ?? question.title ?? 'Untitled Question',
               pollType,
               totalResponses: qTotalResponses,
               responses: qResponses
@@ -780,7 +780,7 @@ export class AnalyticsService {
               : Number((ratingResponses.reduce((sum, r) => sum + (r.ratingValue as number), 0) / ratingResponses.length).toFixed(2));
             return {
               activityId: activity._id.toString(),
-              title: question.title,
+              title: question.text ?? question.title ?? 'Untitled Question',
               pollType,
               totalResponses: qTotalResponses,
               average,
@@ -803,7 +803,7 @@ export class AnalyticsService {
           const totalVotes = Array.from(optionCounts.values()).reduce((sum, c) => sum + c, 0);
           return {
             activityId: activity._id.toString(),
-            title: question.title,
+            title: question.text ?? question.title ?? 'Untitled Question',
             pollType,
             totalResponses: qTotalResponses,
             options: configuredOptions.map((opt: any) => {
