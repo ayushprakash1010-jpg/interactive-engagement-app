@@ -337,8 +337,8 @@ function RecentEventRow({ event }: { event: Event }) {
         <p className="mt-0.5 text-xs text-ink-muted">Updated {updatedAt}</p>
       </div>
 
-      {/* Default Actions */}
-      <div className="flex shrink-0 items-center gap-2 transition-opacity duration-base group-hover:opacity-0 sm:group-hover:opacity-100">
+      {/* Actions Container */}
+      <div className="flex shrink-0 items-center gap-2">
         <Button asChild variant="ghost" size="sm" className="hidden sm:flex">
           <Link href={`/dashboard/events/${event._id}/analytics`}>
             <BarChart3 className="h-3.5 w-3.5" />
@@ -351,30 +351,32 @@ function RecentEventRow({ event }: { event: Event }) {
             <span className="hidden sm:inline">Open</span>
           </Link>
         </Button>
-      </div>
 
-      {/* Hover Overflow Menu (Desktop) */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded-md border border-border bg-surface-card p-1 shadow-sm opacity-0 invisible transition-all duration-base group-hover:opacity-100 group-hover:visible translate-x-2 group-hover:translate-x-0 hidden sm:flex">
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-ink-secondary hover:text-foreground hover:bg-surface-sunken" title="Duplicate (coming soon)">
-          <Copy className="h-3.5 w-3.5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-ink-secondary hover:text-foreground hover:bg-surface-sunken" title="Rename (coming soon)">
-          <PenLine className="h-3.5 w-3.5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-ink-secondary hover:text-foreground hover:bg-surface-sunken" title="Share">
-          <Share className="h-3.5 w-3.5" />
-        </Button>
-        <div className="h-4 w-px bg-border mx-1"></div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-ink-secondary hover:text-destructive hover:bg-destructive/10"
-          title="Delete"
-          disabled={deleteEvent.isPending}
-          onClick={() => deleteEvent.mutate(event._id)}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {/* Hover Overflow Menu (Desktop) */}
+        <div className="hidden max-w-0 items-center overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover:max-w-[200px] group-hover:opacity-100 sm:flex">
+          <div className="ml-1 flex shrink-0 items-center gap-1 rounded-md border border-border bg-surface-card p-1 shadow-sm">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-ink-secondary hover:bg-surface-sunken hover:text-foreground" title="Duplicate (coming soon)">
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-ink-secondary hover:bg-surface-sunken hover:text-foreground" title="Rename (coming soon)">
+              <PenLine className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-ink-secondary hover:bg-surface-sunken hover:text-foreground" title="Share">
+              <Share className="h-3.5 w-3.5" />
+            </Button>
+            <div className="mx-1 h-4 w-px bg-border"></div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-ink-secondary hover:bg-destructive/10 hover:text-destructive"
+              title="Delete"
+              disabled={deleteEvent.isPending}
+              onClick={() => deleteEvent.mutate(event._id)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
