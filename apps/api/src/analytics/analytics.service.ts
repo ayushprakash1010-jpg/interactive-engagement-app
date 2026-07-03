@@ -716,6 +716,18 @@ export class AnalyticsService {
       .lean()
       .exec();
 
+    const participants = await this.participantModel
+      .find({ eventId }, { anonId: 1, displayName: 1 })
+      .lean()
+      .exec();
+
+    const nameMap = new Map<string, string>();
+    for (const p of participants) {
+      if (p.displayName) {
+        nameMap.set(p.anonId, p.displayName);
+      }
+    }
+
     return Promise.all(
       surveyActivities.map(async (activity) => {
         const [sessions, responses] = await Promise.all([
@@ -753,6 +765,7 @@ export class AnalyticsService {
           if (pollType === 'open') {
             return {
               activityId: activity._id.toString(),
+              questionId: question.id,
               title: question.text ?? question.title ?? 'Untitled Question',
               pollType,
               totalResponses: qTotalResponses,
@@ -780,6 +793,7 @@ export class AnalyticsService {
               : Number((ratingResponses.reduce((sum, r) => sum + (r.ratingValue as number), 0) / ratingResponses.length).toFixed(2));
             return {
               activityId: activity._id.toString(),
+              questionId: question.id,
               title: question.text ?? question.title ?? 'Untitled Question',
               pollType,
               totalResponses: qTotalResponses,
@@ -803,6 +817,7 @@ export class AnalyticsService {
           const totalVotes = Array.from(optionCounts.values()).reduce((sum, c) => sum + c, 0);
           return {
             activityId: activity._id.toString(),
+            questionId: question.id,
             title: question.text ?? question.title ?? 'Untitled Question',
             pollType,
             totalResponses: qTotalResponses,
@@ -818,6 +833,39 @@ export class AnalyticsService {
           };
         });
 
+        const individualResponses = sessions.map(session => {
+          const anonId = session.participantAnonId;
+          const displayName = nameMap.get(anonId);
+          
+          const durationSec = (session.startedAt && session.completedAt) 
+            ? (session.completedAt.getTime() - session.startedAt.getTime()) / 1000 
+            : undefined;
+
+          const sessionResponses = responses.filter(r => r.participantAnonId === anonId);
+          const answers: Record<string, any> = {};
+
+          for (const r of sessionResponses) {
+            if (r.surveyQuestionId) {
+              let val: any = null;
+              if (r.textValue) val = r.textValue;
+              else if (r.ratingValue !== null) val = r.ratingValue;
+              else if (r.selectedOptionIds && r.selectedOptionIds.length > 0) val = r.selectedOptionIds;
+              
+              answers[r.surveyQuestionId] = val;
+            }
+          }
+
+          return {
+            participantAnonId: anonId,
+            displayName,
+            status: session.status,
+            startedAt: session.startedAt,
+            completedAt: session.completedAt,
+            durationSec,
+            answers
+          };
+        });
+
         return {
           activityId: activity._id.toString(),
           title: activity.title,
@@ -827,6 +875,7 @@ export class AnalyticsService {
           abandonmentRate,
           averageCompletionTimeSec,
           questions,
+          individualResponses,
         };
       }),
     );

@@ -343,6 +343,13 @@ Rules:
 - Professional, actionable tone
 - Focus on engagement patterns and clear insights
 - Extract accurate numbers when referencing participation
+- For the engagementScore, calculate a REAL score (0-100) based on the actual data provided:
+  * 0-40: Very low participation (<30%), few responses, few activities used
+  * 40-60: Below average — moderate participation, some drop-off observed
+  * 60-75: Good — decent participation, most activities completed
+  * 75-90: Great — high participation rate, multiple activity types, strong responses
+  * 90-100: Exceptional — near-perfect participation, all activity types used, high response volume
+  The score must reflect the ACTUAL metrics, not a generic default.
 - Return ONLY valid JSON matching this exact structure:
 
 {
@@ -360,12 +367,37 @@ Rules:
     "feedbackHighlights": "Analysis of feedback",
     "qaTrends": "Analysis of Q&A"
   },
+  "topActivity": {
+    "name": "Name of the best-performing activity",
+    "type": "poll | quiz | wordcloud | feedback | survey | qa",
+    "reason": "One sentence why it was the top activity"
+  },
+  "sentiment": {
+    "label": "Positive | Neutral | Mixed | Negative",
+    "emoji": "😊 | 😐 | 🤔 | 😟",
+    "summary": "One sentence summarising overall audience sentiment"
+  },
+  "activityHeatmap": [
+    { "type": "poll", "label": "Polls", "level": "high | medium | low | none", "detail": "e.g. 2 polls, 15 total responses" },
+    { "type": "quiz", "label": "Quizzes", "level": "high | medium | low | none", "detail": "e.g. 1 quiz, 2 participants" },
+    { "type": "wordcloud", "label": "Word Clouds", "level": "high | medium | low | none", "detail": "" },
+    { "type": "feedback", "label": "Feedback", "level": "high | medium | low | none", "detail": "" },
+    { "type": "survey", "label": "Surveys", "level": "high | medium | low | none", "detail": "" },
+    { "type": "qa", "label": "Q&A", "level": "high | medium | low | none", "detail": "" }
+  ],
+  "wentWell": ["Thing that went well 1", "Thing that went well 2"],
+  "needsImprovement": ["Area to improve 1", "Area to improve 2"],
+  "nextSteps": ["Actionable next step 1", "Actionable next step 2", "Actionable next step 3"],
+  "followUpSuggestion": "A single concrete follow-up action the host should do right now",
   "recommendations": ["Recommendation 1", "Recommendation 2"],
   "engagementScore": {
-    "score": 85,
-    "explanation": "Why this score was given"
+    "score": 72,
+    "explanation": "Explain concisely why THIS specific score was chosen based on the actual data"
   }
 }
+
+IMPORTANT: The score of 72 in the schema is just a placeholder. Replace it with the real computed score.
+All array fields with placeholder items must be filled with real content based on the event data.
 
 Event data:
 
@@ -376,6 +408,7 @@ ${data}
       { retries: 1 },
     );
   }
+
 
   async generateSession(prompt: string, userId: string) {
     return this.generateJson(

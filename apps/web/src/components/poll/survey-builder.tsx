@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Plus, Sparkles, Trash2, X } from "lucide-react";
+import { Plus, Sparkles, Trash2, X, GripVertical } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,6 +78,23 @@ export function SurveyBuilder({
         question.id === questionId ? { ...question, ...patch } : question,
       ),
     );
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+
+    if (sourceIndex === destinationIndex) return;
+
+    setQuestions((prev) => {
+      const newQuestions = Array.from(prev);
+      const [reorderedItem] = newQuestions.splice(sourceIndex, 1);
+      if (!reorderedItem) return prev;
+      newQuestions.splice(destinationIndex, 0, reorderedItem);
+      return newQuestions;
+    });
   };
 
   const addQuestion = () => {
@@ -408,31 +426,54 @@ export function SurveyBuilder({
           <p className="text-xs text-destructive">{errors.questions}</p>
         )}
 
-        <div className="space-y-4">
-          {questions.map((question, questionIndex) => {
-            const key = `question-${question.id}`;
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="survey-questions">
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="space-y-4"
+              >
+                {questions.map((question, questionIndex) => {
+                  const key = `question-${question.id}`;
 
-            return (
-              <SurfacePanel id={key} key={question.id} className="space-y-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-brand">
-                      Question {questionIndex + 1}
-                    </p>
-                  </div>
+                  return (
+                    <Draggable key={question.id} draggableId={question.id} index={questionIndex}>
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          style={{
+                            ...provided.draggableProps.style,
+                            opacity: snapshot.isDragging ? 0.9 : 1,
+                          }}
+                        >
+                          <SurfacePanel id={key} className={`space-y-4 ${snapshot.isDragging ? 'ring-2 ring-primary shadow-lg' : ''}`}>
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-1 -ml-1 rounded transition-colors hover:bg-muted/50"
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                </div>
+                                <p className="text-xs font-semibold uppercase tracking-wider text-brand">
+                                  Question {questionIndex + 1}
+                                </p>
+                              </div>
 
-                  {questions.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeQuestion(question.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Remove
-                    </Button>
-                  )}
-                </div>
+                              {questions.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeQuestion(question.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Remove
+                                </Button>
+                              )}
+                            </div>
 
                 <div className="grid gap-4 md:grid-cols-[1fr_220px]">
                   <div className="space-y-1.5">
@@ -563,36 +604,44 @@ export function SurveyBuilder({
                   </div>
                 )}
 
-                {question.type === "rating" && (
-                  <div className="space-y-2">
-                    <Label htmlFor={`${formId}-${question.id}-scale`}>Scale (2 - 10)</Label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        id={`${formId}-${question.id}-scale`}
-                        type="range"
-                        min={2}
-                        max={10}
-                        step={1}
-                        value={question.ratingScale ?? 5}
-                        onChange={(e) => updateQuestion(question.id, { ratingScale: Number(e.target.value) })}
-                        className="flex-1 accent-brand"
-                      />
-                      <span className="w-8 text-center font-semibold text-brand">
-                        {question.ratingScale ?? 5}
-                      </span>
-                    </div>
-                    {errors[`${key}-rating`] && (
-                      <p className="text-xs text-destructive">{errors[`${key}-rating`]}</p>
+                    {question.type === "rating" && (
+                      <div className="space-y-2">
+                        <Label htmlFor={`${formId}-${question.id}-scale`}>Scale (2 - 10)</Label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            id={`${formId}-${question.id}-scale`}
+                            type="range"
+                            min={2}
+                            max={10}
+                            step={1}
+                            value={question.ratingScale ?? 5}
+                            onChange={(e) => updateQuestion(question.id, { ratingScale: Number(e.target.value) })}
+                            className="flex-1 accent-brand"
+                          />
+                          <span className="w-8 text-center font-semibold text-brand">
+                            {question.ratingScale ?? 5}
+                          </span>
+                        </div>
+                        {errors[`${key}-rating`] && (
+                          <p className="text-xs text-destructive">{errors[`${key}-rating`]}</p>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
-              </SurfacePanel>
-            );
-          })}
-        </div>
+                  </SurfacePanel>
+                </div>
+              )}
+            </Draggable>
+          );
+        })}
+        {provided.placeholder}
+      </div>
+    )}
+  </Droppable>
+</DragDropContext>
+
       </div>
 
-      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-1 pb-5 pt-4 backdrop-blur">
+      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-border bg-background/95 px-1 pb-5 pt-4 backdrop-blur z-10">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>

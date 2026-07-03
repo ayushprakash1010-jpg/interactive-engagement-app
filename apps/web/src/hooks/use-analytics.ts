@@ -24,6 +24,7 @@ export type RatingDistributionEntry = {
 
 export type PollAnalytic = {
   activityId: string;
+  questionId?: string; // surveyQuestionId from config — only set for survey questions
   title: string;
   pollType: 'single' | 'multiple' | 'rating' | 'open';
   options?: PollOptionTally[];
@@ -115,6 +116,15 @@ export type SurveyAnalytic = {
   abandonmentRate: number; // percentage
   averageCompletionTimeSec: number; // in seconds
   questions: PollAnalytic[]; // Reuse PollAnalytic for question stats since the types map exactly
+  individualResponses?: {
+    participantAnonId: string;
+    displayName?: string;
+    status: 'started' | 'completed';
+    startedAt?: string;
+    completedAt?: string;
+    durationSec?: number;
+    answers: Record<string, any>;
+  }[];
 };
 
 export type TimelineBucket = {
