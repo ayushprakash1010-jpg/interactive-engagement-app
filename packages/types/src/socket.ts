@@ -32,6 +32,7 @@ export const ClientEvents = {
   ACTIVITY_CLOSE: 'activity:close',
   QA_MODERATE: 'qa:moderate',
   SESSION_END: 'session:end',
+  REACTION_SEND: 'reaction:send',
 } as const;
 export type ClientEvent = (typeof ClientEvents)[keyof typeof ClientEvents];
 
@@ -49,6 +50,7 @@ export const ServerEvents = {
   QA_UPDATED: 'qa:updated',
   SESSION_ENDED: 'session:ended',
   SESSION_SNAPSHOT: 'session:snapshot',
+  REACTION_RECEIVE: 'reaction:receive',
   ERROR: 'iep:error',
 } as const;
 export type ServerEvent = (typeof ServerEvents)[keyof typeof ServerEvents];

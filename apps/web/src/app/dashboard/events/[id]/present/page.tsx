@@ -22,6 +22,7 @@ import { PollResultsChart } from '@/components/poll/poll-results-chart';
 import { JoinCode, LiveDot } from '@/components/pulse';
 import { socket } from '@/lib/socket';
 import { cn } from '@/lib/utils';
+import { FloatingReactions } from '@/components/reactions/floating-reactions';
 
 /* ─────────────────────────────────────────────────────── */
 /* Helpers                                                  */
@@ -462,6 +463,7 @@ export default function PresentPage() {
 
   return (
     <div className="pulse-stage relative flex min-h-screen flex-col overflow-hidden bg-surface-page">
+      <FloatingReactions />
       {/* ── Top bar ── */}
       <header className="flex shrink-0 items-center justify-between border-b border-white/5 bg-surface-raised/80 px-6 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-3">

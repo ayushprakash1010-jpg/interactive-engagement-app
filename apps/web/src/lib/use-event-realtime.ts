@@ -50,6 +50,7 @@ export type EventRealtime = {
   replyQuestion: (payload: { questionId: string; answerText: string }) => void;
   endSession: (payload?: { eventId?: string }) => void;
   resetSessionEndState: () => void;
+  sendReaction: (emoji: string) => void;
 };
 
 function sortApprovedQuestions(questions: QaQuestion[]): QaQuestion[] {
@@ -333,6 +334,15 @@ export function useEventRealtime(
     setSessionEndError(null);
   }, []);
 
+  const sendReaction = (emoji: string) => {
+    if (!eventCode || mode !== 'participant') return;
+    socket.emit(ClientEvents.REACTION_SEND, {
+      eventCode: eventCode.toUpperCase(),
+      anonId: getAnonId(),
+      emoji,
+    });
+  };
+
   return {
     count,
     error,
@@ -349,5 +359,6 @@ export function useEventRealtime(
     replyQuestion,
     endSession,
     resetSessionEndState,
+    sendReaction,
   };
 }

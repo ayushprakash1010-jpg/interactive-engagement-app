@@ -31,6 +31,7 @@ import {
   qaModerateSchema,
   qaReplySchema,
   sessionEndSchema,
+  reactionSendSchema,
 } from '@iep/types';
 import { ActivityService } from '../activities/activity.service';
 import type { ActivityDocument } from '../activities/activity.schema';
@@ -1124,6 +1125,32 @@ export class RealtimeGateway
     } finally {
       quizAdvanceLocks.delete(activityId);
     }
+  }
+
+  @SubscribeMessage(ClientEvents.REACTION_SEND)
+  async handleReactionSend(
+    @MessageBody() payload: { eventCode: string; anonId: string; emoji: string },
+    @ConnectedSocket() client: Socket,
+  ): Promise<void> {
+    const data = this.parsePayload(reactionSendSchema, payload, client);
+    if (!data) return;
+    const { eventCode, anonId, emoji } = data;
+
+    // We allow a slightly higher rate limit for reactions, 50 per window
+    const byAnon = await this.rateLimitService.consume(`reaction:send:anon:${anonId}`, 50);
+    if (!byAnon.allowed) return;
+
+    const event = await this.resolveJoinableEvent(eventCode, client);
+    if (!event) return;
+
+    const eventId = event._id.toString();
+
+    // Broadcast to everyone in the room
+    this.server.to(rooms.event(eventId)).emit(ServerEvents.REACTION_RECEIVE, {
+      emoji,
+      anonId,
+      timestamp: Date.now(),
+    });
   }
 
   private clearQuizRuntime(activityId: string): void {

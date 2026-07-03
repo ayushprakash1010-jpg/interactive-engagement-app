@@ -15,5 +15,9 @@
   // completions and hover docs for @tailwind / @apply / @layer.
   "files.associations": {
     "*.css": "tailwindcss"
-  }
+  },
+
+  // Use the repo's TypeScript version so editor diagnostics match pnpm scripts.
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true
 }

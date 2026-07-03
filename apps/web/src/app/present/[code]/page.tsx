@@ -12,6 +12,7 @@ import { useEventRealtime } from '@/lib/use-event-realtime';
 import { usePoll } from '@/hooks/use-poll';
 import { PollResultsChart } from '@/components/poll/poll-results-chart';
 import { JoinCode, LiveDot, Wordmark } from '@/components/pulse';
+import { FloatingReactions } from '@/components/reactions/floating-reactions';
 
 export default function PresenterPage() {
   const params = useParams<{ code: string }>();
@@ -69,6 +70,7 @@ export default function PresenterPage() {
 
   return (
     <main className="pulse-stage relative flex min-h-screen flex-col overflow-hidden p-6 sm:p-8 lg:p-10">
+      <FloatingReactions />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_50%_0%,rgba(109,170,176,0.22),transparent_62%)]"

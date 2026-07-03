@@ -167,18 +167,21 @@ export function WordCloudParticipant({
           )}
         </SurfacePanel>
 
-        <SurfacePanel tone="raised" className="p-4">
-          <Eyebrow className="mb-3">Live word cloud</Eyebrow>
-          <WordCloud
-            words={liveWords}
-            height={280}
-            emptyMessage={
-              isClosed
-                ? "No word cloud responses were received."
-                : "Waiting for responses…"
-            }
+        {isClosed ? (
+          <SurfacePanel tone="raised" className="p-4">
+            <Eyebrow className="mb-3">Live word cloud</Eyebrow>
+            <WordCloud
+              words={liveWords}
+              height={280}
+              emptyMessage="No word cloud responses were received."
+            />
+          </SurfacePanel>
+        ) : (
+          <EmptyState
+            title="Waiting for word cloud"
+            description="The live word cloud will appear here once the host closes the activity."
           />
-        </SurfacePanel>
+        )}
       </div>
     );
   }

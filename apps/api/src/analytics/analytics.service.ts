@@ -83,11 +83,29 @@ export class AnalyticsService {
       else if (event.status === 'ended') completedCount++;
     }
 
-    const [participantsCount, responsesCount, questionsCount] = await Promise.all([
+    const [participantsCount, responsesCount, questionsCount, activityCounts] = await Promise.all([
       this.participantModel.countDocuments({ eventId: { $in: eventIds } }).exec(),
       this.responseModel.countDocuments({ eventId: { $in: eventIds } }).exec(),
       this.questionModel.countDocuments({ eventId: { $in: eventIds } }).exec(),
+      this.activityModel.aggregate([
+        { $match: { eventId: { $in: eventIds } } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+      ]).exec(),
     ]);
+
+    const activitiesByType = {
+      poll: 0,
+      quiz: 0,
+      survey: 0,
+      feedback: 0,
+      wordcloud: 0,
+    };
+
+    for (const ac of activityCounts) {
+      if (ac._id && ac._id in activitiesByType) {
+        activitiesByType[ac._id as keyof typeof activitiesByType] = ac.count;
+      }
+    }
 
     return {
       totalEvents,
@@ -97,6 +115,7 @@ export class AnalyticsService {
       totalParticipants: participantsCount,
       totalResponses: responsesCount + questionsCount,
       aiUsage: hostUser.aiUsageCount ?? 0,
+      activitiesByType,
     };
   }
 

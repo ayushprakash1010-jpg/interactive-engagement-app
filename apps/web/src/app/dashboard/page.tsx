@@ -385,14 +385,15 @@ function RecentEventRow({ event }: { event: Event }) {
 // ---------------------------------------------------------------------------
 
 function AIWorkspacePanel({ notifications }: { notifications: Notification[] }) {
+  const { overview } = useOverviewStats();
   const aiNotifications = notifications.filter((n) => n.category === 'ai');
   const lastAI = aiNotifications[0];
 
-  const pollsGen = aiNotifications.filter(n => n.title.toLowerCase().includes('poll')).length;
-  const quizGen = aiNotifications.filter(n => n.title.toLowerCase().includes('quiz')).length;
-  const surveyGen = aiNotifications.filter(n => n.title.toLowerCase().includes('survey')).length;
-  const feedbackGen = aiNotifications.filter(n => n.title.toLowerCase().includes('feedback')).length;
-  const cloudGen = aiNotifications.filter(n => n.title.toLowerCase().includes('word')).length;
+  const pollsGen = overview?.activitiesByType?.poll ?? 0;
+  const quizGen = overview?.activitiesByType?.quiz ?? 0;
+  const surveyGen = overview?.activitiesByType?.survey ?? 0;
+  const feedbackGen = overview?.activitiesByType?.feedback ?? 0;
+  const cloudGen = overview?.activitiesByType?.wordcloud ?? 0;
 
   const quickGenActions = [
     { icon: RadioTower, label: 'Poll', href: '/dashboard/ai' },

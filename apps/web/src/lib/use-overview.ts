@@ -9,6 +9,13 @@ export interface WorkspaceOverview {
   totalParticipants: number;
   totalResponses: number;
   aiUsage: number;
+  activitiesByType: {
+    poll: number;
+    quiz: number;
+    survey: number;
+    feedback: number;
+    wordcloud: number;
+  };
 }
 
 export function useOverviewStats() {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { HelpCircle, MessageCircle, Radio, Users } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -27,6 +28,23 @@ import {
   LeaderboardRow,
   Logomark,
 } from "@/components/pulse";
+import { FloatingReactions } from "@/components/reactions/floating-reactions";
+import { ReactionBar } from "@/components/reactions/reaction-bar";
+
+function AnimatedTransition({ children, transitionKey }: { children: React.ReactNode; transitionKey: string }) {
+  return (
+    <motion.div
+      key={transitionKey}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="flex flex-col flex-1"
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 function getVotedQuestionIds(code: string): string[] {
   if (typeof window === "undefined") return [];
@@ -80,6 +98,7 @@ export default function EventPage() {
     allowAnonymousQA,
     askQuestion,
     upvoteQuestion,
+    sendReaction,
   } = useEventRealtime(code, "participant");
 
   const {
@@ -171,10 +190,18 @@ export default function EventPage() {
     activeActivity.status === "live" &&
     !hasSubmitted;
 
+  // Only show results when the poll is actually closed by the host or timer expired.
+  // hasSubmitted alone must NOT reveal results — that breaks anonymity and host control.
+  const showPollSubmitted =
+    activeActivity &&
+    activeActivity.type === "poll" &&
+    activeActivity.status === "live" &&
+    hasSubmitted;
+
   const showPollResults =
     activeActivity &&
     activeActivity.type === "poll" &&
-    (hasSubmitted || activeActivity.status === "closed");
+    activeActivity.status === "closed";
 
   const showQuizWaiting =
     activeActivity &&
@@ -251,6 +278,7 @@ export default function EventPage() {
 
   return (
     <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
+      <FloatingReactions />
       <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
         <header className="sticky top-3 z-10 flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card/95 px-3 py-2.5 shadow-sm backdrop-blur">
           <div className="flex items-center gap-2.5">
@@ -281,11 +309,10 @@ export default function EventPage() {
           <button
             type="button"
             onClick={() => setActiveTab("activity")}
-            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors duration-fast ${
-              activeTab === "activity"
+            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors duration-fast ${activeTab === "activity"
                 ? "bg-surface-card text-foreground shadow-xs"
                 : "text-ink-muted hover:text-foreground"
-            }`}
+              }`}
           >
             <Radio className="h-4 w-4" aria-hidden />
             Activity
@@ -293,11 +320,10 @@ export default function EventPage() {
           <button
             type="button"
             onClick={() => setActiveTab("qa")}
-            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors duration-fast ${
-              activeTab === "qa"
+            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors duration-fast ${activeTab === "qa"
                 ? "bg-surface-card text-foreground shadow-xs"
                 : "text-ink-muted hover:text-foreground"
-            }`}
+              }`}
           >
             <MessageCircle className="h-4 w-4" aria-hidden />
             Q&amp;A
@@ -305,185 +331,230 @@ export default function EventPage() {
         </div>
 
         {activeTab === "activity" && (
-          <>
+          <AnimatePresence mode="wait">
             {showWaitingState && (
-              <EmptyState
-                className="mt-6 flex-1 py-16"
-                tone="brand"
-                icon={<Radio className="h-6 w-6" />}
-                title="Waiting for the host"
-                description="Hang tight. The next activity will appear here as soon as it starts."
-              />
+              <AnimatedTransition transitionKey="waiting">
+                <EmptyState
+                  className="mt-6 flex-1 py-16"
+                  tone="brand"
+                  icon={
+                    <div className="relative flex h-6 w-6 items-center justify-center">
+                      <Radio className="absolute h-6 w-6" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75" />
+                    </div>
+                  }
+                  title="Waiting for the host"
+                  description="Hang tight. The next activity will appear here as soon as it starts."
+                />
+                <ReactionBar onReact={sendReaction} />
+              </AnimatedTransition>
             )}
 
             {showPollInput && activeActivity && (
-              <SurfacePanel className="mt-6 p-5 sm:p-6">
-                <PollParticipant
-                  key={activeActivity._id}
-                  activity={activeActivity}
-                  tallies={tallies}
-                  pollEndsAt={pollEndsAt}
-                  hasSubmitted={hasSubmitted}
-                  onSubmit={submitResponse}
-                />
-              </SurfacePanel>
+              <AnimatedTransition transitionKey={`poll-input-${activeActivity._id}`}>
+                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                  <PollParticipant
+                    key={activeActivity._id}
+                    activity={activeActivity}
+                    tallies={tallies}
+                    pollEndsAt={pollEndsAt}
+                    hasSubmitted={hasSubmitted}
+                    onSubmit={submitResponse}
+                  />
+                </SurfacePanel>
+              </AnimatedTransition>
+            )}
+
+            {showPollSubmitted && activeActivity && (
+              <AnimatedTransition transitionKey={`poll-submitted-${activeActivity._id}`}>
+                <SurfacePanel className="mt-6 space-y-4 p-5 sm:p-6">
+                  <div>
+                    <Eyebrow>Vote submitted</Eyebrow>
+                    <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
+                      {(activeActivity.config as { question?: string })?.question}
+                    </h2>
+                  </div>
+                  <EmptyState
+                    title="Waiting for results"
+                    description="Your vote has been counted. Results will appear when the host shares them."
+                  />
+                </SurfacePanel>
+              </AnimatedTransition>
             )}
 
             {showPollResults && activeActivity && (
-              <SurfacePanel className="mt-6 space-y-4 p-5 sm:p-6">
-                <div>
-                  <Eyebrow>
-                    {activeActivity.status === "closed"
-                      ? "Poll closed"
-                      : "Vote submitted"}
-                  </Eyebrow>
-                  <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
-                    {(activeActivity.config as { question?: string })?.question}
-                  </h2>
-                </div>
+              <AnimatedTransition transitionKey={`poll-results-${activeActivity._id}`}>
+                <SurfacePanel className="mt-6 space-y-4 p-5 sm:p-6">
+                  <div>
+                    <Eyebrow>Poll closed</Eyebrow>
+                    <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
+                      {(activeActivity.config as { question?: string })?.question}
+                    </h2>
+                  </div>
 
-                {tallies ? (
-                  <PollResultsChart tallies={tallies} />
-                ) : (
-                  <EmptyState
-                    title="Waiting for results"
-                    description="Responses will appear here once the host shares them."
-                  />
-                )}
-              </SurfacePanel>
+                  {tallies ? (
+                    <PollResultsChart tallies={tallies} />
+                  ) : (
+                    <EmptyState
+                      title="No responses recorded"
+                      description="There were no poll submissions for this activity."
+                    />
+                  )}
+                </SurfacePanel>
+              </AnimatedTransition>
             )}
 
             {showQuizWaiting && (
-              <EmptyState
-                className="mt-6"
-                tone="brand"
-                icon={<Radio className="h-6 w-6" />}
-                title="Quiz is live"
-                description="Waiting for the host to send the next question."
-              />
+              <AnimatedTransition transitionKey="quiz-waiting">
+                <EmptyState
+                  className="mt-6"
+                  tone="brand"
+                  icon={
+                    <div className="relative flex h-6 w-6 items-center justify-center">
+                      <Radio className="absolute h-6 w-6" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75" />
+                    </div>
+                  }
+                  title="Quiz is live"
+                  description="Waiting for the host to send the next question."
+                />
+              </AnimatedTransition>
             )}
 
             {showQuizQuestion && quizQuestion && (
-              <SurfacePanel className="mt-6 p-5 sm:p-6">
-                <QuizParticipant
-                  key={quizQuestion.questionId}
-                  question={quizQuestion}
-                  hasAnswered={hasAnsweredQuiz}
-                  answerState={quizAnswerState}
-                  quizLeaderboard={quizLeaderboard}
-                  onAnswer={submitQuizAnswer}
-                />
-              </SurfacePanel>
+              <AnimatedTransition transitionKey={`quiz-question-${quizQuestion.questionId}`}>
+                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                  <QuizParticipant
+                    key={quizQuestion.questionId}
+                    question={quizQuestion}
+                    hasAnswered={hasAnsweredQuiz}
+                    answerState={quizAnswerState}
+                    onAnswer={submitQuizAnswer}
+                  />
+                </SurfacePanel>
+              </AnimatedTransition>
             )}
 
             {showQuizClosed && (
-              <SurfacePanel className="mt-6 p-5 sm:p-6">
-                <EmptyState
-                  className="mb-4 py-8"
-                  title="Quiz ended"
-                  description="Final scores are below."
-                />
+              <AnimatedTransition transitionKey="quiz-closed">
+                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                  <EmptyState
+                    className="mb-4 py-8"
+                    title="Quiz ended"
+                    description="Final scores are below."
+                  />
 
-                <div className="space-y-3">
-                  <Eyebrow>Leaderboard</Eyebrow>
+                  <div className="space-y-3">
+                    <Eyebrow>Leaderboard</Eyebrow>
 
-                  {quizLeaderboard.length > 0 ? (
-                    <div className="space-y-2">
-                      {quizLeaderboard.map((entry, index) => (
-                        <LeaderboardRow
-                          key={`${entry.name}-${index}`}
-                          rank={index + 1}
-                          name={entry.name}
-                          points={entry.points}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      title="Waiting for leaderboard"
-                      description="Scores will appear as soon as they are available."
-                    />
-                  )}
-                </div>
-              </SurfacePanel>
+                    {quizLeaderboard.length > 0 ? (
+                      <div className="space-y-2">
+                        {quizLeaderboard.map((entry, index) => (
+                          <LeaderboardRow
+                            key={`${entry.name}-${index}`}
+                            rank={index + 1}
+                            name={entry.name}
+                            points={entry.points}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        title="Waiting for leaderboard"
+                        description="Scores will appear as soon as they are available."
+                      />
+                    )}
+                  </div>
+                </SurfacePanel>
+              </AnimatedTransition>
             )}
 
             {showWordCloudInput && activeActivity && (
-              <SurfacePanel className="mt-6 p-5 sm:p-6">
-                <WordCloudParticipant
-                  key={activeActivity._id}
-                  activity={activeActivity}
-                  wordCloudEndsAt={pollEndsAt} // <--- THE TIMER PROP IS PASSED HERE!
-                  hasSubmitted={hasSubmitted}
-                  submittedWords={submittedWordCloudWords}
-                  liveWords={wordCloudWords}
-                  onSubmit={submitWordCloudWords}
-                />
-              </SurfacePanel>
+              <AnimatedTransition transitionKey={`wordcloud-input-${activeActivity._id}`}>
+                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                  <WordCloudParticipant
+                    key={activeActivity._id}
+                    activity={activeActivity}
+                    wordCloudEndsAt={pollEndsAt}
+                    hasSubmitted={hasSubmitted}
+                    submittedWords={submittedWordCloudWords}
+                    liveWords={wordCloudWords}
+                    onSubmit={submitWordCloudWords}
+                  />
+                </SurfacePanel>
+              </AnimatedTransition>
             )}
 
             {showWordCloudSubmitted && activeActivity && (
-              <SurfacePanel className="mt-6 p-5 sm:p-6">
-                <WordCloudParticipant
-                  key={activeActivity._id}
-                  activity={activeActivity}
-                  wordCloudEndsAt={pollEndsAt} // <--- AND HERE!
-                  hasSubmitted={hasSubmitted}
-                  submittedWords={submittedWordCloudWords}
-                  liveWords={wordCloudWords}
-                  onSubmit={submitWordCloudWords}
-                />
-              </SurfacePanel>
+              <AnimatedTransition transitionKey={`wordcloud-submitted-${activeActivity._id}`}>
+                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                  <WordCloudParticipant
+                    key={activeActivity._id}
+                    activity={activeActivity}
+                    wordCloudEndsAt={pollEndsAt}
+                    hasSubmitted={hasSubmitted}
+                    submittedWords={submittedWordCloudWords}
+                    liveWords={wordCloudWords}
+                    onSubmit={submitWordCloudWords}
+                  />
+                </SurfacePanel>
+              </AnimatedTransition>
             )}
 
             {showFeedbackInput && activeActivity && (
-              <div className="mt-6">
-                <FeedbackParticipant
-                  key={activeActivity._id}
-                  activityId={activeActivity._id}
-                  title={activeActivity.title}
-                  config={activeActivity.config as FeedbackParticipantConfig}
-                  feedbackEndsAt={pollEndsAt}
-                  submitted={hasSubmitted}
-                  onSubmit={handleFeedbackSubmit}
-                />
-              </div>
+              <AnimatedTransition transitionKey={`feedback-input-${activeActivity._id}`}>
+                <div className="mt-6">
+                  <FeedbackParticipant
+                    key={activeActivity._id}
+                    activityId={activeActivity._id}
+                    title={activeActivity.title}
+                    config={activeActivity.config as FeedbackParticipantConfig}
+                    feedbackEndsAt={pollEndsAt}
+                    submitted={hasSubmitted}
+                    onSubmit={handleFeedbackSubmit}
+                  />
+                </div>
+              </AnimatedTransition>
             )}
 
             {showFeedbackSubmitted && activeActivity && (
-              <div className="mt-6">
-                <FeedbackParticipant
-                  key={activeActivity._id}
-                  activityId={activeActivity._id}
-                  title={activeActivity.title}
-                  config={activeActivity.config as FeedbackParticipantConfig}
-                  feedbackEndsAt={pollEndsAt}
-                  submitted
-                  onSubmit={handleFeedbackSubmit}
-                />
+              <AnimatedTransition transitionKey={`feedback-submitted-${activeActivity._id}`}>
+                <div className="mt-6">
+                  <FeedbackParticipant
+                    key={activeActivity._id}
+                    activityId={activeActivity._id}
+                    title={activeActivity.title}
+                    config={activeActivity.config as FeedbackParticipantConfig}
+                    feedbackEndsAt={pollEndsAt}
+                    submitted
+                    onSubmit={handleFeedbackSubmit}
+                  />
 
-                <SurfacePanel
-                  tone="sunken"
-                  className="mt-4 p-4 text-sm text-ink-secondary"
-                >
-                  {activeActivity.status === "closed"
-                    ? "This feedback form is now closed."
-                    : "Thanks. Your feedback has been submitted."}
-                </SurfacePanel>
-              </div>
+                  <SurfacePanel
+                    tone="sunken"
+                    className="mt-4 p-4 text-sm text-ink-secondary"
+                  >
+                    {activeActivity.status === "closed"
+                      ? "This feedback form is now closed."
+                      : "Thanks. Your feedback has been submitted."}
+                  </SurfacePanel>
+                </div>
+              </AnimatedTransition>
             )}
 
             {showSurveyInput && activeActivity && (
-              <div className="mt-6 h-full flex-1">
-                <SurveyParticipant
-                  key={activeActivity._id}
-                  activity={activeActivity}
-                  participantAnonId={anonId}
-                  eventCode={code}
-                />
-              </div>
+              <AnimatedTransition transitionKey={`survey-input-${activeActivity._id}`}>
+                <div className="mt-6 h-full flex-1">
+                  <SurveyParticipant
+                    key={activeActivity._id}
+                    activity={activeActivity}
+                    participantAnonId={anonId}
+                    eventCode={code}
+                  />
+                </div>
+              </AnimatedTransition>
             )}
-          </>
+          </AnimatePresence>
         )}
 
         {activeTab === "qa" && (

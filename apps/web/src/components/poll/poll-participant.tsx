@@ -6,13 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SurfacePanel } from "@/components/ui/surface-panel";
-import { Eyebrow, LeaderboardRow } from "@/components/pulse";
+import { Eyebrow } from "@/components/pulse";
 import { cn } from "@/lib/utils";
 import { PollResultsChart } from "./poll-results-chart";
 import type {
   LiveActivity,
   QuizAnswerState,
-  QuizLeaderboardEntry,
   QuizQuestionState,
   UsePollReturn,
 } from "../../hooks/use-poll";
@@ -26,7 +25,6 @@ interface Props {
   quizQuestion?: QuizQuestionState | null;
   hasAnsweredQuiz?: boolean;
   quizAnswerState?: QuizAnswerState | null;
-  quizLeaderboard?: QuizLeaderboardEntry[];
   onSubmitQuizAnswer?: UsePollReturn["submitQuizAnswer"];
 }
 
@@ -54,7 +52,6 @@ export function PollParticipant({
   quizQuestion = null,
   hasAnsweredQuiz = false,
   quizAnswerState = null,
-  quizLeaderboard = [],
   onSubmitQuizAnswer,
 }: Props) {
   const config = activity.config;
@@ -121,7 +118,7 @@ export function PollParticipant({
 
   const pollExpired = !!pollEndsAt && pollTimeLeftMs <= 0;
   const isClosed = activity.status === "closed" || pollExpired;
-  const showResults = hasSubmitted || isClosed;
+  const showResults = isClosed;
 
   const canSubmit = (() => {
     if (submitting || hasSubmitted || isClosed) return false;
@@ -164,9 +161,6 @@ export function PollParticipant({
   }, [pollTimeLeftMs, hasSubmitted, submitting, canSubmit]);
 
   const quizExpired = quizTimeLeftMs <= 0;
-  const showQuizLeaderboard =
-    activity.type === "quiz" &&
-    (quizExpired || isClosed || quizLeaderboard.length > 0);
 
   const canSubmitQuiz =
     activity.type === "quiz" &&
@@ -308,32 +302,25 @@ export function PollParticipant({
             : "Submit answer"}
         </Button>
 
-        {showQuizLeaderboard && (
-          <SurfacePanel tone="raised" className="p-4">
-            <div className="mb-3">
-              <Eyebrow>Leaderboard</Eyebrow>
-            </div>
+      </div>
+    );
+  }
 
-            {quizLeaderboard.length > 0 ? (
-              <div className="space-y-2">
-                {quizLeaderboard.map((entry, index) => (
-                  <LeaderboardRow
-                    key={`${entry.name}-${index}`}
-                    rank={index + 1}
-                    name={entry.name}
-                    points={entry.points}
-                  />
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                className="py-8"
-                title="Waiting for leaderboard"
-                description="Scores will appear as soon as they are available."
-              />
-            )}
-          </SurfacePanel>
-        )}
+  if (hasSubmitted && !isClosed) {
+    return (
+      <div className="space-y-4">
+        <SurfacePanel tone="raised" className="p-4">
+          <Badge variant="success" className="mb-2">
+            Vote submitted
+          </Badge>
+          <p className="font-display font-semibold tracking-tight text-foreground">
+            {config.question}
+          </p>
+        </SurfacePanel>
+        <EmptyState
+          title="Waiting for results"
+          description="Your vote has been counted. Results will appear when the host shares them."
+        />
       </div>
     );
   }

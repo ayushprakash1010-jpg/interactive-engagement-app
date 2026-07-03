@@ -88,6 +88,12 @@ export const sessionEndSchema = z.object({
   eventId: shortId,
 });
 
+export const reactionSendSchema = z.object({
+  eventCode: code,
+  anonId: shortId,
+  emoji: z.string().min(1).max(10), // Allow emojis up to 10 chars to cover complex ligatures
+});
+
 export type EventJoinPayload = z.infer<typeof eventJoinSchema>;
 export type EventObservePayload = z.infer<typeof eventObserveSchema>;
 export type ActivityIdPayload = z.infer<typeof activityIdSchema>;
@@ -99,3 +105,4 @@ export type QaUpvotePayload = z.infer<typeof qaUpvoteSchema>;
 export type QaModeratePayload = z.infer<typeof qaModerateSchema>;
 export type QaReplyPayload = z.infer<typeof qaReplySchema>;
 export type SessionEndPayload = z.infer<typeof sessionEndSchema>;
+export type ReactionSendPayload = z.infer<typeof reactionSendSchema>;

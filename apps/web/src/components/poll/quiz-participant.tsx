@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SurfacePanel } from "@/components/ui/surface-panel";
-import { Eyebrow, LeaderboardRow } from "@/components/pulse";
+import { Eyebrow } from "@/components/pulse";
 import { cn } from "@/lib/utils";
 import type {
-  QuizLeaderboardEntry,
   QuizQuestionState,
   UsePollReturn,
 } from "../../hooks/use-poll";
@@ -15,7 +14,6 @@ interface Props {
   question: QuizQuestionState;
   hasAnswered: boolean;
   answerState: UsePollReturn["quizAnswerState"];
-  quizLeaderboard: QuizLeaderboardEntry[];
   onAnswer: UsePollReturn["submitQuizAnswer"];
 }
 
@@ -23,7 +21,6 @@ export function QuizParticipant({
   question,
   hasAnswered,
   answerState,
-  quizLeaderboard,
   onAnswer,
 }: Props) {
   const [now, setNow] = useState(Date.now());
@@ -65,7 +62,6 @@ export function QuizParticipant({
     return `${remainingSec} seconds left`;
   }, [isExpired, remainingSec]);
 
-  const showLeaderboard = isExpired || quizLeaderboard.length > 0;
 
   return (
     <div className="space-y-5">
@@ -166,32 +162,6 @@ export function QuizParticipant({
         />
       )}
 
-      {showLeaderboard && (
-        <SurfacePanel tone="raised" className="p-4">
-          <div className="mb-3">
-            <Eyebrow>Leaderboard</Eyebrow>
-          </div>
-
-          {quizLeaderboard.length > 0 ? (
-            <div className="space-y-2">
-              {quizLeaderboard.map((entry, index) => (
-                <LeaderboardRow
-                  key={`${entry.name}-${index}`}
-                  rank={index + 1}
-                  name={entry.name}
-                  points={entry.points}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              className="py-8"
-              title="Waiting for leaderboard"
-              description="Scores will appear as soon as they are available."
-            />
-          )}
-        </SurfacePanel>
-      )}
     </div>
   );
 }
