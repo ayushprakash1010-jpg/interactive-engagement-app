@@ -246,20 +246,6 @@
     animation: shimmer-sweep 3.2s ease-in-out infinite;
   }
 
-  /* Gradient text for hero headline keywords */
-  .hero-text-gradient {
-    background: linear-gradient(135deg, var(--color-brand) 0%, #06b6d4 50%, var(--color-ai) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    background-size: 200% 200%;
-    animation: gradient-shift 4s ease-in-out infinite alternate;
-  }
-  @keyframes gradient-shift {
-    0%   { background-position: 0% 50%; }
-    100% { background-position: 100% 50%; }
-  }
-
   /* CTA lift + shadow on hover — premium feel */
   .hero-cta-primary {
     transition:
