@@ -571,6 +571,10 @@ export default function DashboardOverviewPage() {
   const { data: events, isLoading: eventsLoading } = useEvents();
   const { notifications } = useNotifications();
   const { user } = useAuth();
+  
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
   const today = formatDate(new Date());
 
   const hasEvents = !eventsLoading && (events?.length ?? 0) > 0;
@@ -662,6 +666,8 @@ export default function DashboardOverviewPage() {
       href: `/dashboard/events/${draftEvent._id}`,
     }] : []),
   ];
+
+  if (!mounted) return null;
 
   return (
     <div className="space-y-10 pb-10">
