@@ -10,7 +10,7 @@ services:
     runtime: docker
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
-    plan: starter
+    plan: free
     region: oregon
     healthCheckPath: /ready
     autoDeploy: true
@@ -36,7 +36,7 @@ services:
 
   - type: keyvalue
     name: iep-redis
-    plan: starter
+    plan: free
     region: oregon
     ipAllowList: [] # only reachable from Render services
     maxmemoryPolicy: noeviction
