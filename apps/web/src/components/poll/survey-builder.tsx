@@ -71,6 +71,7 @@ export function SurveyBuilder({
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiTopic, setAiTopic] = useState("");
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const updateQuestion = (questionId: string, patch: Partial<SurveyQuestion>) => {
     setQuestions((prev) =>
@@ -208,6 +209,7 @@ export function SurveyBuilder({
 
     try {
       setIsGenerating(true);
+      setAiError(null);
 
       let data: { questions?: any[] } | null = null;
 
@@ -267,7 +269,7 @@ export function SurveyBuilder({
       setShowAiModal(false);
     } catch (error) {
       console.error("Survey AI generation failed:", error);
-      alert("AI could not generate the survey right now. Please try again.");
+      setAiError("AI could not generate the survey right now. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -665,9 +667,16 @@ export function SurveyBuilder({
             <Input
               placeholder="e.g. Workshop Registration"
               value={aiTopic}
-              onChange={(e) => setAiTopic(e.target.value)}
+              onChange={(e) => {
+                setAiTopic(e.target.value);
+                setAiError(null);
+              }}
               disabled={isGenerating}
             />
+
+            {aiError && (
+              <p className="mt-2 text-sm text-destructive">{aiError}</p>
+            )}
 
             <div className="mt-4 flex justify-end gap-2">
               <Button
@@ -676,6 +685,7 @@ export function SurveyBuilder({
                 onClick={() => {
                   setShowAiModal(false);
                   setAiTopic("");
+                  setAiError(null);
                 }}
                 disabled={isGenerating}
               >

@@ -83,8 +83,56 @@ export function SuggestionChip({
         </div>
       );
     }
+    if (type === 'wordcloud') {
+      return (
+        <div className="text-xs">
+          <span className="font-semibold text-foreground">Prompt: {config.prompt as string}</span>
+          <p className="mt-1 text-ink-muted">Max {config.maxWordsPerParticipant as number} words per participant</p>
+        </div>
+      );
+    }
+
+    if (type === 'feedback') {
+      const fields = Array.isArray(config.fields) ? config.fields : [];
+      return (
+        <div className="text-xs">
+          <span className="font-semibold text-foreground">Prompt: {config.prompt as string}</span>
+          <ul className="mt-1 space-y-0.5 pl-4 text-ink-muted">
+            {fields.map((f: any, i: number) => (
+              <li key={f.id || i} className="flex items-center gap-1.5">
+                <span className="h-1 w-1 rounded-full bg-current opacity-50" />
+                {f.label} ({f.type})
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    if (type === 'survey') {
+      const questions = Array.isArray(config.questions) ? config.questions : [];
+      return (
+        <div className="space-y-3">
+          {questions.map((q: any, i: number) => (
+            <div key={q.id || i} className="text-xs">
+              <span className="font-semibold text-foreground">Q{i + 1}: {q.text || q.title}</span>
+              {Array.isArray(q.options) && q.options.length > 0 && (
+                <ul className="mt-1 space-y-0.5 pl-4 text-ink-muted">
+                  {q.options.map((opt: any, j: number) => (
+                    <li key={opt.id || j} className="flex items-center gap-1.5">
+                      <span className="h-1 w-1 rounded-full bg-current opacity-50" />
+                      {opt.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
     
-    // Fallback for wordcloud, feedback, survey, etc.
+    // Fallback for any unknown type
     return (
       <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-surface-sunken p-2 text-[10px] text-ink-muted">
         {JSON.stringify(config, null, 2)}

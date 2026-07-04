@@ -46,6 +46,7 @@ import {
   quizConfigSchema,
   wordcloudConfigSchema,
   feedbackConfigSchema,
+  surveyConfigSchema,
 } from '@iep/types';
 
 type DraftActivity = {
@@ -326,6 +327,81 @@ function sanitiseFeedbackConfig(
   return validated.data as Record<string, unknown>;
 }
 
+// ─── Survey sanitiser ─────────────────────────────────────────────────────────
+
+function sanitiseSurveyConfig(
+  rawConfig: Record<string, unknown>,
+  activityTitle: string,
+): Record<string, unknown> {
+  const rawQuestions = Array.isArray(rawConfig.questions) ? rawConfig.questions : [];
+
+  const VALID_QUESTION_TYPES = ['single', 'multiple', 'rating', 'open'] as const;
+  type ValidQType = (typeof VALID_QUESTION_TYPES)[number];
+
+  const sanitisedQuestions = (rawQuestions as Record<string, unknown>[]).map(
+    (rawQ, qIndex) => {
+      const q = rawQ as Record<string, unknown>;
+
+      const id =
+        typeof q.id === 'string' && q.id.trim()
+          ? q.id.trim()
+          : `q${qIndex + 1}`;
+
+      // AI may use 'title' or 'text' for the question text
+      const text =
+        typeof q.text === 'string' && q.text.trim()
+          ? q.text.trim()
+          : typeof q.title === 'string' && (q.title as string).trim()
+            ? (q.title as string).trim()
+            : `Question ${qIndex + 1}`;
+
+      const rawType = typeof q.pollType === 'string' ? q.pollType : (typeof q.type === 'string' ? q.type : 'single');
+      const type: ValidQType = VALID_QUESTION_TYPES.includes(rawType as ValidQType)
+        ? (rawType as ValidQType)
+        : 'single';
+
+      const required = q.required === true;
+
+      const rawOptions = Array.isArray(q.options) ? q.options : [];
+      const options = (rawOptions as Record<string, unknown>[]).map((opt, oIndex) => ({
+        id: typeof opt.id === 'string' && opt.id.trim() ? opt.id.trim() : `${id}-opt${oIndex + 1}`,
+        label: typeof opt.label === 'string' && opt.label.trim() ? opt.label.trim() : `Option ${oIndex + 1}`,
+      }));
+
+      const base = { id, type, text, required, pageIndex: 0 };
+
+      // Only attach options for choice-type questions
+      if ((type === 'single' || type === 'multiple') && options.length > 0) {
+        return { ...base, options };
+      }
+
+      return base;
+    },
+  );
+
+  if (sanitisedQuestions.length === 0) {
+    throw new Error(
+      `AI generated survey "${activityTitle}" has no questions. Please regenerate.`,
+    );
+  }
+
+  const validated = surveyConfigSchema.safeParse({
+    questions: sanitisedQuestions,
+    displayMode: 'stepper',
+  });
+
+  if (!validated.success) {
+    const issues = validated.error.issues
+      .map((i) => `${i.path.join('.')}: ${i.message}`)
+      .join('; ');
+    throw new Error(
+      `AI generated survey "${activityTitle}" failed validation after normalisation: ${issues}`,
+    );
+  }
+
+  return validated.data as Record<string, unknown>;
+}
+
 // ─── Quiz sanitiser ───────────────────────────────────────────────────────────
 
 /**
@@ -507,6 +583,7 @@ function normaliseActivity(
     'wordcloud',
     'qa',
     'feedback',
+    'survey',
     'ai',
   ];
 
@@ -523,6 +600,8 @@ function normaliseActivity(
     normalisedConfig = sanitiseWordcloudConfig(config, title);
   } else if (activityType === 'feedback') {
     normalisedConfig = sanitiseFeedbackConfig(config, title);
+  } else if (activityType === 'survey') {
+    normalisedConfig = sanitiseSurveyConfig(config, title);
   } else {
     // 'qa' and 'ai' types are skipped by handleCreateEventFromDraft
     normalisedConfig = config;
@@ -834,7 +913,8 @@ export default function AIStudioPage() {
           activity.type !== 'poll' &&
           activity.type !== 'quiz' &&
           activity.type !== 'wordcloud' &&
-          activity.type !== 'feedback'
+          activity.type !== 'feedback' &&
+          activity.type !== 'survey'
         ) {
           continue;
         }
@@ -1146,7 +1226,7 @@ export default function AIStudioPage() {
               </div>
               <h3 className="font-display text-xl font-semibold text-foreground">Waiting for inspiration...</h3>
               <p className="max-w-sm text-sm text-ink-muted">
-                Generate a session using the AI composer above. We'll draft some activities here for you to review and keep.
+                Generate a session using the AI composer above. We&apos;ll draft some activities here for you to review and keep.
               </p>
             </div>
           </div>
