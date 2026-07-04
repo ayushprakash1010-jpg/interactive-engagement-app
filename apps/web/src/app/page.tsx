@@ -319,8 +319,10 @@ export default function LandingPage() {
               </div>
 
               {/* Slot 1: Headline */}
-              <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
-                Turn any audience into a conversation
+              <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+                Real-time audience engagement,{' '}
+                <br className="hidden sm:block" />
+                without the complexity.
               </h1>
 
               {/* Slot 2: Description */}
