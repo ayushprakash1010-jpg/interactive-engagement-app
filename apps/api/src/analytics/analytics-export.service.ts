@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 import { AnalyticsService } from './analytics.service';
 import { buildAnalyticsReportHtml } from './templates/report-template';
 import type { AuthenticatedUser } from '../auth/jwt.strategy';
@@ -200,13 +199,12 @@ export class AnalyticsExportService {
     const filename = `event-${eventId}-report.pdf`;
     const html = buildAnalyticsReportHtml(data);
 
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || await chromium.executablePath();
+    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH!;
 
     const browser = await puppeteer.launch({
       headless: true,
       executablePath,
       args: [
-        ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-gpu',
