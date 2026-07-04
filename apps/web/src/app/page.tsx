@@ -298,71 +298,168 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* ── Hero ────────────────────────────────────────────────── */}
         <section className="relative isolate overflow-hidden border-b border-border">
-          {/* Drifting radial gradient background */}
+          {/* Premium background: deep radial glow + grid */}
           <div className="hero-gradient-drift absolute inset-0 -z-10" />
-          <div className="absolute left-1/2 top-0 -z-10 h-px w-[min(760px,80vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-brand/40 to-transparent" />
 
-          {/* Floating decorative blobs */}
-          <FloatingShape amplitude={7} periodMs={7000} phaseMs={0} className="pointer-events-none absolute -left-16 top-32 -z-10 h-56 w-56 rounded-full bg-brand/5 blur-3xl">
+          {/* Subtle top-center beam */}
+          <div className="absolute left-1/2 top-0 -z-10 h-px w-[min(900px,90vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-brand/60 to-transparent" />
+
+          {/* Large ambient glow orbs */}
+          <FloatingShape amplitude={12} periodMs={8000} phaseMs={0}
+            className="pointer-events-none absolute -left-32 top-10 -z-10 h-[500px] w-[500px] rounded-full bg-brand/8 blur-[100px]">
             <span />
           </FloatingShape>
-          <FloatingShape amplitude={9} periodMs={9000} phaseMs={2500} className="pointer-events-none absolute -right-20 top-48 -z-10 h-72 w-72 rounded-full bg-ai/5 blur-3xl">
+          <FloatingShape amplitude={10} periodMs={10000} phaseMs={3000}
+            className="pointer-events-none absolute -right-32 bottom-0 -z-10 h-[400px] w-[400px] rounded-full bg-ai/8 blur-[100px]">
             <span />
           </FloatingShape>
 
-          <div className="mx-auto max-w-container-xl px-6 pb-16 pt-20 text-center sm:pt-24 lg:pb-24">
-            <HeroSequence stepMs={90} baseDelay={80}>
-              {/* Slot 0: Badge */}
-              <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-surface-card/90 px-3 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-xs">
-                <LiveDot sizeClass="h-1.5 w-1.5" />
-                Real-time audience engagement for every room
+          <div className="mx-auto max-w-container-xl px-6 pb-20 pt-20 sm:pt-28 lg:pb-28">
+            <HeroSequence stepMs={80} baseDelay={60}>
+
+              {/* ── Two-column split ─────────────────────────────────── */}
+              <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+
+                {/* LEFT: Text + CTAs */}
+                <div className="flex flex-col items-start text-left">
+
+                  {/* Top badge */}
+                  <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-surface-card/80 px-4 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-sm backdrop-blur-sm">
+                    <LiveDot sizeClass="h-1.5 w-1.5" />
+                    Real-time audience engagement
+                    <span className="ml-1 rounded-full bg-brand/15 px-1.5 py-0.5 text-[10px] font-bold text-brand">NEW AI</span>
+                  </div>
+
+                  {/* Headline with gradient accent */}
+                  <h1 className="text-5xl font-bold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
+                    Turn any{' '}
+                    <span className="relative">
+                      <span className="hero-text-gradient">audience</span>
+                    </span>
+                    <br />
+                    into a live{' '}
+                    <span className="hero-text-gradient">conversation</span>
+                  </h1>
+
+                  {/* Subheadline */}
+                  <p className="mt-6 max-w-lg text-lg leading-8 text-ink-muted">
+                    Run polls, Q&amp;A, quizzes, word clouds &amp; surveys — all live, all instant.
+                    Participants join with a code or QR. <strong className="text-ink font-semibold">No app. No login.</strong>
+                  </p>
+
+                  {/* Feature pills row */}
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {['Live Polls', 'Anonymous Q&A', 'Quizzes', 'Word Clouds', 'Surveys', 'AI Studio'].map((f) => (
+                      <span key={f} className="inline-flex items-center rounded-full border border-border bg-surface-raised px-3 py-1 text-xs font-medium text-ink-secondary">
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* CTA Buttons */}
+                  <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <Button asChild size="xl" className="shimmer-cta shadow-glow-brand hero-cta-primary">
+                      <a href={SIGNUP_HREF}>
+                        Start for free
+                        <ArrowRight className="h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button asChild size="xl" variant="outline" className="hero-cta-secondary">
+                      <Link href="/join">
+                        <Play className="h-4 w-4" />
+                        Join an event
+                      </Link>
+                    </Button>
+                  </div>
+
+                  {/* Trust signals */}
+                  <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted">
+                    <span className="inline-flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                      No credit card required
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                      Free forever plan
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                      Live in under 60 seconds
+                    </span>
+                  </div>
+                </div>
+
+                {/* RIGHT: Floating product mockup */}
+                <div className="relative hidden lg:block">
+                  {/* Glow behind the card */}
+                  <div className="landing-hero-glow absolute -inset-8 -z-10 rounded-3xl" />
+
+                  {/* Outer glow ring */}
+                  <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-brand/30 via-transparent to-ai/20 blur-sm" />
+
+                  <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-surface-card shadow-2xl">
+                    {/* Browser chrome */}
+                    <div className="flex h-11 items-center justify-between border-b border-border bg-surface-raised px-4">
+                      <div className="flex items-center gap-1.5" aria-hidden="true">
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-500/70" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
+                      </div>
+                      <div className="rounded-md border border-border bg-surface-canvas px-3 py-1 text-xs text-ink-muted">
+                        pulse.app/events/all-hands
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-success">
+                        <LiveDot sizeClass="h-1.5 w-1.5" />
+                        Live
+                      </div>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                      {/* Event header */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-success-subtle px-2.5 py-0.5 text-xs font-semibold text-success">328 live</span>
+                            <span className="rounded-full border border-border bg-surface-raised px-2.5 py-0.5 text-xs text-ink-muted">Quarterly all-hands</span>
+                          </div>
+                          <h3 className="mt-2 text-lg font-bold">How aligned is our Q3 strategy?</h3>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm">
+                          <QrCode className="h-4 w-4 text-brand" />
+                          <span className="font-mono font-bold tracking-widest text-brand">QZ7K2P</span>
+                        </div>
+                      </div>
+
+                      {/* Live poll bars */}
+                      <div className="rounded-xl border border-border bg-surface-raised p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                          <span className="text-sm font-semibold">Live Poll</span>
+                          <span className="flex items-center gap-1.5 text-xs text-ink-muted">
+                            <LiveDot sizeClass="h-1.5 w-1.5" />
+                            Responding
+                          </span>
+                        </div>
+                        <LivePollBars />
+                      </div>
+
+                      {/* Stat cards row */}
+                      <div className="grid grid-cols-3 gap-3">
+                        {SHOWCASE_ACTIVITIES.slice(0, 3).map((activity) => (
+                          <div key={activity.label} className="rounded-lg border border-border bg-surface-card p-3 shadow-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-medium text-ink-muted">{activity.type}</span>
+                              <span className={`h-2 w-2 rounded-full ${activity.tone}`} />
+                            </div>
+                            <div className="mt-2 text-2xl font-bold tabular-nums">{activity.value}</div>
+                            <div className="mt-0.5 text-[10px] text-ink-muted truncate">{activity.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Slot 1: Headline */}
-              <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl">
-                Turn any audience into a conversation
-              </h1>
-
-              {/* Slot 2: Description */}
-              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-ink-muted sm:text-xl">
-                Pulse runs live polls, Q&A, quizzes, word clouds, surveys, and feedback for meetings,
-                webinars, and classrooms. Your audience joins with a code or QR - no app, no login.
-              </p>
-
-              {/* Slot 3: CTA buttons */}
-              <div>
-                <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Button asChild size="xl" className="shimmer-cta shadow-glow-brand hero-cta-primary">
-                    <a href={SIGNUP_HREF}>
-                      Start here - it&apos;s free
-                      <ArrowRight className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button asChild size="xl" variant="outline" className="hero-cta-secondary">
-                    <Link href="/join">
-                      <Play className="h-4 w-4" />
-                      Join an event
-                    </Link>
-                  </Button>
-                </div>
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted">
-                  <span className="inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                    No credit card required
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                    Email or Google sign-up
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                    Participants never need accounts
-                  </span>
-                </div>
-              </div>
-
-              {/* Slot 4: Hero preview */}
-              <ProductPreview />
             </HeroSequence>
           </div>
         </section>
