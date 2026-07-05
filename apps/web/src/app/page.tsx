@@ -311,7 +311,7 @@ export default function LandingPage() {
           </FloatingShape>
 
           <div className="mx-auto max-w-container-xl px-6 pb-16 pt-6 sm:pt-10 lg:pb-24">
-            <div className="grid gap-12 lg:grid-cols-2">
+            <div className="grid gap-6 lg:gap-12 lg:grid-cols-2">
               <div className="text-center lg:text-left lg:pt-4">
                 <HeroSequence stepMs={90} baseDelay={80}>
                   {/* Slot 0: Badge */}
@@ -367,7 +367,7 @@ export default function LandingPage() {
               </div>
 
               {/* Right Column: Visual */}
-              <div className="relative w-full mt-10 lg:mt-0 flex justify-center lg:justify-start lg:block lg:h-[700px] min-h-[250px] sm:min-h-[350px]">
+              <div className="relative w-full lg:mt-0 flex justify-center lg:justify-start lg:block lg:h-[700px] min-h-[250px] sm:min-h-[350px]">
                  {/* Decorative glow */}
                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] -z-10 rounded-full bg-brand/15 blur-[100px]" />
                  
