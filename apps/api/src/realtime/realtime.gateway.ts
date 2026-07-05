@@ -465,8 +465,11 @@ export class RealtimeGateway
     }
 
     if (activity.status !== 'live') {
-      client.emit(ServerEvents.ERROR, { message: 'This activity is not live.' });
-      return;
+      const isRecentlyClosed = activity.status === 'closed' && (Date.now() - new Date((activity as any).updatedAt).getTime()) < 10000;
+      if (!isRecentlyClosed) {
+        client.emit(ServerEvents.ERROR, { message: 'This activity is not live.' });
+        return;
+      }
     }
 
     const eventId = activity.eventId.toString();
@@ -541,10 +544,13 @@ export class RealtimeGateway
     }
 
     if (activity.status !== 'live' || activity.type !== 'wordcloud') {
-      client.emit(ServerEvents.ERROR, {
-        message: 'This word cloud is not live.',
-      });
-      return;
+      const isRecentlyClosed = activity.type === 'wordcloud' && activity.status === 'closed' && (Date.now() - new Date((activity as any).updatedAt).getTime()) < 10000;
+      if (!isRecentlyClosed) {
+        client.emit(ServerEvents.ERROR, {
+          message: 'This word cloud is not live.',
+        });
+        return;
+      }
     }
 
     const eventId = activity.eventId.toString();
@@ -612,8 +618,11 @@ export class RealtimeGateway
     }
 
     if (activity.status !== 'live' || activity.type !== 'quiz') {
-      client.emit(ServerEvents.ERROR, { message: 'This quiz is not live.' });
-      return;
+      const isRecentlyClosed = activity.type === 'quiz' && activity.status === 'closed' && (Date.now() - new Date((activity as any).updatedAt).getTime()) < 10000;
+      if (!isRecentlyClosed) {
+        client.emit(ServerEvents.ERROR, { message: 'This quiz is not live.' });
+        return;
+      }
     }
 
     const runtime = quizRuntimeByActivityId.get(activityId);
@@ -625,7 +634,7 @@ export class RealtimeGateway
     }
 
     const now = Date.now();
-    if (now > runtime.endsAt) {
+    if (now > runtime.endsAt + 10000) {
       client.emit(ServerEvents.ERROR, {
         message: 'This quiz question is already closed.',
       });
@@ -1158,8 +1167,10 @@ export class RealtimeGateway
     if (runtime?.timeout) {
       clearTimeout(runtime.timeout);
     }
-    quizRuntimeByActivityId.delete(activityId);
-    quizAdvanceLocks.delete(activityId);
+    setTimeout(() => {
+      quizRuntimeByActivityId.delete(activityId);
+      quizAdvanceLocks.delete(activityId);
+    }, 10000);
   }
 
   private connectionsKey(eventId: string): string {

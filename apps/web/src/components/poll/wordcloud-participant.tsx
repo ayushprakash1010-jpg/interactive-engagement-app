@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -81,16 +81,17 @@ export function WordCloudParticipant({
 
   const tooManyWords = parsedWords.length > maxWords;
 
+  const hasValidData = limitedWords.length > 0 && !tooManyWords;
+
   const canSubmit =
     !submitting &&
     !isSubmitting &&
     !hasSubmitted &&
     !isClosed &&
-    limitedWords.length > 0 &&
-    !tooManyWords;
+    hasValidData;
 
-  const handleSubmit = () => {
-    if (!canSubmit) return;
+  const handleSubmit = (force = false) => {
+    if (!canSubmit && !force) return;
 
     setSubmitting(true);
     onSubmit({
@@ -98,6 +99,27 @@ export function WordCloudParticipant({
       words: limitedWords,
     });
   };
+
+  const autoSubmitRef = useRef({
+    canSubmit: false,
+    submitFn: () => {},
+  });
+
+  useEffect(() => {
+    autoSubmitRef.current = {
+      canSubmit: !submitting && !isSubmitting && !hasSubmitted && hasValidData,
+      submitFn: () => handleSubmit(true),
+    };
+  });
+
+  useEffect(() => {
+    return () => {
+      const state = autoSubmitRef.current;
+      if (state.canSubmit) {
+        state.submitFn();
+      }
+    };
+  }, []);
 
   // Auto-submit logic when timer hits 1.5 seconds remaining
   useEffect(() => {
