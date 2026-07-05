@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Toaster } from '@/components/ui/toaster';
 import { Providers } from '@/lib/providers';
 import type { Theme, ResolvedTheme } from '@/lib/theme';
@@ -44,6 +45,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
