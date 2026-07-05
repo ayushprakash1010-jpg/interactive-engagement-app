@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -120,8 +120,7 @@ export function PollParticipant({
   const isClosed = activity.status === "closed" || pollExpired;
   const showResults = isClosed;
 
-  const canSubmit = (() => {
-    if (submitting || hasSubmitted || isClosed) return false;
+  const hasValidData = (() => {
     if (pollType === "single") return selectedIds.length === 1;
     if (pollType === "multiple") return selectedIds.length > 0;
     if (pollType === "rating") return ratingValue !== null;
@@ -129,8 +128,13 @@ export function PollParticipant({
     return false;
   })();
 
-  const handleSubmit = () => {
-    if (submitting || hasSubmitted || isClosed) return;
+  const canSubmit = (() => {
+    if (submitting || hasSubmitted || isClosed) return false;
+    return hasValidData;
+  })();
+
+  const handleSubmit = (force = false) => {
+    if (submitting || hasSubmitted || (isClosed && !force)) return;
 
     setSubmitting(true);
 
@@ -145,6 +149,27 @@ export function PollParticipant({
         pollType === "rating" ? (ratingValue ?? undefined) : undefined,
     });
   };
+
+  const autoSubmitRef = useRef({
+    canSubmit: false,
+    submitFn: () => {},
+  });
+
+  useEffect(() => {
+    autoSubmitRef.current = {
+      canSubmit: !submitting && !hasSubmitted && hasValidData,
+      submitFn: () => handleSubmit(true),
+    };
+  });
+
+  useEffect(() => {
+    return () => {
+      const state = autoSubmitRef.current;
+      if (state.canSubmit) {
+        state.submitFn();
+      }
+    };
+  }, []);
 
   // THE FIX: Auto-submit their answer 1.5 seconds before the timer runs out!
   useEffect(() => {

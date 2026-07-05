@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { SurfacePanel } from "@/components/ui/surface-panel";
@@ -114,9 +114,9 @@ export function FeedbackParticipant({
     [fields, ratingValues, textValues],
   );
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (force = false) => {
     if (submitted || isSubmitting) return;
-    if (!validate(true)) return;
+    if (!validate(!force)) return; // don't show errors on force submit
 
     const responses = fields.map((field) => {
       if (field.type === "rating") {
@@ -142,6 +142,27 @@ export function FeedbackParticipant({
       setIsSubmitting(false);
     }
   };
+
+  const autoSubmitRef = useRef({
+    canSubmit: false,
+    submitFn: () => {},
+  });
+
+  useEffect(() => {
+    autoSubmitRef.current = {
+      canSubmit: !submitted && !isSubmitting && isFormValid,
+      submitFn: () => handleSubmit(true),
+    };
+  });
+
+  useEffect(() => {
+    return () => {
+      const state = autoSubmitRef.current;
+      if (state.canSubmit) {
+        state.submitFn();
+      }
+    };
+  }, []);
 
   // Auto-submit logic when timer hits 1.5 seconds remaining
   useEffect(() => {

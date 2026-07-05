@@ -417,7 +417,7 @@ export class ResponseService {
       throw new BadRequestException('Quiz option not found');
     }
 
-    if (dto.answeredAt > dto.endsAt) {
+    if (dto.answeredAt > dto.endsAt + 10000) {
       throw new BadRequestException('This quiz question is already closed');
     }
 

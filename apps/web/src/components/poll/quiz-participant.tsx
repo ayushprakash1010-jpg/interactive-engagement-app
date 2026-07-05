@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SurfacePanel } from "@/components/ui/surface-panel";
 import { Eyebrow } from "@/components/pulse";
@@ -55,6 +55,34 @@ export function QuizParticipant({
     hasAnswered && answerState?.questionId === question.questionId;
 
   const isLocked = hasSubmittedThisQuestion || isExpired;
+
+  const autoSubmitRef = useRef({
+    canSubmit: false,
+    submitFn: () => {},
+  });
+
+  useEffect(() => {
+    autoSubmitRef.current = {
+      canSubmit: !hasSubmittedThisQuestion && !!selectedOptionId && !isExpired,
+      submitFn: () => {
+        onAnswer({
+          activityId: question.activityId,
+          questionId: question.questionId,
+          optionId: selectedOptionId!,
+          clientTimeMs: Date.now(),
+        });
+      },
+    };
+  });
+
+  useEffect(() => {
+    return () => {
+      const state = autoSubmitRef.current;
+      if (state.canSubmit) {
+        state.submitFn();
+      }
+    };
+  }, []);
 
   const timerLabel = useMemo(() => {
     if (isExpired) return "Time up";
