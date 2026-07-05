@@ -312,7 +312,7 @@ export default function LandingPage() {
 
           <div className="mx-auto max-w-container-xl px-6 pb-16 pt-6 sm:pt-10 lg:pb-24">
             <div className="grid gap-12 lg:grid-cols-2">
-              <div className="text-left lg:pt-4">
+              <div className="text-center lg:text-left lg:pt-4">
                 <HeroSequence stepMs={90} baseDelay={80}>
                   {/* Slot 0: Badge */}
                   <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-surface-card/90 px-3 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-xs">
@@ -321,7 +321,7 @@ export default function LandingPage() {
                   </div>
 
                   {/* Slot 1: Headline */}
-                  <h1 className="max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+                  <h1 className="mx-auto max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:mx-0 lg:text-6xl">
                     <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
                       Turn passive rooms into{' '}
                     </span>
@@ -332,13 +332,13 @@ export default function LandingPage() {
                   </h1>
 
                   {/* Slot 2: Description */}
-                  <p className="mt-6 max-w-xl text-lg leading-8 text-ink-muted sm:text-xl">
+                  <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-ink-muted sm:text-xl lg:mx-0">
                     Effortlessly run live polls, interactive Q&A, and real-time quizzes. No downloads or sign-ups required—your audience joins instantly.
                   </p>
 
                   {/* Slot 3: CTA buttons */}
                   <div>
-                    <div className="mt-9 flex flex-col items-start gap-3 sm:flex-row">
+                    <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row lg:items-start lg:justify-start">
                       <Button asChild size="xl" className="shimmer-cta shadow-glow-brand hero-cta-primary">
                         <a href={SIGNUP_HREF}>
                           Start here - it&apos;s free
@@ -352,7 +352,7 @@ export default function LandingPage() {
                         </Link>
                       </Button>
                     </div>
-                    <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted">
+                    <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted lg:justify-start">
                       <span className="inline-flex items-center gap-1.5">
                         <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
                         No credit card required
@@ -374,7 +374,7 @@ export default function LandingPage() {
                  {/* Container for centering the scaled visual */}
                  <ScrollReveal delay={300} className="absolute inset-0 overflow-visible">
                    {/* Absolute anchor ensures it doesn't trigger flex overflow bugs. Scales from the left edge. */}
-                   <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[900px] origin-left scale-[0.45] sm:scale-[0.6] lg:scale-[0.65] xl:scale-[0.70]">
+                   <div className="absolute left-1/2 top-1/2 w-[900px] -translate-x-1/2 -translate-y-1/2 scale-[0.45] origin-center sm:scale-[0.6] lg:left-0 lg:-translate-x-0 lg:origin-left lg:scale-[0.65] xl:scale-[0.70]">
                      <div className="transform perspective-[2500px] hover:rotate-0 transition-transform duration-700 ease-out lg:-rotate-y-12 lg:rotate-x-8 shadow-2xl rounded-xl">
                        <ProductPreview />
                      </div>
