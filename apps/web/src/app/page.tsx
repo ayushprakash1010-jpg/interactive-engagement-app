@@ -367,16 +367,18 @@ export default function LandingPage() {
               </div>
 
               {/* Right Column: Visual */}
-              <div className="relative w-full h-[500px] sm:h-[600px] lg:h-[700px] mt-10 lg:mt-0">
+              <div className="relative w-full mt-10 lg:mt-0 flex justify-center lg:justify-start lg:block lg:h-[700px] min-h-[250px] sm:min-h-[350px]">
                  {/* Decorative glow */}
                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] -z-10 rounded-full bg-brand/15 blur-[100px]" />
                  
                  {/* Container for centering the scaled visual */}
-                 <ScrollReveal delay={300} className="absolute inset-0 overflow-visible">
-                   {/* Absolute anchor ensures it doesn't trigger flex overflow bugs. Scales from the left edge. */}
-                   <div className="absolute left-1/2 top-1/2 w-[900px] -translate-x-1/2 -translate-y-1/2 scale-[0.45] origin-center sm:scale-[0.6] lg:left-0 lg:-translate-x-0 lg:origin-left lg:scale-[0.65] xl:scale-[0.70]">
-                     <div className="transform perspective-[2500px] hover:rotate-0 transition-transform duration-700 ease-out lg:-rotate-y-12 lg:rotate-x-8 shadow-2xl rounded-xl">
-                       <ProductPreview />
+                 <ScrollReveal delay={300} className="w-full flex justify-center lg:block">
+                   {/* Bounding box to prevent mobile overflow */}
+                   <div className="relative w-[315px] sm:w-[450px] md:w-[540px] lg:w-full h-[250px] sm:h-[350px] md:h-[400px] lg:h-auto">
+                     <div className="absolute top-0 left-1/2 -translate-x-1/2 lg:left-0 lg:-translate-x-0 w-[900px] origin-top scale-[0.35] sm:scale-[0.5] md:scale-[0.6] lg:scale-[0.65] xl:scale-[0.70] lg:origin-top-left">
+                       <div className="transform perspective-[2500px] hover:rotate-0 transition-transform duration-700 ease-out lg:-rotate-y-12 lg:rotate-x-8 shadow-2xl rounded-xl">
+                         <ProductPreview />
+                       </div>
                      </div>
                    </div>
                  </ScrollReveal>
