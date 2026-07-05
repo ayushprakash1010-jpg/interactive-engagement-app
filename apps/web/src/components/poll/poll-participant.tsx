@@ -498,7 +498,7 @@ export function PollParticipant({
 
       <Button
         type="button"
-        onClick={handleSubmit}
+        onClick={() => handleSubmit()}
         disabled={!canSubmit}
         size="lg"
         className="w-full"

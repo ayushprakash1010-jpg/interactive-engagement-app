@@ -281,7 +281,7 @@ export function WordCloudParticipant({
 
       <Button
         type="button"
-        onClick={handleSubmit}
+        onClick={() => handleSubmit()}
         disabled={!canSubmit}
         size="lg"
         className="w-full"

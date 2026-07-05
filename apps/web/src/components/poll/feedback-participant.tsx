@@ -277,7 +277,7 @@ export function FeedbackParticipant({
       <div className="mt-6">
         <Button
           type="button"
-          onClick={handleSubmit}
+          onClick={() => handleSubmit()}
           disabled={isLocked}
           size="lg"
           className="w-full"
