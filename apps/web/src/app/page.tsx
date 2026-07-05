@@ -152,7 +152,7 @@ const SHOWCASE_ACTIVITIES = [
 
 function ProductPreview() {
   return (
-    <CursorParallax strength={4} className="relative mx-auto mt-16 max-w-6xl">
+    <CursorParallax strength={4} className="relative w-full">
       {/* Animated hero glow behind the mockup */}
       <div className="landing-hero-glow absolute -inset-x-6 top-0 -z-10 h-72" />
       <div className="relative overflow-hidden rounded-xl border border-border bg-surface-card shadow-xl">
@@ -310,62 +310,78 @@ export default function LandingPage() {
             <span />
           </FloatingShape>
 
-          <div className="mx-auto max-w-container-xl px-6 pb-16 pt-20 text-center sm:pt-24 lg:pb-24">
-            <HeroSequence stepMs={90} baseDelay={80}>
-              {/* Slot 0: Badge */}
-              <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-surface-card/90 px-3 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-xs">
-                <LiveDot sizeClass="h-1.5 w-1.5" />
-                Real-time audience engagement for every room
+          <div className="mx-auto max-w-container-xl px-6 pb-16 pt-6 sm:pt-10 lg:pb-24">
+            <div className="grid gap-12 lg:grid-cols-2">
+              <div className="text-left lg:pt-4">
+                <HeroSequence stepMs={90} baseDelay={80}>
+                  {/* Slot 0: Badge */}
+                  <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand/20 bg-surface-card/90 px-3 py-1.5 text-xs font-semibold text-brand-subtle-text shadow-xs">
+                    <LiveDot sizeClass="h-1.5 w-1.5" />
+                    Real-time audience engagement
+                  </div>
+
+                  {/* Slot 1: Headline */}
+                  <h1 className="max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+                    <span className="bg-gradient-to-b from-white to-white/70 bg-clip-text text-transparent">
+                      Turn passive rooms into{' '}
+                    </span>
+                    <br className="hidden sm:block" />
+                    <span className="bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 bg-clip-text text-transparent">
+                      active conversations.
+                    </span>
+                  </h1>
+
+                  {/* Slot 2: Description */}
+                  <p className="mt-6 max-w-xl text-lg leading-8 text-ink-muted sm:text-xl">
+                    Effortlessly run live polls, interactive Q&A, and real-time quizzes. No downloads or sign-ups required—your audience joins instantly.
+                  </p>
+
+                  {/* Slot 3: CTA buttons */}
+                  <div>
+                    <div className="mt-9 flex flex-col items-start gap-3 sm:flex-row">
+                      <Button asChild size="xl" className="shimmer-cta shadow-glow-brand hero-cta-primary">
+                        <a href={SIGNUP_HREF}>
+                          Start here - it&apos;s free
+                          <ArrowRight className="h-4 w-4" />
+                        </a>
+                      </Button>
+                      <Button asChild size="xl" variant="outline" className="hero-cta-secondary">
+                        <Link href="/join">
+                          <Play className="h-4 w-4" />
+                          Join an event
+                        </Link>
+                      </Button>
+                    </div>
+                    <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted">
+                      <span className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                        No credit card required
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
+                        No sign-ups for participants
+                      </span>
+                    </div>
+                  </div>
+                </HeroSequence>
               </div>
 
-              {/* Slot 1: Headline */}
-              <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-                Real-time audience engagement,{' '}
-                <br className="hidden sm:block" />
-                without the complexity.
-              </h1>
-
-              {/* Slot 2: Description */}
-              <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-ink-muted sm:text-xl">
-                Pulse runs live polls, Q&A, quizzes, word clouds, surveys, and feedback for meetings,
-                webinars, and classrooms. Your audience joins with a code or QR - no app, no login.
-              </p>
-
-              {/* Slot 3: CTA buttons */}
-              <div>
-                <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                  <Button asChild size="xl" className="shimmer-cta shadow-glow-brand hero-cta-primary">
-                    <a href={SIGNUP_HREF}>
-                      Start here - it&apos;s free
-                      <ArrowRight className="h-4 w-4" />
-                    </a>
-                  </Button>
-                  <Button asChild size="xl" variant="outline" className="hero-cta-secondary">
-                    <Link href="/join">
-                      <Play className="h-4 w-4" />
-                      Join an event
-                    </Link>
-                  </Button>
-                </div>
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted">
-                  <span className="inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                    No credit card required
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                    Email or Google sign-up
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-brand" />
-                    Participants never need accounts
-                  </span>
-                </div>
+              {/* Right Column: Visual */}
+              <div className="relative w-full h-[500px] sm:h-[600px] lg:h-[700px] mt-10 lg:mt-0">
+                 {/* Decorative glow */}
+                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] -z-10 rounded-full bg-brand/15 blur-[100px]" />
+                 
+                 {/* Container for centering the scaled visual */}
+                 <ScrollReveal delay={300} className="absolute inset-0 overflow-visible">
+                   {/* Absolute anchor ensures it doesn't trigger flex overflow bugs. Scales from the left edge. */}
+                   <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[900px] origin-left scale-[0.45] sm:scale-[0.6] lg:scale-[0.65] xl:scale-[0.70]">
+                     <div className="transform perspective-[2500px] hover:rotate-0 transition-transform duration-700 ease-out lg:-rotate-y-12 lg:rotate-x-8 shadow-2xl rounded-xl">
+                       <ProductPreview />
+                     </div>
+                   </div>
+                 </ScrollReveal>
               </div>
-
-              {/* Slot 4: Hero preview */}
-              <ProductPreview />
-            </HeroSequence>
+            </div>
           </div>
         </section>
 
