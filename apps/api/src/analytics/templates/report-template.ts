@@ -306,10 +306,28 @@ const resolveParticipantName = (entry: any): string => {
         .join('')
     : `<p class="empty">No survey analytics available.</p>`;
 
+  const formatIST = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        hour12: true 
+      }) + ' IST';
+    } catch {
+      return dateStr;
+    }
+  };
+
   const timelineBody = engagementTimeline.length
     ? list(
         engagementTimeline.map(
-          (p: any) => `${e(p.minute)} - ${e(p.responses)} responses`,
+          (p: any) => `${e(formatIST(p.minute))} - ${e(p.responses)} responses`,
         ),
       )
     : `<p class="empty">No engagement data available.</p>`;
