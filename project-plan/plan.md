@@ -790,4 +790,6 @@ iep/
 4. After each sprint, run the acceptance criteria as your manual + automated test gate before moving on.
 5. Keep `@iep/types` authoritative — when a schema changes, update it there first so both apps stay in sync.
 
+test
+
 *End of document.*
