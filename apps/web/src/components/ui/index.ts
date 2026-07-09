@@ -44,3 +44,4 @@ export { StatusBadge, type StatusBadgeProps } from './status-badge';
 export { BackLink, type BackLinkProps } from './back-link';
 export { ActionGroup, type ActionGroupProps } from './action-group';
 export { SurfacePanel, type SurfacePanelProps } from './surface-panel';
+export * from './tabs';

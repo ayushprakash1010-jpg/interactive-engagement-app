@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
+    "@google/genai": "^2.9.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@iep/types": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.4",
@@ -37,6 +38,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^14.0.0",
+    "zod": "^3.25.76",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

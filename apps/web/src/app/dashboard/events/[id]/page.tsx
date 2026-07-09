@@ -17,7 +17,9 @@ import {
   Star,
   Cloud,
   Monitor,
+  Sparkles,
 } from 'lucide-react';
+import { LiveAIPanel } from '@/components/ai-studio/live';
 import { JoinCode, LiveDot, ActivityTile } from '@/components/pulse';
 import { cn } from '@/lib/utils';
 import { QuizRunPanel } from '@/components/poll/quiz-run-panel';
@@ -222,6 +224,7 @@ export default function EventDetailPage() {
   const [activeTab, setActiveTab] = React.useState<Tab>('overview');
   const [editOpen, setEditOpen] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [isLiveAIPanelOpen, setIsLiveAIPanelOpen] = React.useState(false);
   const [builderOpen, setBuilderOpen] = React.useState(false);
   const [editingActivity, setEditingActivity] = React.useState<Activity | null>(null);
   const [builderType, setBuilderType] = React.useState<BuilderType>('poll');
@@ -255,6 +258,17 @@ export default function EventDetailPage() {
         }),
     [allQuestions],
   );
+
+  const liveContext = React.useMemo(() => {
+    return {
+      eventTitle: event?.name,
+      eventStatus: event?.status,
+      participantCount: liveCount,
+      activeActivity: activities.find(a => a.status === 'live')?.title,
+      recentQuestions: allQuestions.slice(0, 10).map(q => ({ text: q.text, voteCount: q.voteCount })),
+      totalQuestions: allQuestions.length,
+    };
+  }, [event, liveCount, activities, allQuestions]);
 
   const answeredQuestions = React.useMemo(
     () =>
@@ -659,6 +673,17 @@ export default function EventDetailPage() {
         }
         actions={
           <ActionGroup>
+            {scheduledStatus.status === 'active' && (
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-brand text-brand-foreground hover:bg-brand/90"
+                onClick={() => setIsLiveAIPanelOpen(true)}
+              >
+                <Sparkles className="h-4 w-4" />
+                Live Assistant
+              </Button>
+            )}
             <Link href={`/dashboard/events/${id}/present`} target="_blank">
               <Button variant="outline" size="sm">
                 <Monitor className="h-4 w-4" />
@@ -1187,6 +1212,14 @@ export default function EventDetailPage() {
           </ActionGroup>
         </DialogContent>
       </Dialog>
+
+      {/* Live AI Assistant Panel */}
+      <LiveAIPanel
+        eventId={id}
+        isOpen={isLiveAIPanelOpen}
+        onClose={() => setIsLiveAIPanelOpen(false)}
+        currentContext={liveContext}
+      />
     </div>
   );
 }

@@ -192,7 +192,7 @@ All sockets join a **room keyed by `eventId`**. Redis adapter fans events out ac
 | **Phase 2** | Hardening, scale, i18n, PWA polish | Sprints 8–10 | ❌ Future |
 | **Phase 3** | Zoom & Microsoft Teams integrations + SSO | Sprints 11–12 | ❌ Future |
 | **Phase 4** | Native mobile apps (iOS/Android) | Sprints 13–15 | ❌ Future |
-| **Phase 5** | AI features (summarization, sentiment, recommendations) | Sprints 16–18 | ❌ Future |
+| **Phase 5** | AI Studio v2 (End-to-End AI Ecosystem) | Sprints 16–23+ | ❌ Future |
 
 Suggested cadence: 1–2 week sprints. Phase 1 (MVP) is ~7 sprints of focused work after the Sprint 0 foundation.
 
@@ -710,42 +710,38 @@ Store and Google Play. Document the release process in /docs/mobile-release.md.
 
 ---
 
-# PHASE 5 — AI Features (deferred from MVP)
+# PHASE 5 — AI Studio v2 (deferred from MVP)
 
-**Goal:** The deck's "AI-powered engagement ecosystem." **Out of MVP scope.** Built as an isolated service so it can fail without affecting core real-time flows.
+**Goal:** A massive expansion of the original "AI features" into an end-to-end "AI Studio" ecosystem spanning the entire event lifecycle. **Out of MVP scope.** Built as an isolated service (e.g., background worker) leveraging MongoDB Atlas Vector Search so it can fail without affecting core real-time Socket.IO flows.
 
-## Sprint 16 — AI Q&A summarization & clustering
-- Summarize/cluster large Q&A volumes; group duplicate questions; surface themes to the host live.
+## Phase 1: AI Workspace 2.0 (Foundation)
+- Establish the AI infrastructure: microservice/worker processes for LLM interaction, prompt management, and streaming interfaces (SSE) to the frontend.
+- Implement MongoDB Atlas Vector Search for semantic retrieval.
+- Set up model routing (e.g., GPT-4o for complex tasks, cheaper models for fast analysis).
 
-**Claude Code prompt — Sprint 16**
-```
-Add an AI service (separate module/microservice) that summarizes and clusters Q&A for an event:
-deduplicate similar questions, group them into themes, and produce a live "top themes" view for the
-host. Call an LLM via server-side API with batching + caching; never block the real-time path —
-results stream into the host moderation panel asynchronously. Add a feature flag per event.
-```
+## Phase 2: AI Session Planner
+- Pre-event AI tools for hosts to automatically generate session agendas, quiz questions, and poll structures based on topic inputs or uploaded documents.
 
-## Sprint 17 — Sentiment analysis & smart poll recommendations
-- Real-time sentiment on open-text poll/feedback responses; suggest follow-up polls based on session context.
+## Phase 3: AI Copilot Chat
+- An interactive chat interface embedded in the Host Dashboard that provides real-time assistance, configuration help, and drives the Session Planner and Activity Library features.
 
-**Claude Code prompt — Sprint 17**
-```
-Extend the AI service with: (1) sentiment analysis on open-text poll and feedback responses,
-surfaced as a live sentiment gauge on the host dashboard and analytics; (2) smart poll
-recommendations that suggest the next poll/question based on the event's prior activities and
-responses. Keep inference server-side, cached, feature-flagged, and fully decoupled from core flows.
-```
+## Phase 4: AI Review & Optimization
+- Automated AI review of planned sessions to suggest improvements (e.g., "Add an icebreaker here", "This quiz might be too long").
 
-## Sprint 18 — AI session insights & trends
-- Auto-generated narrative insights in post-session reports; cross-session trend detection.
+## Phase 5: AI Activity Library
+- An AI-curated and dynamically generated library of engagement activities (polls, word clouds) that hosts can instantly drop into their sessions.
 
-**Claude Code prompt — Sprint 18**
-```
-Add AI-generated narrative insights to the post-session report (key takeaways, notable moments,
-engagement patterns) and cross-session trend detection for hosts/orgs. Generate insights from the
-already-aggregated analytics (not raw PII), include them in the PDF/CSV report, and feature-flag the
-capability.
-```
+## Phase 6: Live AI Assistant
+- Real-time summarization of Q&A, clustering of duplicate questions, and live sentiment analysis.
+- Dynamic "smart poll" generation during the live event based on audience discussion.
+
+## Phase 7: Post Event Intelligence
+- Automated narrative insights in post-session reports (key takeaways, engagement patterns).
+- Action item extraction and cross-session trend detection for hosts/organizations.
+
+## Phase 8: Enterprise AI
+- Implementation of PII (Personally Identifiable Information) redaction before LLM inference.
+- Support for custom enterprise models, compliance logging, and SSO integration for AI features.
 
 ---
 

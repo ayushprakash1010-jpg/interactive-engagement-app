@@ -745,4 +745,82 @@ Rules:
       { retries: 1 }
     );
   }
+
+  async generateActivityTemplate(topic: string, userId: string) {
+    return this.generateJson(
+      `
+You are an AI assistant for an interactive audience engagement platform.
+The user is searching for an activity template related to the topic: "${topic}".
+Generate exactly TWO activity templates (e.g. a poll and a word cloud, or a quiz and a feedback) that match this topic.
+
+Rules for the JSON output:
+- It must be an array of exactly 2 objects.
+- Each object must have these exact fields:
+  - id (generate a unique string like "tpl-ai-...")
+  - type (must be the string "activity")
+  - title (string)
+  - description (string)
+  - audience (string, e.g. "General")
+  - duration (string like "5m")
+  - category (string)
+  - tags (array of up to 3 strings)
+  - difficulty (string: "Beginner", "Intermediate", "Advanced")
+  - createdBy (string: "Gemini AI")
+  - isFavorite (boolean: false)
+  - activity (object containing the actual drafted activity, with fields:)
+    - id (unique string)
+    - type (string: "poll", "quiz", "wordcloud", or "feedback")
+    - title (string)
+    - description (string)
+    - config (object specific to the type. For poll: { pollType: "single", question, options: [{id, label}] }, for wordcloud: { prompt })
+
+Return ONLY valid JSON.
+      `,
+      'generate activity template',
+      userId,
+      { retries: 1 }
+    );
+  }
+
+  async exportSession(plan: any, drafts: any[], hostId: string) {
+    try {
+      // 1. Create the new event
+      const event = await this.eventsService.create(hostId, {
+        name: plan.title || 'AI Generated Event',
+        description: plan.objective || '',
+      });
+
+      // 2. Insert all activities
+      if (drafts && drafts.length > 0) {
+        // Map agenda items to activities to determine order
+        const agendaMap = new Map();
+        if (plan.agenda) {
+          plan.agenda.forEach((item: any, index: number) => {
+            if (item.activityId) {
+              agendaMap.set(item.activityId, index);
+            }
+          });
+        }
+
+        const activitiesToInsert = drafts.map((draft, index) => {
+          const order = agendaMap.has(draft.id) ? agendaMap.get(draft.id) : index;
+          return {
+            eventId: event._id,
+            type: draft.type,
+            title: draft.title,
+            order,
+            status: 'idle',
+            config: draft.config || {},
+          };
+        });
+
+        await this.activityModel.insertMany(activitiesToInsert);
+      }
+
+      return { eventId: event._id.toString() };
+    } catch (err) {
+      this.logger.error(`Failed to export session plan to event: ${err}`);
+      throw new InternalServerErrorException('Failed to export session plan.');
+    }
+  }
 }

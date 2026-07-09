@@ -60,6 +60,19 @@ export class AiController {
     return this.aiService.generateSession(prompt, this.getUserId(req));
   }
 
+  @Post('generate-activity-template')
+  async generateActivityTemplate(@Body('topic') topic: string, @Req() req: Request) {
+    return this.aiService.generateActivityTemplate(topic, this.getUserId(req));
+  }
+
+  @Post('export-session')
+  async exportSession(
+    @Body() body: { plan: any; drafts: any[] },
+    @Req() req: Request
+  ) {
+    return this.aiService.exportSession(body.plan, body.drafts, this.getUserId(req));
+  }
+
   @Post('events/:eventId/summarize-live-answers')
   async summarizeLiveAnswers(@Param('eventId') eventId: string, @Req() req: Request) {
     return this.aiService.summarizeLiveAnswers(eventId, this.getUserId(req));
