@@ -19,6 +19,13 @@ export const envSchema = z.object({
   // Rate limiting — wired in Sprint 7.
   RATE_LIMIT_WINDOW: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+  
+  PUPPETEER_EXECUTABLE_PATH: z.string().optional(),
+  
+  // Zoom
+  ZOOM_CLIENT_ID: z.string().optional(),
+  ZOOM_CLIENT_SECRET: z.string().optional(),
+  ZOOM_REDIRECT_URI: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

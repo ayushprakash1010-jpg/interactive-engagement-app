@@ -4,6 +4,12 @@ import { eventCode, objectId, timestamps } from './common.js';
 export const eventStatus = z.enum(['draft', 'live', 'ended']);
 export type EventStatus = z.infer<typeof eventStatus>;
 
+export const eventIntegrationSchema = z.object({
+  provider: z.enum(['zoom', 'teams', 'webex', 'meet']),
+  externalId: z.string(),
+});
+export type EventIntegration = z.infer<typeof eventIntegrationSchema>;
+
 export const eventSettingsSchema = z.object({
   allowAnonymousQA: z.boolean().default(true),
   requireModeration: z.boolean().default(false),
@@ -25,6 +31,7 @@ export const eventSchema = z.object({
   scheduledStart: z.union([z.string().datetime(), z.date()]).nullable().optional(),
   scheduledEnd: z.union([z.string().datetime(), z.date()]).nullable().optional(),
   timezone: z.string().nullable().optional(),
+  integrations: z.array(eventIntegrationSchema).default([]),
   ...timestamps,
 });
 export type Event = z.infer<typeof eventSchema>;

@@ -30,6 +30,7 @@ import {
 } from "@/components/pulse";
 import { FloatingReactions } from "@/components/reactions/floating-reactions";
 import { ReactionBar } from "@/components/reactions/reaction-bar";
+import { useZoomApp } from "@/components/zoom/ZoomProvider";
 
 function AnimatedTransition({ children, transitionKey }: { children: React.ReactNode; transitionKey: string }) {
   return (
@@ -84,6 +85,7 @@ export default function EventPage() {
   const [anonId, setAnonId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ParticipantTab>("activity");
   const [votedQuestionIds, setLocalVotedQuestionIds] = useState<string[]>([]);
+  const { isZoom } = useZoomApp();
 
   useEffect(() => {
     setIsMounted(true);
@@ -280,16 +282,18 @@ export default function EventPage() {
     <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
       <FloatingReactions />
       <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
-        <header className="sticky top-3 z-10 flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card/95 px-3 py-2.5 shadow-sm backdrop-blur">
-          <div className="flex items-center gap-2.5">
-            <Logomark size={28} />
-            <JoinCode code={code} size="sm" />
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <ConnectionStatus />
-          </div>
-        </header>
+        {!isZoom && (
+          <header className="sticky top-3 z-10 flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card/95 px-3 py-2.5 shadow-sm backdrop-blur">
+            <div className="flex items-center gap-2.5">
+              <Logomark size={28} />
+              <JoinCode code={code} size="sm" />
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <ConnectionStatus />
+            </div>
+          </header>
+        )}
 
         <SurfacePanel className="mt-4 flex items-center justify-between gap-3 px-4 py-3">
           <div>

@@ -20,6 +20,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { AdminModule } from './admin/admin.module';
 import { AiModule } from './ai/ai.module';
 import { SurveySessionsModule } from './survey-sessions/survey-sessions.module';
+import { ZoomModule } from './zoom/zoom.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { SurveySessionsModule } from './survey-sessions/survey-sessions.module';
     AdminModule,
     AiModule,
     SurveySessionsModule,
+    ZoomModule,
   ],
   providers: [
     {

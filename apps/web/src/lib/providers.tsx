@@ -8,6 +8,7 @@ import {
   type ResolvedTheme,
   type Theme,
 } from '@/lib/theme';
+import { ZoomProvider } from '@/components/zoom/ZoomProvider';
 
 /**
  * Client-side providers wrapping the whole app:
@@ -42,9 +43,11 @@ export function Providers({
       initialTheme={initialTheme}
       initialResolvedTheme={initialResolvedTheme}
     >
-      <UserProvider>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      </UserProvider>
+      <ZoomProvider>
+        <UserProvider>
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        </UserProvider>
+      </ZoomProvider>
     </ThemeProvider>
   );
 }

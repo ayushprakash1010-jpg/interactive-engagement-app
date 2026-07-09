@@ -16,7 +16,7 @@ export class UsersService {
   constructor(
     @InjectModel(UserEntity.name)
     private readonly userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   async upsert(dto: UpsertUserDto): Promise<UserDocument> {
     const user = await this.userModel
@@ -47,6 +47,13 @@ export class UsersService {
 
   async findByAuth0Sub(auth0Sub: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ auth0Sub }).exec();
+  }
+
+  async findByZoomId(zoomUserId: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({
+      'integrations.provider': 'zoom',
+      'integrations.externalId': zoomUserId,
+    }).exec();
   }
 
   async findById(id: string): Promise<UserDocument> {

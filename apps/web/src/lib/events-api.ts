@@ -55,7 +55,13 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 export async function publicApiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const normalizedPath = path.replace(/^\/+/, '');
 
-  const res = await fetch(`${API_URL}/${normalizedPath}`, {
+  // When the page is served over HTTPS (e.g. inside the Zoom App via localtunnel),
+  // direct calls to http://localhost:4000 are blocked as Mixed Content. Use the
+  // Next.js public proxy route instead so all requests stay on the same HTTPS origin.
+  const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const base = isHttps ? '/api/public-proxy' : API_URL;
+
+  const res = await fetch(`${base}/${normalizedPath}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',

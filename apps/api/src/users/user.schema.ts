@@ -4,6 +4,20 @@ import { HydratedDocument } from 'mongoose';
 
 export type UserDocument = HydratedDocument<UserEntity>;
 
+@Schema({ _id: false })
+export class UserIntegrationSubdoc {
+  @Prop({ required: true, enum: ['zoom', 'teams', 'webex', 'meet'] })
+  provider!: string;
+
+  @Prop({ required: true })
+  externalId!: string;
+
+  @Prop({ type: String, default: null })
+  refreshToken?: string | null;
+}
+
+const UserIntegrationSchema = SchemaFactory.createForClass(UserIntegrationSubdoc);
+
 @Schema({ timestamps: true, collection: 'users' })
 export class UserEntity {
   @Prop({ required: true, unique: true, index: true, trim: true })
@@ -27,6 +41,9 @@ export class UserEntity {
 
   @Prop({ default: 0 })
   aiUsageCount!: number;
+
+  @Prop({ type: [UserIntegrationSchema], default: [] })
+  integrations!: UserIntegrationSubdoc[];
 }
 
 export const UserEntitySchema = SchemaFactory.createForClass(UserEntity);
