@@ -59,6 +59,7 @@ import { useEvents } from '@/lib/use-events';
 import { useNotifications } from '@/lib/notification-store';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { useSearchParams } from 'next/navigation';
 
 const SettingsSearchContext = React.createContext('');
 
@@ -902,6 +903,62 @@ export default function SettingsPage() {
                 }}>
                   Connect Zoom
                 </Button>
+                </SettingRow>
+              </SettingsCard>
+
+              {/* Microsoft Teams */}
+              <SettingsCard
+                title="Microsoft Teams"
+                description="Embed live polls and Q&A as a meeting side panel in Microsoft Teams."
+                icon=<Globe2 className="h-5 w-5" />
+              >
+                <SettingRow label="Teams Account" description="Connect your Microsoft account to link Teams meetings to Pulse events automatically.">
+                  <Button variant="outline" onClick={async () => {
+                    try {
+                      const { apiFetch } = await import('@/lib/events-api');
+                      const data = await apiFetch<{url: string}>('api/teams/authorize');
+                      if (data?.url) {
+                        window.location.href = data.url;
+                        return;
+                      }
+                      console.error('Failed to initiate Teams connection', data);
+                    } catch (e) {
+                      console.error('Failed to connect Teams', e);
+                    }
+                  }}>
+                    Connect Teams
+                  </Button>
+                </SettingRow>
+                <SettingRow label="Teams App" description="Install the Pulse app in your Teams meeting to give participants access during a call.">
+                  <Button variant="outline" asChild>
+                    <a href="/teams" target="_blank" rel="noreferrer">Open Teams App</a>
+                  </Button>
+                </SettingRow>
+              </SettingsCard>
+
+              {/* Enterprise SSO */}
+              <SettingsCard
+                title="Enterprise SSO"
+                description="Allow your organization to log in with your Identity Provider (Okta, Azure AD, Google Workspace, etc.) via SAML or OIDC."
+                icon=<ShieldCheck className="h-5 w-5" />
+              >
+                <SurfacePanel tone="ai" className="flex items-start gap-3 p-4">
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ai" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-ai-subtle-text">Powered by Auth0 Enterprise Connections</p>
+                    <p className="text-xs text-ai-subtle-text/80">
+                      Enterprise SSO is configured at the organization level via Auth0 Enterprise Connections.
+                      Your IdP administrator creates the SAML/OIDC connection in Auth0, and all users from your
+                      domain are automatically routed through SSO — no code changes required.
+                      Anonymous participant join remains unchanged.
+                    </p>
+                  </div>
+                </SurfacePanel>
+                <SettingRow label="SAML / OIDC" description="Configure your organization's identity provider via the Auth0 dashboard." badge={<ComingSoonBadge />}>
+                  <Button variant="outline" disabled>Configure SSO</Button>
+                </SettingRow>
+                <SettingRow label="Domain restriction" description="Lock sign-in to a specific email domain (e.g. @yourcompany.com)." badge={<ComingSoonBadge />}>
+                  <Button variant="outline" disabled>Set Domain</Button>
                 </SettingRow>
               </SettingsCard>
             </section>

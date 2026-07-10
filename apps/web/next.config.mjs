@@ -21,6 +21,10 @@ const nextConfig = {
       {
         source: '/api/zoom/:path*',
         destination: 'http://localhost:4000/api/zoom/:path*'
+      },
+      {
+        source: '/api/teams/:path*',
+        destination: 'http://localhost:4000/api/teams/:path*'
       }
     ];
   }

@@ -198,6 +198,9 @@ importers:
       '@iep/types':
         specifier: workspace:*
         version: link:../../packages/types
+      '@microsoft/teams-js':
+        specifier: ^2.53.1
+        version: 2.53.1
       '@radix-ui/react-dialog':
         specifier: ^1.1.4
         version: 1.1.15(@types/react-dom@18.3.7(@types/react@18.3.29))(@types/react@18.3.29)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1032,6 +1035,9 @@ packages:
   '@lukeed/csprng@1.1.0':
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
     engines: {node: '>=8'}
+
+  '@microsoft/teams-js@2.53.1':
+    resolution: {integrity: sha512-GXVtIGMl9jdXBQybVSYSzaUCDzoDJDfG02xXhxuKCJqCvPSacXtFslZINPpvOk22r+ajj4+mBGyuI4sI3iRYUg==}
 
   '@mongodb-js/saslprep@1.4.11':
     resolution: {integrity: sha512-o9rAHc0IpIjuPSxRutWpE1F62x7n+4mVS4rCNHkzhIUMQcc18bb6xEq5wd2NdN0WjepIyXIppRshYI2kQDOZVA==}
@@ -7094,6 +7100,13 @@ snapshots:
       call-bind: 1.0.9
 
   '@lukeed/csprng@1.1.0': {}
+
+  '@microsoft/teams-js@2.53.1':
+    dependencies:
+      base64-js: 1.5.1
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
 
   '@mongodb-js/saslprep@1.4.11':
     dependencies:

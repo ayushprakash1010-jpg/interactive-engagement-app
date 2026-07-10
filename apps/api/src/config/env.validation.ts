@@ -26,6 +26,11 @@ export const envSchema = z.object({
   ZOOM_CLIENT_ID: z.string().optional(),
   ZOOM_CLIENT_SECRET: z.string().optional(),
   ZOOM_REDIRECT_URI: z.string().optional(),
+
+  // Microsoft Teams
+  TEAMS_CLIENT_ID: z.string().optional(),
+  TEAMS_CLIENT_SECRET: z.string().optional(),
+  TEAMS_REDIRECT_URI: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
