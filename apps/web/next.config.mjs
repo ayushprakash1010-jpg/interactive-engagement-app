@@ -16,6 +16,14 @@ const nextConfig = {
   },
   // Transpile the shared workspace package so its TS is compiled by Next.
   transpilePackages: ['@iep/types'],
+  async rewrites() {
+    return [
+      {
+        source: '/api/zoom/:path*',
+        destination: 'http://localhost:4000/api/zoom/:path*'
+      }
+    ];
+  }
 };
 
 export default nextConfig;

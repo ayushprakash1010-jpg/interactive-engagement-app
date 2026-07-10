@@ -64,46 +64,68 @@ export default function ZoomPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center p-4">
-      <h1 className="mb-2 text-xl font-bold">No Event Connected</h1>
-      <p className="text-center text-ink-muted mb-6">
-        Enter your Pulse event code to connect this Zoom meeting.
-      </p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-surface to-surface-sunken p-6">
+      <div className="w-full max-w-md">
+        {/* Brand Logo/Header */}
+        <div className="mb-8 flex flex-col items-center justify-center text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10 text-brand ring-1 ring-brand/20">
+            <svg
+              className="h-8 w-8"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h1 className="text-3xl font-display font-bold text-foreground">Welcome to Pulse</h1>
+          <p className="mt-2 text-ink-muted">Turn your Zoom audience into active participants.</p>
+        </div>
 
-      <div className="flex gap-2 w-full max-w-sm">
-        <input
-          id="event-code-input"
-          type="text"
-          placeholder="e.g. 2AGLAW"
-          className="flex-1 px-3 py-2 border border-border rounded-md bg-surface-card text-foreground uppercase"
-        />
-        <button
-          onClick={async () => {
-            const code = (document.getElementById('event-code-input') as HTMLInputElement).value.trim().toUpperCase();
-            if (!code) return;
-            try {
-              const res = await fetch(`/api/zoom/link-meeting?meetingId=${meetingId}&eventCode=${code}`);
-              if (res.ok) {
-                window.location.reload();
-              } else {
-                alert('Event code not found. Please check and try again.');
-              }
-            } catch (e) {
-              alert('Network error. Please try again.');
-            }
-          }}
-          className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-hover"
-        >
-          Connect
-        </button>
-      </div>
+        {/* Action Card */}
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface-card p-6 shadow-xl ring-1 ring-black/5">
+          <h2 className="mb-1 text-lg font-semibold text-foreground">Join an Event</h2>
+          <p className="mb-6 text-sm text-ink-muted">
+            Enter your host's event code to connect this meeting and participate in live polls and Q&A.
+          </p>
 
-      <div className="mt-8 text-xs text-ink-muted text-left w-full max-w-sm bg-surface-sunken p-4 rounded-md">
-        <p className="font-medium mb-1">Debug Info</p>
-        <p>meetingId: {meetingId}</p>
-        <p>userId: {userId}</p>
+          <div className="flex flex-col gap-3">
+            <input
+              id="event-code-input"
+              type="text"
+              placeholder="e.g. 2AGLAW"
+              className="w-full rounded-xl border border-border bg-surface-sunken px-4 py-3 text-lg font-medium tracking-widest text-foreground uppercase placeholder:normal-case placeholder:tracking-normal placeholder:text-ink-subtle focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            />
+            <button
+              onClick={async () => {
+                const code = (document.getElementById('event-code-input') as HTMLInputElement).value.trim().toUpperCase();
+                if (!code) return;
+                try {
+                  const res = await fetch(`/api/public-proxy/api/zoom/link-meeting?meetingId=${meetingId}&eventCode=${code}`);
+                  if (res.ok) {
+                    window.location.reload();
+                  } else {
+                    alert('Event code not found. Please check and try again.');
+                  }
+                } catch (e) {
+                  alert('Network error. Please try again.');
+                }
+              }}
+              className="w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-brand-text shadow-sm transition-all hover:bg-brand-hover active:scale-[0.98]"
+            >
+              Connect to Meeting
+            </button>
+          </div>
+        </div>
+
+        {/* Debug Info (collapsible or subtle) */}
+        <div className="mt-8 text-center text-xs text-ink-subtle">
+          <p>meetingId: {meetingId}</p>
+          <p>userId: {userId}</p>
+          <p id="debug-error" className="mt-2 text-error"></p>
+        </div>
       </div>
-      <p id="debug-error" className="text-red-500 mt-4 text-xs font-bold"></p>
     </div>
   );
 }

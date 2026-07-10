@@ -13,6 +13,9 @@ export class UserIntegrationSubdoc {
   externalId!: string;
 
   @Prop({ type: String, default: null })
+  zoomUserId?: string | null;
+
+  @Prop({ type: String, default: null })
   refreshToken?: string | null;
 }
 

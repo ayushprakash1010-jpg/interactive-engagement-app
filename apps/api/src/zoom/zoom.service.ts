@@ -97,6 +97,7 @@ export class ZoomService {
         integrations: {
           provider: 'zoom',
           externalId: auid, // Save the auid so it matches what the frontend gets!
+          zoomUserId: zoomUserId, // Save the numeric ID so contextToEvent can match it
           refreshToken: refreshToken,
         },
       },

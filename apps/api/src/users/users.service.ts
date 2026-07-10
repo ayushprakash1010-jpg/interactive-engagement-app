@@ -52,7 +52,10 @@ export class UsersService {
   async findByZoomId(zoomUserId: string): Promise<UserDocument | null> {
     return this.userModel.findOne({
       'integrations.provider': 'zoom',
-      'integrations.externalId': zoomUserId,
+      $or: [
+        { 'integrations.externalId': zoomUserId },
+        { 'integrations.zoomUserId': zoomUserId },
+      ]
     }).exec();
   }
 
