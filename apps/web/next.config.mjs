@@ -25,6 +25,10 @@ const nextConfig = {
       {
         source: '/api/teams/:path*',
         destination: 'http://localhost:4000/api/teams/:path*'
+      },
+      {
+        source: '/api/google-meet/:path*',
+        destination: 'http://localhost:4000/api/google-meet/:path*'
       }
     ];
   }

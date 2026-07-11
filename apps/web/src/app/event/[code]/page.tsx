@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { HelpCircle, MessageCircle, Radio, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -79,6 +79,7 @@ type FeedbackParticipantConfig = {
 
 export default function EventPage() {
   const params = useParams<{ code: string }>();
+  const router = useRouter();
   const code = (params.code ?? "").toUpperCase();
 
   const [isMounted, setIsMounted] = useState(false);
@@ -129,6 +130,12 @@ export default function EventPage() {
     });
   }, [approvedQuestions]);
 
+  useEffect(() => {
+    if (error && error.toLowerCase().includes("display name is required")) {
+      router.replace(`/join/${code}`);
+    }
+  }, [error, code, router]);
+
   if (!isMounted) {
     return (
       <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
@@ -158,6 +165,7 @@ export default function EventPage() {
   }
 
   if (error) {
+    const isNameError = error.toLowerCase().includes("display name is required");
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-surface-canvas px-4 py-10 text-center">
         <div className="mx-auto w-full max-w-container-sm">
@@ -167,9 +175,15 @@ export default function EventPage() {
             title="Can't join this session"
             description={error}
             action={
-              <Button asChild size="lg">
-                <Link href="/join">Try another code</Link>
-              </Button>
+              isNameError ? (
+                <Button asChild size="lg">
+                  <Link href={`/join/${code}`}>Enter your name</Link>
+                </Button>
+              ) : (
+                <Button asChild size="lg">
+                  <Link href="/join">Try another code</Link>
+                </Button>
+              )
             }
           />
         </div>

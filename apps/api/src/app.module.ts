@@ -22,6 +22,7 @@ import { AiModule } from './ai/ai.module';
 import { SurveySessionsModule } from './survey-sessions/survey-sessions.module';
 import { ZoomModule } from './zoom/zoom.module';
 import { TeamsModule } from './teams/teams.module';
+import { GoogleMeetModule } from './google-meet/google-meet.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { TeamsModule } from './teams/teams.module';
     SurveySessionsModule,
     ZoomModule,
     TeamsModule,
+    GoogleMeetModule,
   ],
   providers: [
     {

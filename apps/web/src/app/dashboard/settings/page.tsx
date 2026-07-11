@@ -936,6 +936,36 @@ export default function SettingsPage() {
                 </SettingRow>
               </SettingsCard>
 
+              {/* Google Meet */}
+              <SettingsCard
+                title="Google Meet"
+                description="Embed live polls and Q&A as a meeting Add-on side panel in Google Meet."
+                icon={<Globe2 className="h-5 w-5" />}
+              >
+                <SettingRow label="Google Account" description="Connect your Google account to link Meet sessions to Pulse events automatically.">
+                  <Button variant="outline" onClick={async () => {
+                    try {
+                      const { apiFetch } = await import('@/lib/events-api');
+                      const data = await apiFetch<{url: string}>('api/google-meet/authorize');
+                      if (data?.url) {
+                        window.location.href = data.url;
+                        return;
+                      }
+                      console.error('Failed to initiate Google Meet connection', data);
+                    } catch (e) {
+                      console.error('Failed to connect Google Meet', e);
+                    }
+                  }}>
+                    Connect Google Meet
+                  </Button>
+                </SettingRow>
+                <SettingRow label="Meet Add-on" description="Open the Pulse Add-on in your Google Meet session to give participants access during a call.">
+                  <Button variant="outline" asChild>
+                    <a href="/meet" target="_blank" rel="noreferrer">Open Meet App</a>
+                  </Button>
+                </SettingRow>
+              </SettingsCard>
+
               {/* Enterprise SSO */}
               <SettingsCard
                 title="Enterprise SSO"

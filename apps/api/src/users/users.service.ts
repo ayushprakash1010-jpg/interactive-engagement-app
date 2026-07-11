@@ -73,6 +73,15 @@ export class UsersService {
       .exec();
   }
 
+  async findByGoogleMeetId(meetUserId: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findOne({
+        'integrations.provider': 'meet',
+        'integrations.externalId': meetUserId,
+      })
+      .exec();
+  }
+
   async findById(id: string): Promise<UserDocument> {
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException(`User ${id} not found`);

@@ -35,6 +35,11 @@ export const envSchema = z.object({
   TEAMS_CLIENT_SECRET: z.string().optional(),
   TEAMS_REDIRECT_URI: z.string().optional(),
   TEAMS_TENANT_ID: z.string().optional(),
+
+  // Google Meet
+  GOOGLE_MEET_CLIENT_ID: z.string().optional(),
+  GOOGLE_MEET_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_MEET_REDIRECT_URI: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

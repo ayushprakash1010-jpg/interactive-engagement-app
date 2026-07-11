@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
+    "@googleworkspace/meet-addons": "^1.2.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@iep/types": "workspace:*",
     "@microsoft/teams-js": "^2.53.1",

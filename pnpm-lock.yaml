@@ -192,6 +192,9 @@ importers:
       '@auth0/nextjs-auth0':
         specifier: ^3.8.0
         version: 3.8.0(next@14.2.35(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      '@googleworkspace/meet-addons':
+        specifier: ^1.2.0
+        version: 1.2.0
       '@hello-pangea/dnd':
         specifier: ^18.0.1
         version: 18.0.1(@types/react@18.3.29)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -899,6 +902,9 @@ packages:
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
         optional: true
+
+  '@googleworkspace/meet-addons@1.2.0':
+    resolution: {integrity: sha512-UNyyJZ5x+NiD51OKATw7n6iUmVyaoTyLmMwKR+Bvwe9YkPw0Y45SZwa1Gev8YkJaiQJ/zo23Zhv0cH/QYnxuOQ==}
 
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
@@ -6852,6 +6858,8 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  '@googleworkspace/meet-addons@1.2.0': {}
 
   '@hapi/hoek@9.3.0': {}
 
