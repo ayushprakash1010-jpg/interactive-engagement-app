@@ -1,14 +1,28 @@
-import {
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { createHash, randomBytes } from 'node:crypto';
 import { UsersService } from '../users/users.service';
 import { EventsService } from '../events/events.service';
 import { EventEntity, EventDocument } from '../events/event.schema';
+import { RedisService } from '../realtime/redis.service';
+
+const TEAMS_OAUTH_SCOPES = [
+  'openid',
+  'profile',
+  'email',
+  'offline_access',
+  'User.Read',
+];
+
+const TEAMS_STATE_TTL_SECONDS = 10 * 60;
+
+type TeamsOAuthState = {
+  auth0Sub: string;
+  codeVerifier: string;
+  createdAt: number;
+};
 
 @Injectable()
 export class TeamsService {
@@ -18,15 +32,69 @@ export class TeamsService {
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
     @InjectModel(EventEntity.name)
     private readonly eventModel: Model<EventDocument>,
   ) {}
+
+  async createAuthorizationUrl(
+    auth0Sub: string,
+    loginHint?: string,
+  ): Promise<string> {
+    const clientId = this.configService.get<string>('TEAMS_CLIENT_ID');
+    const redirectUri = this.configService.get<string>('TEAMS_REDIRECT_URI');
+
+    if (!clientId || !redirectUri) {
+      throw new Error('Microsoft Teams configuration is missing');
+    }
+
+    const state = randomBytes(32).toString('base64url');
+    const codeVerifier = randomBytes(64).toString('base64url');
+    const codeChallenge = createHash('sha256')
+      .update(codeVerifier)
+      .digest('base64url');
+
+    const statePayload: TeamsOAuthState = {
+      auth0Sub,
+      codeVerifier,
+      createdAt: Date.now(),
+    };
+
+    await this.redisService.client.set(
+      this.stateKey(state),
+      JSON.stringify(statePayload),
+      'EX',
+      TEAMS_STATE_TTL_SECONDS,
+    );
+
+    const authorizeUrl = new URL(
+      `${this.microsoftAuthorityBase()}/oauth2/v2.0/authorize`,
+    );
+    authorizeUrl.search = new URLSearchParams({
+      client_id: clientId,
+      response_type: 'code',
+      redirect_uri: redirectUri,
+      response_mode: 'query',
+      scope: TEAMS_OAUTH_SCOPES.join(' '),
+      state,
+      prompt: 'select_account',
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
+      ...(loginHint ? { login_hint: loginHint } : {}),
+    }).toString();
+
+    this.logger.debug(
+      `Created Teams OAuth authorization URL using tenant "${this.microsoftTenant()}"`,
+    );
+
+    return authorizeUrl.toString();
+  }
 
   /**
    * Exchanges a Microsoft OAuth authorization code for tokens, fetches the
    * user's AAD profile, and stores the integration on the IEP user record.
    */
-  async handleCallback(code: string, auth0Sub: string): Promise<void> {
+  async handleCallback(code: string, state: string): Promise<void> {
     const clientId = this.configService.get<string>('TEAMS_CLIENT_ID');
     const clientSecret = this.configService.get<string>('TEAMS_CLIENT_SECRET');
     const redirectUri = this.configService.get<string>('TEAMS_REDIRECT_URI');
@@ -35,6 +103,8 @@ export class TeamsService {
       throw new Error('Microsoft Teams configuration is missing');
     }
 
+    const statePayload = await this.consumeState(state);
+
     // 1. Exchange authorization code for tokens
     const tokenParams = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -42,11 +112,12 @@ export class TeamsService {
       client_secret: clientSecret,
       redirect_uri: redirectUri,
       code,
-      scope: 'openid profile email User.Read',
+      code_verifier: statePayload.codeVerifier,
+      scope: TEAMS_OAUTH_SCOPES.join(' '),
     });
 
     const tokenResponse = await fetch(
-      'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+      `${this.microsoftAuthorityBase()}/oauth2/v2.0/token`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -56,8 +127,10 @@ export class TeamsService {
 
     if (!tokenResponse.ok) {
       const errText = await tokenResponse.text();
-      this.logger.error(`Teams token exchange error: ${errText}`);
-      throw new UnauthorizedException('Failed to exchange Teams authorization code');
+      this.logger.error(`Teams token exchange FULL error (${tokenResponse.status}): ${errText}`);
+      throw new UnauthorizedException(
+        `Failed to exchange Teams authorization code: ${errText}`,
+      );
     }
 
     const tokenData = (await tokenResponse.json()) as {
@@ -66,7 +139,8 @@ export class TeamsService {
       id_token?: string;
     };
 
-    const { access_token: accessToken, refresh_token: refreshToken } = tokenData;
+    const { access_token: accessToken, refresh_token: refreshToken } =
+      tokenData;
 
     // 2. Fetch Microsoft Graph profile to get the AAD Object ID
     const profileResponse = await fetch('https://graph.microsoft.com/v1.0/me', {
@@ -74,21 +148,24 @@ export class TeamsService {
     });
 
     if (!profileResponse.ok) {
-      this.logger.error(`Teams Graph profile error: ${await profileResponse.text()}`);
+      this.logger.error(
+        `Teams Graph profile error: ${await profileResponse.text()}`,
+      );
       throw new UnauthorizedException('Failed to fetch Microsoft profile');
     }
 
     const profileData = (await profileResponse.json()) as {
       id: string; // AAD Object ID
       userPrincipalName?: string;
+      mail?: string;
       displayName?: string;
     };
 
     const aadObjectId = profileData.id;
-    const upn = profileData.userPrincipalName ?? '';
+    const upn = profileData.userPrincipalName ?? profileData.mail ?? '';
 
     // 3. Save integration to user profile
-    const user = await this.usersService.findByAuth0Sub(auth0Sub);
+    const user = await this.usersService.findByAuth0Sub(statePayload.auth0Sub);
     if (!user) {
       throw new UnauthorizedException('IEP user not found');
     }
@@ -99,15 +176,15 @@ export class TeamsService {
       $push: {
         integrations: {
           provider: 'teams',
-          externalId: aadObjectId, // AAD Object ID — this is what the Teams JS SDK returns
-          zoomUserId: upn, // Reuse this field for Teams UPN for findBy lookups
+          externalId: aadObjectId, // AAD Object ID returned by the Teams JS SDK
+          zoomUserId: upn, // Existing integration field used for provider-specific secondary IDs
           refreshToken: refreshToken,
         },
       },
     });
 
     this.logger.log(
-      `Teams connected for user ${auth0Sub} (AAD: ${aadObjectId}, UPN: ${upn})`,
+      `Teams connected for user ${statePayload.auth0Sub} (AAD: ${aadObjectId}, UPN: ${upn})`,
     );
   }
 
@@ -138,7 +215,7 @@ export class TeamsService {
     }
 
     // Try to find a host registered with this Teams user ID
-    const hostUser = await this.usersService.findByZoomId(teamsUserId); // reuses the $or query
+    const hostUser = await this.usersService.findByTeamsId(teamsUserId);
     if (!hostUser) {
       throw new UnauthorizedException(
         'No event linked to this Teams meeting yet. Enter an event code.',
@@ -168,7 +245,10 @@ export class TeamsService {
   /**
    * Manually links a Teams meeting ID to an existing IEP event by its code.
    */
-  async linkMeetingToEvent(meetingId: string, eventCode: string): Promise<void> {
+  async linkMeetingToEvent(
+    meetingId: string,
+    eventCode: string,
+  ): Promise<void> {
     const event = await this.eventsService.findByEventCode(eventCode);
     if (!event) {
       throw new UnauthorizedException('Event not found');
@@ -184,12 +264,53 @@ export class TeamsService {
     }
 
     // Replace any existing teams link and add the new one
-    event.integrations = event.integrations.filter((i) => i.provider !== 'teams');
+    event.integrations = event.integrations.filter(
+      (i) => i.provider !== 'teams',
+    );
     event.integrations.push({ provider: 'teams', externalId: meetingId });
 
     await event.save();
     this.logger.log(
       `Manually linked IEP event ${event.eventCode} to Teams meeting ${meetingId}`,
     );
+  }
+
+  private microsoftTenant(): string {
+    return this.configService.get<string>('TEAMS_TENANT_ID') || 'common';
+  }
+
+  private microsoftAuthorityBase(): string {
+    return `https://login.microsoftonline.com/${encodeURIComponent(
+      this.microsoftTenant(),
+    )}`;
+  }
+
+  private stateKey(state: string): string {
+    return `teams:oauth:state:${state}`;
+  }
+
+  private async consumeState(state: string): Promise<TeamsOAuthState> {
+    const key = this.stateKey(state);
+    const rawState = await this.redisService.client.get(key);
+    if (rawState) {
+      await this.redisService.client.del(key);
+    }
+
+    if (!rawState) {
+      this.logger.error(`Teams OAuth state not found in Redis for key: ${key}`);
+      throw new UnauthorizedException(
+        'Invalid or expired Microsoft Teams OAuth state',
+      );
+    }
+
+    try {
+      const parsed = JSON.parse(rawState) as TeamsOAuthState;
+      if (!parsed.auth0Sub || !parsed.codeVerifier) {
+        throw new Error('Missing state fields');
+      }
+      return parsed;
+    } catch {
+      throw new UnauthorizedException('Invalid Microsoft Teams OAuth state');
+    }
   }
 }

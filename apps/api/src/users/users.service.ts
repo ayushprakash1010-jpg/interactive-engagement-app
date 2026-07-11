@@ -16,7 +16,7 @@ export class UsersService {
   constructor(
     @InjectModel(UserEntity.name)
     private readonly userModel: Model<UserDocument>,
-  ) { }
+  ) {}
 
   async upsert(dto: UpsertUserDto): Promise<UserDocument> {
     const user = await this.userModel
@@ -50,13 +50,27 @@ export class UsersService {
   }
 
   async findByZoomId(zoomUserId: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({
-      'integrations.provider': 'zoom',
-      $or: [
-        { 'integrations.externalId': zoomUserId },
-        { 'integrations.zoomUserId': zoomUserId },
-      ]
-    }).exec();
+    return this.userModel
+      .findOne({
+        'integrations.provider': 'zoom',
+        $or: [
+          { 'integrations.externalId': zoomUserId },
+          { 'integrations.zoomUserId': zoomUserId },
+        ],
+      })
+      .exec();
+  }
+
+  async findByTeamsId(teamsUserId: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findOne({
+        'integrations.provider': 'teams',
+        $or: [
+          { 'integrations.externalId': teamsUserId },
+          { 'integrations.zoomUserId': teamsUserId },
+        ],
+      })
+      .exec();
   }
 
   async findById(id: string): Promise<UserDocument> {

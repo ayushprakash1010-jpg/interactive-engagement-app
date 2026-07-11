@@ -7,7 +7,7 @@ import {
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { TeamsService } from './teams.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
@@ -21,30 +21,20 @@ export class TeamsController {
 
   /**
    * Generates the Microsoft OAuth2 authorization URL for the logged-in host.
-   * The host's auth0Sub is passed as `state` so we can map the callback back to them.
+   * The returned URL includes a one-time state value mapped to this host.
    */
   @UseGuards(JwtAuthGuard)
   @Get('authorize')
-  authorize(@Req() req: any, @Res() res: Response) {
-    const clientId = this.configService.get<string>('TEAMS_CLIENT_ID');
-    const redirectUri = this.configService.get<string>('TEAMS_REDIRECT_URI');
-
-    if (!clientId || !redirectUri) {
-      throw new Error('Microsoft Teams configuration is missing');
-    }
-
-    const state = req.user.auth0Sub;
-    const scope = encodeURIComponent('openid profile email User.Read offline_access');
-    const msAuthUrl =
-      `https://login.microsoftonline.com/common/oauth2/v2.0/authorize` +
-      `?client_id=${clientId}` +
-      `&response_type=code` +
-      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-      `&scope=${scope}` +
-      `&state=${encodeURIComponent(state)}` +
-      `&prompt=select_account`;
-
-    return res.json({ url: msAuthUrl });
+  async authorize(
+    @Query('loginHint') loginHint: string | undefined,
+    @Res() res: Response,
+    @Req() req: any,
+  ) {
+    const url = await this.teamsService.createAuthorizationUrl(
+      req.user.auth0Sub,
+      loginHint,
+    );
+    return res.json({ url });
   }
 
   /**
@@ -55,16 +45,27 @@ export class TeamsController {
   async callback(
     @Query('code') code: string,
     @Query('state') state: string,
+    @Query('error') error: string | undefined,
+    @Query('error_description') errorDescription: string | undefined,
     @Res() res: Response,
   ) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+
+    if (error) {
+      throw new UnauthorizedException(
+        `Microsoft Teams OAuth failed: ${errorDescription || error}`,
+      );
+    }
+
     if (!code || !state) {
-      throw new UnauthorizedException('Missing code or state from Microsoft OAuth');
+      throw new UnauthorizedException(
+        'Missing code or state from Microsoft OAuth',
+      );
     }
 
     await this.teamsService.handleCallback(code, state);
 
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     res.redirect(`${frontendUrl}/dashboard/settings?teams=connected`);
   }
 
@@ -105,7 +106,7 @@ export class TeamsController {
   }
 
   /**
-   * Health check endpoint — useful for verifying the Teams module is wired up.
+   * Health check endpoint - useful for verifying the Teams module is wired up.
    */
   @Get('status')
   status() {

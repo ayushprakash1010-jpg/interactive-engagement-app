@@ -1,0 +1,57 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "04c1b8af-f149-4415-a918-e51815b2b809",
+  "developer": {
+    "name": "Pulse IEP",
+    "websiteUrl": "https://causal-kitten-mountable.ngrok-free.dev",
+    "privacyUrl": "https://causal-kitten-mountable.ngrok-free.dev/privacy",
+    "termsOfUseUrl": "https://causal-kitten-mountable.ngrok-free.dev/terms"
+  },
+  "name": {
+    "short": "Pulse",
+    "full": "Pulse — Live Audience Engagement"
+  },
+  "description": {
+    "short": "Live polls, Q&A and quizzes in your meeting.",
+    "full": "Run live polls, anonymous Q&A, and interactive quizzes directly inside your Microsoft Teams meeting — no downloads or sign-ups for participants."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#6264A7",
+  "configurableTabs": [],
+  "staticTabs": [
+    {
+      "entityId": "pulse-home",
+      "name": "Pulse",
+      "contentUrl": "https://causal-kitten-mountable.ngrok-free.dev/teams",
+      "websiteUrl": "https://causal-kitten-mountable.ngrok-free.dev/teams",
+      "scopes": ["personal"]
+    }
+  ],
+  "meetingExtensionDefinition": {
+    "scenes": [],
+    "supportsStreaming": false
+  },
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": [
+    "causal-kitten-mountable.ngrok-free.dev"
+  ],
+  "webApplicationInfo": {
+    "id": "04c1b8af-f149-4415-a918-e51815b2b809",
+    "resource": "api://causal-kitten-mountable.ngrok-free.dev/04c1b8af-f149-4415-a918-e51815b2b809"
+  },
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "OnlineMeeting.ReadBasic.Chat",
+          "type": "Application"
+        }
+      ]
+    }
+  }
+}
