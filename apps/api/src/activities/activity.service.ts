@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ActivityEntity, ActivityDocument } from './activity.schema';
 import { EventsService } from '../events/events.service';
+import { ResponseEntity, ResponseDocument } from '../responses/response.schema';
 
 export interface CreateActivityDto {
   type: 'poll' | 'quiz' | 'wordcloud' | 'feedback' | 'survey';
@@ -25,6 +26,8 @@ export class ActivityService {
   constructor(
     @InjectModel(ActivityEntity.name)
     private readonly activityModel: Model<ActivityDocument>,
+    @InjectModel(ResponseEntity.name)
+    private readonly responseModel: Model<ResponseDocument>,
     private readonly eventsService: EventsService,
   ) {}
 
@@ -179,6 +182,28 @@ export class ActivityService {
         { $set: { status: 'closed' } },
         { new: true },
       )
+      .exec();
+  }
+
+  /**
+   * Clears all responses for the given activity and resets its status to
+   * 'idle' so it can be launched fresh ("Reset & Launch" flow).
+   */
+  async clearResponses(
+    id: string,
+    eventId: string,
+    hostId: string,
+  ): Promise<void> {
+    // Ownership check — throws NotFoundException if event doesn't belong to host
+    await this.eventsService.findOne(eventId, hostId);
+    await this.findOne(id, eventId); // ensure activity belongs to this event
+
+    await this.responseModel
+      .deleteMany({ activityId: new Types.ObjectId(id) })
+      .exec();
+
+    await this.activityModel
+      .findByIdAndUpdate(id, { $set: { status: 'idle' } })
       .exec();
   }
 

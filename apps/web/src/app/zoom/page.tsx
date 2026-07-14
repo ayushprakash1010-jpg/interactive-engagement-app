@@ -87,7 +87,7 @@ export default function ZoomPage() {
         <div className="overflow-hidden rounded-2xl border border-border bg-surface-card p-6 shadow-xl ring-1 ring-black/5">
           <h2 className="mb-1 text-lg font-semibold text-foreground">Join an Event</h2>
           <p className="mb-6 text-sm text-ink-muted">
-            Enter your host's event code to connect this meeting and participate in live polls and Q&A.
+            Enter your host&apos;s event code to connect this meeting and participate in live polls and Q&amp;A.
           </p>
 
           <div className="flex flex-col gap-3">

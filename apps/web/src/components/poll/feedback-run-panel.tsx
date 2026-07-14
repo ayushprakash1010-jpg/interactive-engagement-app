@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePoll } from '@/hooks/use-poll';
 import type { Activity } from '@/hooks/use-activities';
 import type { FeedbackConfig } from '@/components/poll/feedback-builder';
+import { apiFetch } from '@/lib/events-api';
 
 interface Props {
   activity: Activity;
@@ -28,6 +29,7 @@ function isFeedbackConfig(config: Activity['config']): config is FeedbackConfig 
 export function FeedbackRunPanel({ activity }: Props) {
   const { activeActivity, pollEndsAt } = usePoll(null);
   const [timeLeftMs, setTimeLeftMs] = useState(0);
+  const [isResetting, setIsResetting] = useState(false);
 
   const feedbackConfig = isFeedbackConfig(activity.config) ? activity.config : null;
 
@@ -82,6 +84,23 @@ export function FeedbackRunPanel({ activity }: Props) {
     });
   };
 
+  const resetAndLaunch = async () => {
+    setIsResetting(true);
+    try {
+      await apiFetch(`events/${activity.eventId}/activities/${activity._id}/responses`, {
+        method: 'DELETE',
+      });
+      socket.emit(ClientEvents.ACTIVITY_LAUNCH, { activityId: activity._id });
+      notify({
+        type: 'feedback-launched',
+        description: `${activity.title} was reset and is now live.`,
+        href: `/dashboard/events/${activity.eventId}`,
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const close = () => {
     socket.emit(ClientEvents.ACTIVITY_CLOSE, { activityId: activity._id });
   };
@@ -130,18 +149,37 @@ export function FeedbackRunPanel({ activity }: Props) {
               Close feedback
             </Button>
           ) : (
-            <Button
-              size="sm"
-              onClick={launch}
-              disabled={isAnotherActivityLive}
-              title={
-                isAnotherActivityLive
-                  ? 'Another activity is live — close it first'
-                  : undefined
-              }
-            >
-              {isThisActivityClosed ? 'Relaunch' : 'Launch'}
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                size="sm"
+                onClick={launch}
+                disabled={isAnotherActivityLive}
+                title={
+                  isAnotherActivityLive
+                    ? 'Another activity is live — close it first'
+                    : undefined
+                }
+              >
+                {isThisActivityClosed ? 'Re-open' : 'Launch'}
+              </Button>
+
+              {isThisActivityClosed && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={resetAndLaunch}
+                  disabled={isAnotherActivityLive || isResetting}
+                  title={
+                    isAnotherActivityLive
+                      ? 'Another activity is live — close it first'
+                      : 'Delete all responses and start fresh'
+                  }
+                  className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                >
+                  {isResetting ? 'Resetting…' : 'Reset & Launch'}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
