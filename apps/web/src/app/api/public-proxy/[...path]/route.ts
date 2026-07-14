@@ -45,7 +45,9 @@ async function proxy(req: NextRequest): Promise<NextResponse> {
   }
 
   const resBody = await backendRes.text();
-  return new NextResponse(resBody, {
+  const bodyForResponse = (backendRes.status === 204 || backendRes.status === 304) ? null : resBody;
+  
+  return new NextResponse(bodyForResponse, {
     status: backendRes.status,
     headers: {
       'content-type': backendRes.headers.get('content-type') ?? 'application/json',
