@@ -11,7 +11,10 @@
  */
 import { type NextRequest, NextResponse } from 'next/server';
 
-const BACKEND = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
+const BACKEND = 
+  process.env.API_INTERNAL_URL ?? 
+  process.env.NEXT_PUBLIC_API_URL ?? 
+  'http://localhost:4000';
 
 // Allow long-polling GET to hang up to 60 s before timing out.
 export const maxDuration = 60;
