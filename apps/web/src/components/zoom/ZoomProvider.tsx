@@ -1,7 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import zoomSdk from '@zoom/appssdk';
+// NOTE: zoomSdk is intentionally NOT statically imported here.
+// The Zoom SDK runs browser-detection code at import time that crashes in
+// non-Zoom environments (PowerPoint WebView2, Google Meet, etc.).
+// Dynamic import inside useEffect ensures errors are caught by try/catch.
 
 interface ZoomContextType {
   isZoom: boolean;
@@ -31,6 +34,9 @@ export function ZoomProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function initZoom() {
       try {
+        // Dynamic import — any SDK-level import errors are caught here
+        const { default: zoomSdk } = await import('@zoom/appssdk');
+
         const configResponse = await zoomSdk.config({
           capabilities: [
             'getRunningContext',
@@ -51,11 +57,11 @@ export function ZoomProvider({ children }: { children: ReactNode }) {
           setMeetingId(meetingCtx.meetingID);
           
           const userCtx = (await zoomSdk.getUserContext()) as any;
-          setRawUserCtx(userCtx); // Save it so we can print it on screen
+          setRawUserCtx(userCtx);
           setUserId(userCtx.uid || userCtx.participantId);
         }
       } catch (e: any) {
-        // Not running inside Zoom or config failed
+        // Not running inside Zoom or SDK import/config failed — silently ignore
         console.warn('Not running inside Zoom client or SDK failed to initialize', e);
         setError(e?.message || 'Zoom SDK configuration failed');
         setIsZoom(false);
