@@ -14,7 +14,7 @@ export class ZoomController {
 
   @UseGuards(JwtAuthGuard)
   @Get('authorize')
-  authorize(@Req() req: any, @Res() res: Response) {
+  authorize(@Req() req: Request & { user: { auth0Sub: string } }, @Res() res: Response) {
     // Generate Zoom OAuth URL
     const clientId = this.configService.get<string>('ZOOM_CLIENT_ID');
     const redirectUri = this.configService.get<string>('ZOOM_REDIRECT_URI');

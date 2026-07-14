@@ -929,11 +929,6 @@ export default function SettingsPage() {
                     Connect Teams
                   </Button>
                 </SettingRow>
-                <SettingRow label="Teams App" description="Install the Pulse app in your Teams meeting to give participants access during a call.">
-                  <Button variant="outline" asChild>
-                    <a href="/teams" target="_blank" rel="noreferrer">Open Teams App</a>
-                  </Button>
-                </SettingRow>
               </SettingsCard>
 
               {/* Google Meet */}
@@ -957,11 +952,6 @@ export default function SettingsPage() {
                     }
                   }}>
                     Connect Google Meet
-                  </Button>
-                </SettingRow>
-                <SettingRow label="Meet Add-on" description="Open the Pulse Add-on in your Google Meet session to give participants access during a call.">
-                  <Button variant="outline" asChild>
-                    <a href="/meet" target="_blank" rel="noreferrer">Open Meet App</a>
                   </Button>
                 </SettingRow>
               </SettingsCard>

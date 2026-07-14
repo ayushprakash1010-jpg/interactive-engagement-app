@@ -7,7 +7,7 @@ import {
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { GoogleMeetService } from './google-meet.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
@@ -26,7 +26,7 @@ export class GoogleMeetController {
   @Get('authorize')
   async authorize(
     @Res() res: Response,
-    @Req() req: any,
+    @Req() req: Request & { user: { auth0Sub: string } },
   ) {
     const url = await this.googleMeetService.createAuthorizationUrl(req.user.auth0Sub);
     return res.json({ url });

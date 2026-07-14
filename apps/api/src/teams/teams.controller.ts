@@ -7,7 +7,7 @@ import {
   UseGuards,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { TeamsService } from './teams.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
@@ -28,7 +28,7 @@ export class TeamsController {
   async authorize(
     @Query('loginHint') loginHint: string | undefined,
     @Res() res: Response,
-    @Req() req: any,
+    @Req() req: Request & { user: { auth0Sub: string } },
   ) {
     const url = await this.teamsService.createAuthorizationUrl(
       req.user.auth0Sub,

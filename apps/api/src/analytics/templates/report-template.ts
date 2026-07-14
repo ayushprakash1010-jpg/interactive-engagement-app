@@ -327,7 +327,7 @@ const resolveParticipantName = (entry: any): string => {
   const timelineBody = engagementTimeline.length
     ? list(
         engagementTimeline.map(
-          (p: any) => `${e(formatIST(p.minute))} - ${e(p.responses)} responses`,
+          (p: any) => `${e(formatIST(p.minute ?? ''))} - ${e(p.responses)} responses`,
         ),
       )
     : `<p class="empty">No engagement data available.</p>`;
