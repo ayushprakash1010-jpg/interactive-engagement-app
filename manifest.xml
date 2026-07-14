@@ -22,7 +22,7 @@
     <Host Name="Presentation"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/powerpoint"/>
+    <SourceLocation DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/powerpoint/index.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 
@@ -74,7 +74,7 @@
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/powerpoint"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/powerpoint/index.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with Pulse!"/>
