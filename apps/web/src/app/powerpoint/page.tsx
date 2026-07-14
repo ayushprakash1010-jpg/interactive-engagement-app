@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePowerPointApp } from '@/components/powerpoint/PowerPointProvider';
-import { SettingsSkeleton } from '@/components/ui';
 
 export default function PowerPointPage() {
   const router = useRouter();
@@ -74,9 +73,9 @@ export default function PowerPointPage() {
   // ── Loading/connecting state ──────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="p-8">
-        <SettingsSkeleton />
-        <p className="mt-4 text-center text-ink-muted">Connecting to your event...</p>
+      <div className="flex h-screen flex-col items-center justify-center gap-4 p-8">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#D04423] border-t-transparent" />
+        <p className="text-sm text-ink-muted">Connecting to your event...</p>
       </div>
     );
   }

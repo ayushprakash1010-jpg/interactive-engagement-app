@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { PowerPointProvider } from '@/components/powerpoint/PowerPointProvider';
 
 export const metadata: Metadata = {
@@ -10,11 +11,11 @@ export const metadata: Metadata = {
  * Layout for the /powerpoint route.
  *
  * This route is served inside the PowerPoint task pane as an Office Add-in.
- * It loads Office.js from the Microsoft CDN, which is required for all Office Add-ins
- * to communicate with the PowerPoint host application.
+ * It loads Office.js from the Microsoft CDN using next/script, which is the
+ * correct way to load external scripts in Next.js App Router.
  *
- * IMPORTANT: Office.js must be loaded from the official Microsoft CDN. Bundling it
- * locally is not supported and will cause the add-in to malfunction.
+ * IMPORTANT: Office.js must be loaded from the official Microsoft CDN.
+ * Bundling it locally is not supported and will cause the add-in to malfunction.
  */
 export default function PowerPointLayout({
   children,
@@ -24,13 +25,12 @@ export default function PowerPointLayout({
   return (
     <>
       {/*
-       * Office.js CDN script — MUST be the first script loaded.
-       * This initializes the Office JavaScript API that lets our web app
-       * communicate with the PowerPoint host.
+       * Office.js CDN — must load before any Office API calls.
+       * strategy="beforeInteractive" ensures it loads before React hydration.
        */}
-      <script
+      <Script
         src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"
-        type="text/javascript"
+        strategy="beforeInteractive"
       />
       <PowerPointProvider>{children}</PowerPointProvider>
     </>
