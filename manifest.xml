@@ -1,26 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<!--
-  Office Add-in Manifest for "Pulse for PowerPoint"
-
-  HOW TO SIDELOAD (Development):
-  ─────────────────────────────────────────────────
-  PowerPoint Desktop (Windows):
-    1. Go to File > Options > Trust Center > Trust Center Settings
-    2. Select "Trusted Add-in Catalogs"
-    3. Add a network share or use: Insert > Get Add-ins > Upload My Add-in
-
-  PowerPoint Desktop (Mac):
-    1. Go to Insert > Add-ins > My Add-ins > Upload My Add-in
-
-  PowerPoint on the Web:
-    1. Go to Insert > Add-ins > Upload My Add-in
-
-  BEFORE SIDELOADING:
-  ─────────────────────────────────────────────────
-  1. Update <SourceLocation> below to match your development URL
-     (e.g., https://causal-kitten-mountable.ngrok-free.dev/powerpoint)
-  2. Make sure your ngrok/tunnel is running so PowerPoint can reach the task pane URL.
--->
 <OfficeApp
   xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -28,105 +6,86 @@
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
   xsi:type="TaskPaneApp">
 
-  <!-- ─── Identity ─────────────────────────────────────────── -->
-  <!-- IMPORTANT: Generate a fresh GUID for production. Never share GUIDs between add-ins. -->
-  <Id>a1b2c3d4-e5f6-7890-abcd-ef1234567890</Id>
+  <Id>12345678-1234-1234-1234-123456789012</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Pulse (IEP)</ProviderName>
+  <ProviderName>Pulse IEP</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Pulse for PowerPoint" />
-  <Description DefaultValue="Bring live polls and Q&amp;A to your PowerPoint presentations with Pulse." />
-
-  <!-- ─── Icons ─────────────────────────────────────────────── -->
-  <!-- Replace with your hosted icon URLs before publishing to AppSource -->
-  <IconUrl DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-32.png" />
-  <HighResolutionIconUrl DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-80.png" />
-
-  <!-- ─── Support URL (required for AppSource) ─────────────── -->
-  <SupportUrl DefaultValue="https://causal-kitten-mountable.ngrok-free.dev" />
-
-  <!-- ─── Permissions ──────────────────────────────────────── -->
-  <!-- ReadWriteDocument: needed to read document.id (presentation URL) via getFilePropertiesAsync -->
+  <DisplayName DefaultValue="Pulse for PowerPoint"/>
+  <Description DefaultValue="Live polls and Q&amp;A for your PowerPoint presentations."/>
+  <IconUrl DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-80.png"/>
+  <SupportUrl DefaultValue="https://causal-kitten-mountable.ngrok-free.dev"/>
+  <AppDomains>
+    <AppDomain>https://causal-kitten-mountable.ngrok-free.dev</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Presentation"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/powerpoint"/>
+  </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 
-  <!-- ─── Host Requirements ────────────────────────────────── -->
-  <Hosts>
-    <Host Name="Presentation" />
-  </Hosts>
-
-  <!-- ─── Default settings ─────────────────────────────────── -->
-  <DefaultSettings>
-    <SourceLocation DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/powerpoint" />
-  </DefaultSettings>
-
-  <!-- ─── Version Overrides (VersionOverrides v1.0) ────────── -->
-  <!-- This section enables the modern Ribbon button that opens the task pane -->
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
-
     <Hosts>
       <Host xsi:type="Presentation">
         <DesktopFormFactor>
-
-          <!-- The add-in commands add a button to the PowerPoint Ribbon -->
+          <GetStarted>
+            <Title resid="GetStarted.Title"/>
+            <Description resid="GetStarted.Description"/>
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
+          </GetStarted>
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <OfficeTab id="TabHome">
-              <Group id="PulseGroup">
-                <Label resid="GroupLabel" />
+              <Group id="CommandsGroup">
+                <Label resid="CommandsGroup.Label"/>
                 <Icon>
-                  <bt:Image size="16" resid="Icon.16x16" />
-                  <bt:Image size="32" resid="Icon.32x32" />
-                  <bt:Image size="80" resid="Icon.80x80" />
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
                 </Icon>
-
-                <!-- Ribbon button to open the Pulse task pane -->
-                <Control xsi:type="Button" id="OpenPulseTaskPane">
-                  <Label resid="TaskpaneButton.Label" />
+                <Control xsi:type="Button" id="TaskpaneButton">
+                  <Label resid="TaskpaneButton.Label"/>
                   <Supertip>
-                    <Title resid="TaskpaneButton.SupertipTitle" />
-                    <Description resid="TaskpaneButton.SupertipDescription" />
+                    <Title resid="TaskpaneButton.Label"/>
+                    <Description resid="TaskpaneButton.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Icon.16x16" />
-                    <bt:Image size="32" resid="Icon.32x32" />
-                    <bt:Image size="80" resid="Icon.80x80" />
+                    <bt:Image size="16" resid="Icon.16x16"/>
+                    <bt:Image size="32" resid="Icon.32x32"/>
+                    <bt:Image size="80" resid="Icon.80x80"/>
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>PulseTaskPane</TaskpaneId>
-                    <SourceLocation resid="TaskpaneUrl" />
+                    <TaskpaneId>ButtonId1</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
                   </Action>
                 </Control>
-
               </Group>
             </OfficeTab>
           </ExtensionPoint>
-
         </DesktopFormFactor>
       </Host>
     </Hosts>
-
-    <!-- ─── Shared Resources ──────────────────────────────── -->
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-16.png" />
-        <bt:Image id="Icon.32x32" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-32.png" />
-        <bt:Image id="Icon.80x80" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-80.png" />
+        <bt:Image id="Icon.16x16" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/icons/icon-80.png"/>
       </bt:Images>
-
       <bt:Urls>
-        <bt:Url id="TaskpaneUrl" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/powerpoint" />
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://causal-kitten-mountable.ngrok-free.dev/powerpoint"/>
       </bt:Urls>
-
       <bt:ShortStrings>
-        <bt:String id="GroupLabel" DefaultValue="Pulse" />
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Open Pulse" />
-        <bt:String id="TaskpaneButton.SupertipTitle" DefaultValue="Pulse Live Engagement" />
+        <bt:String id="GetStarted.Title" DefaultValue="Get started with Pulse!"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="Pulse"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="Open Pulse"/>
       </bt:ShortStrings>
-
       <bt:LongStrings>
-        <bt:String id="TaskpaneButton.SupertipDescription" DefaultValue="Open the Pulse task pane to run live polls and Q&amp;A alongside your presentation." />
+        <bt:String id="GetStarted.Description" DefaultValue="Pulse is now loaded. Open the task pane to start engaging your audience."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open the Pulse task pane to run live polls and Q&amp;A."/>
       </bt:LongStrings>
     </Resources>
-
   </VersionOverrides>
 
 </OfficeApp>
