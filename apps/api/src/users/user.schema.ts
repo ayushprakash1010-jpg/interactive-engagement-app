@@ -6,7 +6,7 @@ export type UserDocument = HydratedDocument<UserEntity>;
 
 @Schema({ _id: false })
 export class UserIntegrationSubdoc {
-  @Prop({ required: true, enum: ['zoom', 'teams', 'webex', 'meet'] })
+  @Prop({ required: true, enum: ['zoom', 'teams', 'webex', 'meet', 'powerpoint'] })
   provider!: string;
 
   @Prop({ required: true })

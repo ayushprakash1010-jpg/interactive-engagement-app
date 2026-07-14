@@ -91,7 +91,7 @@ const SECTION_NAV: Array<{
     { id: 'command-palette', label: 'Command Palette', description: 'Search and navigation', icon: Terminal },
     { id: 'ai', label: 'AI Preferences', description: 'Generation defaults', icon: Sparkles },
     { id: 'security', label: 'Security', description: 'Session and sign-in', icon: ShieldCheck },
-    { id: 'integrations', label: 'Integrations', description: 'Zoom and third-party apps', icon: Globe2 },
+    { id: 'integrations', label: 'Integrations', description: 'Zoom, PowerPoint & third-party apps', icon: Globe2 },
     { id: 'workspace', label: 'Workspace', description: 'Usage and metrics', icon: Briefcase },
     { id: 'data', label: 'Data Management', description: 'Export and cache controls', icon: Database },
     { id: 'about', label: 'About', description: 'Versions and licenses', icon: Info },
@@ -952,6 +952,49 @@ export default function SettingsPage() {
                     }
                   }}>
                     Connect Google Meet
+                  </Button>
+                </SettingRow>
+              </SettingsCard>
+
+              {/* PowerPoint Add-in */}
+              <SettingsCard
+                title="PowerPoint Add-in"
+                description="Embed live polls and Q&A as a task pane inside Microsoft PowerPoint presentations."
+                icon={<Globe2 className="h-5 w-5" />}
+              >
+                <SurfacePanel tone="ai" className="flex items-start gap-3 p-4">
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ai" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-ai-subtle-text">Office Add-in — Powered by Office.js</p>
+                    <p className="text-xs text-ai-subtle-text/80">
+                      The PowerPoint add-in runs as a task pane inside PowerPoint for Windows, Mac, and the Web.
+                      After connecting your Microsoft account below, sideload the{' '}
+                      <code className="rounded bg-black/10 px-1 py-0.5 font-mono">manifest.xml</code> file
+                      from the project root into PowerPoint to install the add-in.
+                    </p>
+                  </div>
+                </SurfacePanel>
+                <SettingRow
+                  label="Microsoft Account"
+                  description="Connect your Microsoft account to automatically link PowerPoint presentations to Pulse events."
+                >
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const { apiFetch } = await import('@/lib/events-api');
+                        const data = await apiFetch<{ url: string }>('api/powerpoint/authorize');
+                        if (data?.url) {
+                          window.location.href = data.url;
+                          return;
+                        }
+                        console.error('Failed to initiate PowerPoint connection', data);
+                      } catch (e) {
+                        console.error('Failed to connect PowerPoint', e);
+                      }
+                    }}
+                  >
+                    Connect PowerPoint
                   </Button>
                 </SettingRow>
               </SettingsCard>

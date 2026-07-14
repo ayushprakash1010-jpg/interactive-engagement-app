@@ -40,6 +40,13 @@ export const envSchema = z.object({
   GOOGLE_MEET_CLIENT_ID: z.string().optional(),
   GOOGLE_MEET_CLIENT_SECRET: z.string().optional(),
   GOOGLE_MEET_REDIRECT_URI: z.string().optional(),
+
+  // PowerPoint Add-in (Office Add-in — reuses Teams Azure AD app by default)
+  // POWERPOINT_CLIENT_ID: falls back to TEAMS_CLIENT_ID if not set
+  // POWERPOINT_CLIENT_SECRET: falls back to TEAMS_CLIENT_SECRET if not set
+  POWERPOINT_CLIENT_ID: z.string().optional(),
+  POWERPOINT_CLIENT_SECRET: z.string().optional(),
+  POWERPOINT_REDIRECT_URI: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

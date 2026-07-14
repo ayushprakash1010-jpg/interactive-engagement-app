@@ -82,6 +82,15 @@ export class UsersService {
       .exec();
   }
 
+  async findByPowerPointId(microsoftUserId: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findOne({
+        'integrations.provider': 'powerpoint',
+        'integrations.externalId': microsoftUserId,
+      })
+      .exec();
+  }
+
   async findById(id: string): Promise<UserDocument> {
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException(`User ${id} not found`);

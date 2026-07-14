@@ -23,6 +23,7 @@ import { SurveySessionsModule } from './survey-sessions/survey-sessions.module';
 import { ZoomModule } from './zoom/zoom.module';
 import { TeamsModule } from './teams/teams.module';
 import { GoogleMeetModule } from './google-meet/google-meet.module';
+import { PowerPointModule } from './powerpoint/powerpoint.module';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { GoogleMeetModule } from './google-meet/google-meet.module';
     ZoomModule,
     TeamsModule,
     GoogleMeetModule,
+    PowerPointModule,
   ],
   providers: [
     {
