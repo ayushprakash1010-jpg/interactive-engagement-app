@@ -17,23 +17,31 @@ const nextConfig = {
   // Transpile the shared workspace package so its TS is compiled by Next.
   transpilePackages: ['@iep/types'],
   async rewrites() {
+    // Use the same env var resolution as /api/proxy so this works in production
+    // (Vercel → Render). Falls back to localhost only for local development.
+    const apiBase =
+      process.env.API_INTERNAL_URL ??
+      process.env.NEXT_PUBLIC_API_URL ??
+      'http://localhost:4000';
+    const base = apiBase.replace(/\/+$/, '');
+
     return [
       {
         source: '/api/zoom/:path*',
-        destination: 'http://localhost:4000/api/zoom/:path*'
+        destination: `${base}/api/zoom/:path*`,
       },
       {
         source: '/api/teams/:path*',
-        destination: 'http://localhost:4000/api/teams/:path*'
+        destination: `${base}/api/teams/:path*`,
       },
       {
         source: '/api/google-meet/:path*',
-        destination: 'http://localhost:4000/api/google-meet/:path*'
+        destination: `${base}/api/google-meet/:path*`,
       },
       {
         source: '/api/google-slides/:path*',
-        destination: 'http://localhost:4000/api/google-slides/:path*'
-      }
+        destination: `${base}/api/google-slides/:path*`,
+      },
     ];
   }
 };
