@@ -3,117 +3,104 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 interface PowerPointContextType {
+  isReady: boolean;
   isPowerPoint: boolean;
   presentationId: string | null;
   presentationName: string | null;
   microsoftUserId: string | null;
-  slideCount: number | null;
   error: string | null;
 }
 
 const PowerPointContext = createContext<PowerPointContextType>({
+  isReady: false,
   isPowerPoint: false,
   presentationId: null,
   presentationName: null,
   microsoftUserId: null,
-  slideCount: null,
   error: null,
 });
 
 export const usePowerPointApp = () => useContext(PowerPointContext);
 
 export function PowerPointProvider({ children }: { children: ReactNode }) {
+  const [isReady, setIsReady] = useState(false);
   const [isPowerPoint, setIsPowerPoint] = useState(false);
   const [presentationId, setPresentationId] = useState<string | null>(null);
   const [presentationName, setPresentationName] = useState<string | null>(null);
   const [microsoftUserId, setMicrosoftUserId] = useState<string | null>(null);
-  const [slideCount, setSlideCount] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function initOffice() {
-      try {
-        // Office.js is loaded via CDN in the layout / HTML head
-        // We wait for it to be ready using Office.onReady
-        if (typeof (window as any).Office === 'undefined') {
-          setError('Office.js SDK not loaded. Are you running inside PowerPoint?');
-          return;
+    // Only run on client side
+    const Office = (window as any).Office;
+
+    if (!Office) {
+      // Office.js not yet loaded — wait up to 5s for it to appear
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        const OfficeNow = (window as any).Office;
+        if (OfficeNow) {
+          clearInterval(interval);
+          initOffice(OfficeNow);
+        } else if (attempts > 50) {
+          clearInterval(interval);
+          setError('Office.js did not load. Please open this add-in from inside PowerPoint.');
+          setIsReady(true);
         }
-
-        const Office = (window as any).Office;
-        const info = await Office.onReady();
-
-        // Verify we are inside PowerPoint (not Word, Excel, etc.)
-        if (info.host !== Office.HostType.PowerPoint) {
-          setError(`Unexpected host: ${info.host}. This add-in only works in PowerPoint.`);
-          return;
-        }
-
-        setIsPowerPoint(true);
-
-        // Get the presentation's unique document ID from the Office.js context
-        // Office.context.document.url gives a path/name, not a stable ID.
-        // We use Office.context.document.getFilePropertiesAsync for a stable unique ID.
-        Office.context.document.getFilePropertiesAsync(
-          (result: any) => {
-            if (result.status === Office.AsyncResultStatus.Succeeded) {
-              // url is the file path / OneDrive URL — use as unique identifier
-              const fileUrl = result.value.url;
-              // Create a stable hash from the URL to use as presentationId
-              const stableId = btoa(fileUrl).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
-              setPresentationId(stableId || fileUrl);
-              
-              // Extract presentation name from URL
-              const parts = fileUrl.split(/[\\/]/);
-              const filename = parts[parts.length - 1] || 'Untitled Presentation';
-              setPresentationName(filename.replace(/\.pptx?$/i, ''));
-            }
-          }
-        );
-
-        // Get slide count for context display
-        Office.context.document.getSelectedDataAsync(
-          Office.CoercionType.SlideRange,
-          (result: any) => {
-            // This is a best-effort; slide count is not critical
-          }
-        );
-
-        // Try to get user info from Office identity if available
-        try {
-          const auth = Office.context.auth;
-          if (auth && typeof auth.getAccessTokenAsync === 'function') {
-            auth.getAccessTokenAsync({ allowSignInPrompt: false }, (tokenResult: any) => {
-              if (tokenResult.status === Office.AsyncResultStatus.Succeeded) {
-                // Decode JWT to get user OID (Microsoft user ID)
-                try {
-                  const payload = JSON.parse(
-                    atob(tokenResult.value.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
-                  );
-                  setMicrosoftUserId(payload.oid || payload.sub || null);
-                } catch {
-                  // Non-critical: user can still link manually
-                }
-              }
-            });
-          }
-        } catch {
-          // Office SSO not available; will fall back to manual linking
-        }
-
-      } catch (e: any) {
-        console.warn('Not running inside PowerPoint or Office.js initialization failed:', e);
-        setError(e?.message || 'Office.js initialization failed');
-        setIsPowerPoint(false);
-      }
+      }, 100);
+      return () => clearInterval(interval);
+    } else {
+      initOffice(Office);
     }
 
-    initOffice();
+    function initOffice(Office: any) {
+      try {
+        // Use callback form of onReady — works in all Office.js versions including Office 2016
+        Office.onReady((info: { host: string; platform: string }) => {
+          setIsReady(true);
+
+          if (info.host !== 'PowerPoint') {
+            setError(`Wrong host: "${info.host}". This add-in only works in PowerPoint.`);
+            return;
+          }
+
+          setIsPowerPoint(true);
+
+          // Get file properties (presentation URL = stable ID)
+          try {
+            Office.context.document.getFilePropertiesAsync(
+              (result: any) => {
+                if (result.status === 'succeeded' || result.status === Office.AsyncResultStatus?.Succeeded) {
+                  const fileUrl: string = result.value?.url || '';
+                  if (fileUrl) {
+                    // Stable hash from file URL
+                    const stableId = btoa(encodeURIComponent(fileUrl))
+                      .replace(/[^a-zA-Z0-9]/g, '')
+                      .substring(0, 32);
+                    setPresentationId(stableId);
+
+                    const parts = fileUrl.split(/[\\/]/);
+                    const filename = parts[parts.length - 1] || 'Untitled';
+                    setPresentationName(filename.replace(/\.pptx?$/i, ''));
+                  }
+                }
+              }
+            );
+          } catch {
+            // Non-critical — user can still enter event code manually
+          }
+        });
+      } catch (e: any) {
+        setError('Office.js initialization failed: ' + (e?.message || String(e)));
+        setIsReady(true);
+      }
+    }
   }, []);
 
   return (
     <PowerPointContext.Provider
-      value={{ isPowerPoint, presentationId, presentationName, microsoftUserId, slideCount, error }}
+      value={{ isReady, isPowerPoint, presentationId, presentationName, microsoftUserId, error }}
     >
       {children}
     </PowerPointContext.Provider>
