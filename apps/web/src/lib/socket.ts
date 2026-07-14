@@ -16,7 +16,7 @@ import { useSocketStatus } from './socket-status';
 function resolveSocketOptions(): { url: string; path: string; transports?: string[] } {
   // During SSR window is undefined – sensible defaults, won't actually connect.
   if (typeof window === 'undefined') {
-    return { url: 'http://localhost:4000', path: '/socket.io' };
+    return { url: 'http://127.0.0.1:4000', path: '/socket.io' };
   }
 
   if (window.location.protocol === 'https:') {
@@ -30,7 +30,7 @@ function resolveSocketOptions(): { url: string; path: string; transports?: strin
   }
 
   // Plain HTTP local dev — connect directly, full WebSocket support.
-  return { url: 'http://localhost:4000', path: '/socket.io' };
+  return { url: 'http://127.0.0.1:4000', path: '/socket.io' };
 }
 
 const { url: SOCKET_URL, path: SOCKET_PATH, transports: SOCKET_TRANSPORTS } = resolveSocketOptions();

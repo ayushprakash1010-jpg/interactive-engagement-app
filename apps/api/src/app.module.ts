@@ -103,6 +103,7 @@ import { GoogleSlidesModule } from './google-slides/google-slides.module';
     TeamsModule,
     GoogleMeetModule,
     PowerPointModule,
+    GoogleSlidesModule,
   ],
   providers: [
     {

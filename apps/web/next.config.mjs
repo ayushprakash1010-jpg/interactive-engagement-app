@@ -29,6 +29,10 @@ const nextConfig = {
       {
         source: '/api/google-meet/:path*',
         destination: 'http://localhost:4000/api/google-meet/:path*'
+      },
+      {
+        source: '/api/google-slides/:path*',
+        destination: 'http://localhost:4000/api/google-slides/:path*'
       }
     ];
   }
