@@ -169,11 +169,11 @@ export default function DashboardLayout({
             label: 'Integrations',
             icon: Puzzle,
             children: [
-              { label: 'PowerPoint', href: '/dashboard/settings#powerpoint', icon: PowerPointIcon },
-              { label: 'Google Slides', href: '/dashboard/settings#google-slides', icon: GoogleSlidesIcon },
-              { label: 'Zoom', href: '/dashboard/settings#zoom', icon: ZoomIcon },
-              { label: 'Google Meet', href: '/dashboard/settings#google-meet', icon: GoogleMeetIcon },
-              { label: 'Teams', href: '/dashboard/settings#teams', icon: TeamsIcon },
+              { label: 'PowerPoint', href: '/dashboard/integrations/powerpoint', icon: PowerPointIcon },
+              { label: 'Google Slides', href: '/dashboard/integrations/google-slides', icon: GoogleSlidesIcon },
+              { label: 'Zoom', href: '/dashboard/integrations/zoom', icon: ZoomIcon },
+              { label: 'Google Meet', href: '/dashboard/integrations/google-meet', icon: GoogleMeetIcon },
+              { label: 'Teams', href: '/dashboard/integrations/teams', icon: TeamsIcon },
             ]
           },
           {
