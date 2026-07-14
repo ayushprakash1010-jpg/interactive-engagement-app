@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse for Google Slides</title>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Google Sans', Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #fff5f3 0%, #ffffff 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: #1a1a1a;
+    }
+
+    .container { width: 100%; max-width: 320px; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 28px; }
+    .logo {
+      width: 60px; height: 60px;
+      background: #D04423;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+      font-size: 30px;
+      box-shadow: 0 4px 16px rgba(208,68,35,0.25);
+    }
+    .title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: #777; }
+
+    /* Status pill */
+    .status {
+      display: flex; align-items: center; gap: 8px;
+      background: #f0fdf4; border-radius: 10px;
+      padding: 10px 14px; margin-bottom: 16px;
+      font-size: 12px; color: #16a34a;
+    }
+
+    /* Card */
+    .card {
+      background: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .card-desc { font-size: 12px; color: #888; margin-bottom: 18px; line-height: 1.5; }
+
+    input[type="text"] {
+      width: 100%; padding: 11px 14px;
+      font-size: 20px; font-weight: 700;
+      letter-spacing: 5px; text-transform: uppercase;
+      border: 1.5px solid #e0e0e0; border-radius: 10px;
+      outline: none; color: #1a1a1a; background: #fafafa;
+      transition: border-color 0.2s;
+      margin-bottom: 10px;
+    }
+    input[type="text"]:focus { border-color: #D04423; background: #fff; }
+    input::placeholder { letter-spacing: normal; font-size: 14px; font-weight: 400; color: #bbb; }
+
+    .error-msg { font-size: 12px; color: #D04423; margin-bottom: 8px; display: none; }
+
+    button {
+      width: 100%; padding: 12px;
+      background: #D04423; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover:not(:disabled) { background: #b83b1e; }
+    button:active:not(:disabled) { transform: scale(0.98); }
+    button:disabled { background: #f0a090; cursor: not-allowed; }
+
+    /* Debug */
+    .debug {
+      margin-top: 16px; font-size: 10px; color: #ccc;
+      word-break: break-all; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">📊</div>
+    <div class="title">Pulse for Google Slides</div>
+    <div class="subtitle">Bring live polls &amp; Q&amp;A to your presentation</div>
+  </div>
+
+  <!-- Status -->
+  <div class="status" id="status">
+    ✓ <span>Connected to Google Slides</span>
+  </div>
+
+  <!-- Event code card -->
+  <div class="card">
+    <div class="card-title">Join a Pulse Event</div>
+    <div class="card-desc">
+      Enter the event code from your Pulse dashboard to connect this presentation
+      and enable live polls &amp; Q&amp;A for your audience.
+    </div>
+
+    <input type="text" id="code-input" placeholder="e.g. 2AGLAW" maxlength="10"
+      oninput="this.value = this.value.toUpperCase()"
+      onkeydown="if(event.key==='Enter') connect()" />
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <button id="connect-btn" onclick="connect()">Connect to Event</button>
+  </div>
+
+  <!-- Debug info -->
+  <div class="debug" id="debug">
+    Presentation ID: n/a
+  </div>
+</div>
+
+<script>
+  // Read presentationId from query string
+  var params = new URLSearchParams(window.location.search);
+  var presentationId = params.get('presentationId');
+
+  if (presentationId) {
+    document.getElementById('debug').textContent = 'Presentation ID: ' + presentationId;
+    tryAutoLink();
+  } else {
+    document.getElementById('debug').textContent = 'Error: No presentation ID provided.';
+    setError('Cannot detect presentation ID. Are you running this inside Google Slides?');
+  }
+
+  function setError(msg) {
+    var el = document.getElementById('error-msg');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+  }
+
+  // Auto-link logic
+  function tryAutoLink() {
+    if (!presentationId) return;
+    var url = '/api/google-slides/context-to-event?presentationId=' + presentationId;
+    fetch(url)
+      .then(function(r) {
+        if (r.ok) return r.json();
+        throw new Error('not linked');
+      })
+      .then(function(data) {
+        if (data && data.eventCode) {
+          try { localStorage.setItem('iep-anon-id', 'gslides-' + presentationId); } catch(e) {}
+          // For Apps Script iframes, we should open the target in a new window or top
+          // We can use window.open or target="_top" or just normal navigation if the iframe allows it
+          // We'll redirect this frame itself which works because Next.js has no frame-ancestors block
+          window.location.href = '/event/' + data.eventCode + '?presentationId=' + presentationId;
+        }
+      })
+      .catch(function() {
+        // No linked event — user enters code manually
+      });
+  }
+
+  // Connect button
+  function connect() {
+    var code = document.getElementById('code-input').value.trim().toUpperCase();
+    if (!code || !presentationId) return;
+    setError('');
+
+    var btn = document.getElementById('connect-btn');
+    btn.disabled = true;
+    btn.textContent = 'Connecting…';
+
+    var url = '/api/google-slides/link-presentation?presentationId=' + encodeURIComponent(presentationId) + '&eventCode=' + encodeURIComponent(code);
+
+    fetch(url)
+      .then(function(r) {
+        if (r.ok) {
+          try { localStorage.setItem('iep-anon-id', 'gslides-' + presentationId); } catch(e) {}
+          window.location.href = '/event/' + code + '?presentationId=' + presentationId;
+        } else {
+          return r.json().then(function(data) {
+            throw new Error(data && data.message ? data.message : 'Event not found. Check your code.');
+          });
+        }
+      })
+      .catch(function(e) {
+        setError(e.message || 'Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Connect to Event';
+      });
+  }
+</script>
+</body>
+</html>

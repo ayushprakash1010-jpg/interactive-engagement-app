@@ -24,6 +24,7 @@ import { ZoomModule } from './zoom/zoom.module';
 import { TeamsModule } from './teams/teams.module';
 import { GoogleMeetModule } from './google-meet/google-meet.module';
 import { PowerPointModule } from './powerpoint/powerpoint.module';
+import { GoogleSlidesModule } from './google-slides/google-slides.module';
 
 @Module({
   imports: [

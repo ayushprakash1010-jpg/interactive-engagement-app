@@ -30,7 +30,7 @@ const EventSettingsSchema = SchemaFactory.createForClass(EventSettingsSubdoc);
 
 @Schema({ _id: false })
 export class EventIntegrationSubdoc {
-  @Prop({ required: true, enum: ['zoom', 'teams', 'webex', 'meet', 'powerpoint'] })
+  @Prop({ required: true, enum: ['zoom', 'teams', 'webex', 'meet', 'powerpoint', 'google-slides'] })
   provider!: string;
 
   @Prop({ required: true })
