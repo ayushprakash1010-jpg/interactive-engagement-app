@@ -5,6 +5,13 @@ import { objectId, timestamps } from './common.js';
 export const userRole = z.enum(['host', 'admin']);
 export type UserRole = z.infer<typeof userRole>;
 
+export const userIntegrationSchema = z.object({
+  provider: z.enum(['zoom', 'teams', 'webex', 'meet']),
+  externalId: z.string(),
+  refreshToken: z.string().optional(),
+});
+export type UserIntegration = z.infer<typeof userIntegrationSchema>;
+
 export const userSchema = z.object({
   _id: objectId,
   auth0Sub: z.string().min(1),
@@ -12,6 +19,7 @@ export const userSchema = z.object({
   email: z.string().email(),
   role: userRole,
   plan: z.string().default('free'),
+  integrations: z.array(userIntegrationSchema).default([]),
   ...timestamps,
 });
 export type User = z.infer<typeof userSchema>;

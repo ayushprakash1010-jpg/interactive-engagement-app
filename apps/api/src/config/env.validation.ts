@@ -5,20 +5,48 @@ import { z } from 'zod';
  * this at boot so a missing/invalid var fails fast instead of at first use.
  */
 export const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   MONGODB_URI: z.string().min(1).default('mongodb://localhost:27017/iep'),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   WEB_ORIGIN: z.string().min(1).default('http://localhost:3000'),
+  FRONTEND_URL: z.string().url().default('http://localhost:3000'),
   // Auth0 — consumed from Sprint 1 onward; optional in the Sprint 0 skeleton.
   AUTH0_ISSUER_BASE_URL: z.string().url().optional(),
   AUTH0_AUDIENCE: z.string().optional(),
 
-    // Google Gemini AI
+  // Google Gemini AI
   GEMINI_API_KEY: z.string().min(1),
   // Rate limiting — wired in Sprint 7.
   RATE_LIMIT_WINDOW: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
+
+  PUPPETEER_EXECUTABLE_PATH: z.string().optional(),
+
+  // Zoom
+  ZOOM_CLIENT_ID: z.string().optional(),
+  ZOOM_CLIENT_SECRET: z.string().optional(),
+  ZOOM_REDIRECT_URI: z.string().optional(),
+
+  // Microsoft Teams
+  TEAMS_CLIENT_ID: z.string().optional(),
+  TEAMS_CLIENT_SECRET: z.string().optional(),
+  TEAMS_REDIRECT_URI: z.string().optional(),
+  TEAMS_TENANT_ID: z.string().optional(),
+
+  // Google Meet
+  GOOGLE_MEET_CLIENT_ID: z.string().optional(),
+  GOOGLE_MEET_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_MEET_REDIRECT_URI: z.string().optional(),
+
+  // PowerPoint Add-in (Office Add-in — reuses Teams Azure AD app by default)
+  // POWERPOINT_CLIENT_ID: falls back to TEAMS_CLIENT_ID if not set
+  // POWERPOINT_CLIENT_SECRET: falls back to TEAMS_CLIENT_SECRET if not set
+  POWERPOINT_CLIENT_ID: z.string().optional(),
+  POWERPOINT_CLIENT_SECRET: z.string().optional(),
+  POWERPOINT_REDIRECT_URI: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

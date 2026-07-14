@@ -1,0 +1,11 @@
+{
+  "timeZone": "America/New_York",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/presentations.currentonly",
+    "https://www.googleapis.com/auth/script.container.ui"
+  ],
+  "runtimeVersion": "V8"
+}

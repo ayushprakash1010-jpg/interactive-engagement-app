@@ -14,6 +14,10 @@ import {
   PlayCircle,
   Terminal,
   RadioTower,
+  Puzzle,
+  Presentation,
+  Video,
+  MessageSquare,
   BrainCircuit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +25,13 @@ import { DashboardShell } from '@/components/layout';
 import { NotificationCenter } from '@/components/notifications';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Wordmark, AIBadge } from '@/components/pulse';
+import {
+  PowerPointIcon,
+  GoogleSlidesIcon,
+  ZoomIcon,
+  GoogleMeetIcon,
+  TeamsIcon,
+} from '@/components/brand-icons';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/use-auth';
 import { useEvents } from '@/lib/use-events';
@@ -153,6 +164,17 @@ export default function DashboardLayout({
             href: eventId ? `/dashboard/events/${eventId}/analytics` : undefined,
             icon: BarChart3,
             disabled: !eventId,
+          },
+          {
+            label: 'Integrations',
+            icon: Puzzle,
+            children: [
+              { label: 'PowerPoint', href: '/dashboard/integrations/powerpoint', icon: PowerPointIcon },
+              { label: 'Google Slides', href: '/dashboard/integrations/google-slides', icon: GoogleSlidesIcon },
+              { label: 'Zoom', href: '/dashboard/integrations/zoom', icon: ZoomIcon },
+              { label: 'Google Meet', href: '/dashboard/integrations/google-meet', icon: GoogleMeetIcon },
+              { label: 'Teams', href: '/dashboard/integrations/teams', icon: TeamsIcon },
+            ]
           },
           {
             label: 'Settings',

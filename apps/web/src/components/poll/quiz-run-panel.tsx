@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { usePoll } from '@/hooks/use-poll';
 import type { Activity, QuizConfig } from '@/hooks/use-activities';
 import { QuizScorecardModal } from '@/components/poll/quiz-scorecard-modal';
+import { apiFetch } from '@/lib/events-api';
 
 interface Props {
   activity: Activity;
@@ -29,6 +30,7 @@ function isQuizConfig(config: Activity['config']): config is QuizConfig {
 export function QuizRunPanel({ activity, eventId }: Props) {
   const { activeActivity } = usePoll(null);
   const [scorecardOpen, setScorecardOpen] = React.useState(false);
+  const [isResetting, setIsResetting] = React.useState(false);
 
   const quizConfig = isQuizConfig(activity.config) ? activity.config : null;
 
@@ -56,6 +58,23 @@ export function QuizRunPanel({ activity, eventId }: Props) {
       description: `${activity.title} is now live.`,
       href: `/dashboard/events/${activity.eventId}`,
     });
+  };
+
+  const resetAndLaunch = async () => {
+    setIsResetting(true);
+    try {
+      await apiFetch(`events/${activity.eventId}/activities/${activity._id}/responses`, {
+        method: 'DELETE',
+      });
+      socket.emit(ClientEvents.ACTIVITY_LAUNCH, { activityId: activity._id });
+      notify({
+        type: 'quiz-launched',
+        description: `${activity.title} was reset and is now live.`,
+        href: `/dashboard/events/${activity.eventId}`,
+      });
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const close = () => {
@@ -125,29 +144,47 @@ export function QuizRunPanel({ activity, eventId }: Props) {
             ) : (
               <>
                 {showResultsButton && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setScorecardOpen(true)}
-                  >
-                    Results
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setScorecardOpen(true)}
+                >
+                  Results
+                </Button>
+              )}
 
+              <Button
+                type="button"
+                size="sm"
+                onClick={launch}
+                disabled={isAnotherActivityLive}
+                title={
+                  isAnotherActivityLive
+                    ? 'Another activity is live — close it first'
+                    : undefined
+                }
+              >
+                {isThisActivityClosed ? 'Re-open' : 'Launch'}
+              </Button>
+
+              {isThisActivityClosed && (
                 <Button
                   type="button"
                   size="sm"
-                  onClick={launch}
-                  disabled={isAnotherActivityLive}
+                  variant="outline"
+                  onClick={resetAndLaunch}
+                  disabled={isAnotherActivityLive || isResetting}
                   title={
                     isAnotherActivityLive
                       ? 'Another activity is live — close it first'
-                      : undefined
+                      : 'Delete all responses and start fresh'
                   }
+                  className="border-destructive/50 text-destructive hover:bg-destructive/10"
                 >
-                  {isThisActivityClosed ? 'Relaunch' : 'Launch'}
+                  {isResetting ? 'Resetting…' : 'Reset & Launch'}
                 </Button>
+              )}
               </>
             )}
           </div>

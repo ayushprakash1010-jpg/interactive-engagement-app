@@ -8,7 +8,7 @@ import type { AuthenticatedUser } from '../auth/jwt.strategy';
 export class AnalyticsExportService {
   private readonly logger = new Logger(AnalyticsExportService.name);
 
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(private readonly analyticsService: AnalyticsService) { }
 
   async generateCsv(eventId: string, user: AuthenticatedUser) {
     const data = await this.analyticsService.getAnalytics(eventId, user);
@@ -43,13 +43,13 @@ export class AnalyticsExportService {
 
         const distribution = Array.isArray(poll.distribution)
           ? Object.fromEntries(
-              poll.distribution.map(
-                (entry: { rating: number | string; count: number }) => [
-                  String(entry.rating),
-                  entry.count,
-                ],
-              ),
-            )
+            poll.distribution.map(
+              (entry: { rating: number | string; count: number }) => [
+                String(entry.rating),
+                entry.count,
+              ],
+            ),
+          )
           : (poll.distribution ?? {});
 
         for (const [rating, count] of Object.entries(distribution)) {
@@ -165,13 +165,13 @@ export class AnalyticsExportService {
           row('survey-rating', `${survey.title} :: ${q.title} :: average`, q.average ?? 0);
           const distribution = Array.isArray(q.distribution)
             ? Object.fromEntries(
-                q.distribution.map(
-                  (entry: { rating: number | string; count: number }) => [
-                    String(entry.rating),
-                    entry.count,
-                  ],
-                ),
-              )
+              q.distribution.map(
+                (entry: { rating: number | string; count: number }) => [
+                  String(entry.rating),
+                  entry.count,
+                ],
+              ),
+            )
             : (q.distribution ?? {});
           for (const [rating, count] of Object.entries(distribution)) {
             const totalResponses = Number(q.totalResponses ?? 0);
@@ -199,7 +199,9 @@ export class AnalyticsExportService {
     const filename = `event-${eventId}-report.pdf`;
     const html = buildAnalyticsReportHtml(data);
 
-    const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH!;
+    const executablePath =
+      process.env.PUPPETEER_EXECUTABLE_PATH ||
+      'C:/Program Files/Google/Chrome/Application/chrome.exe';
 
     const browser = await puppeteer.launch({
       headless: true,

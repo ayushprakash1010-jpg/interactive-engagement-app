@@ -25,8 +25,15 @@ export default function JoinCodePage() {
 
   useEffect(() => {
     let mounted = true;
-    
-    fetch(`${API_URL}/events/lookup/${code}`)
+
+    // In HTTPS context (Zoom App), direct calls to http://localhost:4000 are
+    // blocked as Mixed Content. Use the Next.js public proxy route instead.
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    const lookupUrl = isHttps
+      ? `/api/public-proxy/events/lookup/${code}`
+      : `${API_URL}/events/lookup/${code}`;
+
+    fetch(lookupUrl)
       .then(async (res) => {
         if (!mounted) return;
         if (!res.ok) {

@@ -192,8 +192,6 @@ All sockets join a **room keyed by `eventId`**. Redis adapter fans events out ac
 | **Phase 2** | Hardening, scale, i18n, PWA polish | Sprints 8–10 | ❌ Future |
 | **Phase 3** | Zoom & Microsoft Teams integrations + SSO | Sprints 11–12 | ❌ Future |
 | **Phase 4** | Native mobile apps (iOS/Android) | Sprints 13–15 | ❌ Future |
-| **Phase 5** | AI features (summarization, sentiment, recommendations) | Sprints 16–18 | ❌ Future |
-
 Suggested cadence: 1–2 week sprints. Phase 1 (MVP) is ~7 sprints of focused work after the Sprint 0 foundation.
 
 ---
@@ -789,5 +787,4 @@ iep/
 3. When a prompt says "paste Section 4 / the real-time contract," include that section so Claude Code uses the exact event names and payloads.
 4. After each sprint, run the acceptance criteria as your manual + automated test gate before moving on.
 5. Keep `@iep/types` authoritative — when a schema changes, update it there first so both apps stay in sync.
-
 *End of document.*

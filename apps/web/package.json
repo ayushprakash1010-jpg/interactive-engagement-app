@@ -14,8 +14,10 @@
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^3.8.0",
+    "@googleworkspace/meet-addons": "^1.2.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@iep/types": "workspace:*",
+    "@microsoft/teams-js": "^2.53.1",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-slot": "^1.1.1",
@@ -23,6 +25,7 @@
     "@radix-ui/react-toast": "^1.2.4",
     "@tanstack/react-query": "^5.100.14",
     "@vercel/speed-insights": "^2.0.0",
+    "@zoom/appssdk": "^0.16.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",

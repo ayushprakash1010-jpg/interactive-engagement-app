@@ -233,4 +233,19 @@ export class ActivityController {
   ) {
     return this.activityService.remove(id, eventId, req.user._id);
   }
-}
+
+  /**
+   * DELETE /events/:eventId/activities/:id/responses
+   * Clears all previous responses for an activity and resets it to 'idle',
+   * enabling a fresh "Reset & Launch" from the host dashboard.
+   */
+  @Delete(':id/responses')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  clearResponses(
+    @Param('eventId') eventId: string,
+    @Param('id') id: string,
+    @Req() req: AuthRequest,
+  ) {
+    return this.activityService.clearResponses(id, eventId, req.user._id);
+  }
+}

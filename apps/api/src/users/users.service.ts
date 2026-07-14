@@ -49,6 +49,48 @@ export class UsersService {
     return this.userModel.findOne({ auth0Sub }).exec();
   }
 
+  async findByZoomId(zoomUserId: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findOne({
+        'integrations.provider': 'zoom',
+        $or: [
+          { 'integrations.externalId': zoomUserId },
+          { 'integrations.zoomUserId': zoomUserId },
+        ],
+      })
+      .exec();
+  }
+
+  async findByTeamsId(teamsUserId: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findOne({
+        'integrations.provider': 'teams',
+        $or: [
+          { 'integrations.externalId': teamsUserId },
+          { 'integrations.zoomUserId': teamsUserId },
+        ],
+      })
+      .exec();
+  }
+
+  async findByGoogleMeetId(meetUserId: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findOne({
+        'integrations.provider': 'meet',
+        'integrations.externalId': meetUserId,
+      })
+      .exec();
+  }
+
+  async findByPowerPointId(microsoftUserId: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findOne({
+        'integrations.provider': 'powerpoint',
+        'integrations.externalId': microsoftUserId,
+      })
+      .exec();
+  }
+
   async findById(id: string): Promise<UserDocument> {
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException(`User ${id} not found`);

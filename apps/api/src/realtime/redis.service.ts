@@ -34,8 +34,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   /** Duplicated connections required by @socket.io/redis-adapter. */
   getAdapterClients(): { pubClient: Redis; subClient: Redis } {
-    this._pubClient ??= this.client.duplicate();
-    this._subClient ??= this.client.duplicate();
+    if (!this._pubClient) {
+      this._pubClient = this.client.duplicate();
+      this._pubClient.on('error', (err) => this.logger.error(`pubClient error: ${err.message}`));
+    }
+    if (!this._subClient) {
+      this._subClient = this.client.duplicate();
+      this._subClient.on('error', (err) => this.logger.error(`subClient error: ${err.message}`));
+    }
     return { pubClient: this._pubClient, subClient: this._subClient };
   }
 

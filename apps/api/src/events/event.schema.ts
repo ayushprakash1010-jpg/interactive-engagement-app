@@ -28,6 +28,17 @@ class EventSettingsSubdoc {
 
 const EventSettingsSchema = SchemaFactory.createForClass(EventSettingsSubdoc);
 
+@Schema({ _id: false })
+export class EventIntegrationSubdoc {
+  @Prop({ required: true, enum: ['zoom', 'teams', 'webex', 'meet', 'powerpoint', 'google-slides'] })
+  provider!: string;
+
+  @Prop({ required: true })
+  externalId!: string;
+}
+
+const EventIntegrationSchema = SchemaFactory.createForClass(EventIntegrationSubdoc);
+
 @Schema({ timestamps: true, collection: 'events' })
 export class EventEntity {
   @Prop({
@@ -89,6 +100,9 @@ export class EventEntity {
 
   @Prop({ type: String, default: null })
   timezone?: string | null;
+
+  @Prop({ type: [EventIntegrationSchema], default: [] })
+  integrations!: EventIntegrationSubdoc[];
 }
 
 export const EventEntitySchema = SchemaFactory.createForClass(EventEntity);

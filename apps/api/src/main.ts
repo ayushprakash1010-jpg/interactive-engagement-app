@@ -28,18 +28,20 @@ async function bootstrap(): Promise<void> {
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
-  app.enableCors({ origin: webOrigin, credentials: true });
+  const corsOrigins = webOrigin ? [...webOrigin.split(','), 'http://localhost:3000'] : ['http://localhost:3000'];
+  
+  app.enableCors({ origin: corsOrigins, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableShutdownHooks();
 
   // Wire Socket.IO to the Redis adapter for cross-instance broadcasts.
   const redis = app.get(RedisService);
-  const ioAdapter = new RedisIoAdapter(app, redis, webOrigin);
+  const ioAdapter = new RedisIoAdapter(app, redis, corsOrigins);
   await ioAdapter.connect();
   app.useWebSocketAdapter(ioAdapter);
 
   await app.listen(port, '0.0.0.0');
-  logger.log(`API listening on http://localhost:${port} (CORS: ${webOrigin})`);
+  logger.log(`API listening on http://localhost:${port} (CORS: ${corsOrigins.join(', ')})`);
 }
 
 void bootstrap();

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { HelpCircle, MessageCircle, Radio, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -30,6 +30,7 @@ import {
 } from "@/components/pulse";
 import { FloatingReactions } from "@/components/reactions/floating-reactions";
 import { ReactionBar } from "@/components/reactions/reaction-bar";
+import { useZoomApp } from "@/components/zoom/ZoomProvider";
 
 function AnimatedTransition({ children, transitionKey }: { children: React.ReactNode; transitionKey: string }) {
   return (
@@ -78,12 +79,14 @@ type FeedbackParticipantConfig = {
 
 export default function EventPage() {
   const params = useParams<{ code: string }>();
+  const router = useRouter();
   const code = (params.code ?? "").toUpperCase();
 
   const [isMounted, setIsMounted] = useState(false);
   const [anonId, setAnonId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ParticipantTab>("activity");
   const [votedQuestionIds, setLocalVotedQuestionIds] = useState<string[]>([]);
+  const { isZoom } = useZoomApp();
 
   useEffect(() => {
     setIsMounted(true);
@@ -127,6 +130,12 @@ export default function EventPage() {
     });
   }, [approvedQuestions]);
 
+  useEffect(() => {
+    if (error && error.toLowerCase().includes("display name is required")) {
+      router.replace(`/join/${code}`);
+    }
+  }, [error, code, router]);
+
   if (!isMounted) {
     return (
       <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
@@ -156,6 +165,7 @@ export default function EventPage() {
   }
 
   if (error) {
+    const isNameError = error.toLowerCase().includes("display name is required");
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-surface-canvas px-4 py-10 text-center">
         <div className="mx-auto w-full max-w-container-sm">
@@ -165,9 +175,15 @@ export default function EventPage() {
             title="Can't join this session"
             description={error}
             action={
-              <Button asChild size="lg">
-                <Link href="/join">Try another code</Link>
-              </Button>
+              isNameError ? (
+                <Button asChild size="lg">
+                  <Link href={`/join/${code}`}>Enter your name</Link>
+                </Button>
+              ) : (
+                <Button asChild size="lg">
+                  <Link href="/join">Try another code</Link>
+                </Button>
+              )
             }
           />
         </div>
@@ -280,16 +296,18 @@ export default function EventPage() {
     <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
       <FloatingReactions />
       <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
-        <header className="sticky top-3 z-10 flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card/95 px-3 py-2.5 shadow-sm backdrop-blur">
-          <div className="flex items-center gap-2.5">
-            <Logomark size={28} />
-            <JoinCode code={code} size="sm" />
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <ConnectionStatus />
-          </div>
-        </header>
+        {!isZoom && (
+          <header className="sticky top-3 z-10 flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card/95 px-3 py-2.5 shadow-sm backdrop-blur">
+            <div className="flex items-center gap-2.5">
+              <Logomark size={28} />
+              <JoinCode code={code} size="sm" />
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <ConnectionStatus />
+            </div>
+          </header>
+        )}
 
         <SurfacePanel className="mt-4 flex items-center justify-between gap-3 px-4 py-3">
           <div>

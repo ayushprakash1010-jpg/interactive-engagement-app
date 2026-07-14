@@ -34,6 +34,7 @@ const handler = withApiAuthRequired(async function handler(req: NextRequest) {
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
+    'ngrok-skip-browser-warning': 'true',
   };
 
   const init: RequestInit = {

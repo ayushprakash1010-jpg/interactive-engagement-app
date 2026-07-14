@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse for PowerPoint</title>
+
+  <!-- Office.js MUST be loaded before anything else in an Office Add-in -->
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #fff5f3 0%, #ffffff 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: #1a1a1a;
+    }
+
+    .container { width: 100%; max-width: 320px; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 28px; }
+    .logo {
+      width: 60px; height: 60px;
+      background: #D04423;
+      border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px;
+      font-size: 30px;
+      box-shadow: 0 4px 16px rgba(208,68,35,0.25);
+    }
+    .title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: #777; }
+
+    /* Status pill */
+    .status {
+      display: flex; align-items: center; gap: 8px;
+      background: #f5f5f5; border-radius: 10px;
+      padding: 10px 14px; margin-bottom: 16px;
+      font-size: 12px; color: #888;
+    }
+    .status.ready { background: #f0fdf4; color: #16a34a; }
+    .status.error { background: #fff1f0; color: #dc2626; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: currentColor; flex-shrink: 0;
+    }
+    .spinning { animation: spin 1s linear infinite; display: inline-block; }
+
+    /* Presentation badge */
+    .pres-badge {
+      background: #fff; border: 1px solid #e8e8e8;
+      border-radius: 10px; padding: 10px 14px;
+      margin-bottom: 16px; font-size: 13px;
+      display: none;
+    }
+    .pres-label { color: #999; font-size: 11px; margin-bottom: 2px; }
+    .pres-name { font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Card */
+    .card {
+      background: #fff;
+      border: 1px solid #e8e8e8;
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .card-desc { font-size: 12px; color: #888; margin-bottom: 18px; line-height: 1.5; }
+
+    input[type="text"] {
+      width: 100%; padding: 11px 14px;
+      font-size: 20px; font-weight: 700;
+      letter-spacing: 5px; text-transform: uppercase;
+      border: 1.5px solid #e0e0e0; border-radius: 10px;
+      outline: none; color: #1a1a1a; background: #fafafa;
+      transition: border-color 0.2s;
+      margin-bottom: 10px;
+    }
+    input[type="text"]:focus { border-color: #D04423; background: #fff; }
+    input::placeholder { letter-spacing: normal; font-size: 14px; font-weight: 400; color: #bbb; }
+
+    .error-msg { font-size: 12px; color: #D04423; margin-bottom: 8px; display: none; }
+
+    button {
+      width: 100%; padding: 12px;
+      background: #D04423; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover:not(:disabled) { background: #b83b1e; }
+    button:active:not(:disabled) { transform: scale(0.98); }
+    button:disabled { background: #f0a090; cursor: not-allowed; }
+
+    /* Debug */
+    .debug {
+      margin-top: 16px; font-size: 10px; color: #ccc;
+      word-break: break-all; line-height: 1.6;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">📊</div>
+    <div class="title">Pulse for PowerPoint</div>
+    <div class="subtitle">Bring live polls &amp; Q&amp;A to your presentation</div>
+  </div>
+
+  <!-- Office status -->
+  <div class="status" id="status">
+    <span class="spinning">⟳</span>
+    <span id="status-text">Connecting to Office...</span>
+  </div>
+
+  <!-- Presentation badge (shown when Office is ready) -->
+  <div class="pres-badge" id="pres-badge">
+    <div class="pres-label">Current presentation</div>
+    <div class="pres-name" id="pres-name"></div>
+  </div>
+
+  <!-- Event code card -->
+  <div class="card">
+    <div class="card-title">Join a Pulse Event</div>
+    <div class="card-desc">
+      Enter the event code from your Pulse dashboard to connect this presentation
+      and enable live polls &amp; Q&amp;A for your audience.
+    </div>
+
+    <input type="text" id="code-input" placeholder="e.g. 2AGLAW" maxlength="10"
+      oninput="this.value = this.value.toUpperCase()"
+      onkeydown="if(event.key==='Enter') connect()" />
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <button id="connect-btn" onclick="connect()">Connect to Event</button>
+  </div>
+
+  <!-- Debug info -->
+  <div class="debug" id="debug">
+    Office ready: false | In PowerPoint: false | Presentation ID: n/a
+  </div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  var state = {
+    officeReady: false,
+    inPowerPoint: false,
+    presentationId: null,
+    presentationName: null,
+  };
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+  function setStatus(text, type) {
+    var el = document.getElementById('status');
+    var textEl = document.getElementById('status-text');
+    el.className = 'status ' + (type || '');
+    var icon = type === 'ready' ? '✓' : type === 'error' ? '✗' : '<span class="spinning">⟳</span>';
+    el.innerHTML = icon + ' <span>' + text + '</span>';
+  }
+
+  function setError(msg) {
+    var el = document.getElementById('error-msg');
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+  }
+
+  function updateDebug() {
+    document.getElementById('debug').innerHTML =
+      'Office ready: ' + state.officeReady +
+      ' | In PowerPoint: ' + state.inPowerPoint +
+      ' | ID: ' + (state.presentationId || 'n/a');
+  }
+
+  function showPresentationBadge(name) {
+    var badge = document.getElementById('pres-badge');
+    badge.style.display = 'block';
+    document.getElementById('pres-name').textContent = name;
+  }
+
+  // ── Office.js init ─────────────────────────────────────────────────────────
+  // Office.initialize is the legacy API (Office 2013+)
+  // Office.onReady is the modern API (Office 2016+)
+  // We support both.
+
+  function initWithOffice() {
+    try {
+      // Modern API
+      if (typeof Office.onReady === 'function') {
+        Office.onReady(function(info) {
+          onOfficeReady(info);
+        });
+      } else if (typeof Office.initialize !== 'undefined') {
+        // Legacy API fallback
+        Office.initialize = function() {
+          onOfficeReady({ host: 'PowerPoint', platform: 'PC' });
+        };
+      }
+    } catch(e) {
+      setStatus('Office.js error: ' + e.message, 'error');
+    }
+  }
+
+  function onOfficeReady(info) {
+    state.officeReady = true;
+    updateDebug();
+
+    var host = info && (info.host || info.hostName || '');
+    var isPPT = host === 'PowerPoint' || host === Office.HostType.PowerPoint;
+
+    if (!isPPT) {
+      setStatus('Works only in PowerPoint (host: ' + host + ')', 'error');
+      return;
+    }
+
+    state.inPowerPoint = true;
+    setStatus('Connected to PowerPoint', 'ready');
+    updateDebug();
+
+    // Get presentation info
+    try {
+      Office.context.document.getFilePropertiesAsync(function(result) {
+        try {
+          if (result && result.value && result.value.url) {
+            var url = result.value.url;
+            // Generate stable short ID from URL
+            var hash = 0;
+            for (var i = 0; i < url.length; i++) {
+              hash = ((hash << 5) - hash) + url.charCodeAt(i);
+              hash |= 0;
+            }
+            state.presentationId = Math.abs(hash).toString(36);
+
+            // Extract name from URL
+            var parts = url.replace(/\\/g, '/').split('/');
+            var filename = parts[parts.length - 1] || 'Untitled';
+            state.presentationName = filename.replace(/\.pptx?$/i, '');
+            showPresentationBadge(state.presentationName);
+            updateDebug();
+
+            // Try to auto-link
+            tryAutoLink();
+          }
+        } catch(e2) {
+          console.warn('getFilePropertiesAsync callback error:', e2);
+        }
+      });
+    } catch(e) {
+      console.warn('getFilePropertiesAsync error:', e);
+    }
+  }
+
+  // ── Auto-link ──────────────────────────────────────────────────────────────
+  function tryAutoLink() {
+    if (!state.presentationId) return;
+    var url = '/api/powerpoint/context-to-event?presentationId=' + state.presentationId;
+    fetch(url)
+      .then(function(r) {
+        if (r.ok) return r.json();
+        throw new Error('not linked');
+      })
+      .then(function(data) {
+        if (data && data.eventCode) {
+          try { localStorage.setItem('iep-anon-id', 'ppt-' + state.presentationId); } catch(e) {}
+          window.location.href = '/event/' + data.eventCode;
+        }
+      })
+      .catch(function() {
+        // No linked event — user enters code manually
+      });
+  }
+
+  // ── Connect button ─────────────────────────────────────────────────────────
+  function connect() {
+    var code = document.getElementById('code-input').value.trim().toUpperCase();
+    if (!code) return;
+    setError('');
+
+    var btn = document.getElementById('connect-btn');
+    btn.disabled = true;
+    btn.textContent = 'Connecting…';
+
+    var pid = state.presentationId || 'unknown';
+    var url = '/api/powerpoint/link-presentation?presentationId=' + encodeURIComponent(pid) + '&eventCode=' + encodeURIComponent(code);
+
+    fetch(url)
+      .then(function(r) {
+        if (r.ok) {
+          try { localStorage.setItem('iep-anon-id', 'ppt-' + pid); } catch(e) {}
+          window.location.href = '/event/' + code;
+        } else {
+          return r.json().then(function(data) {
+            throw new Error(data && data.message ? data.message : 'Event not found. Check your code.');
+          });
+        }
+      })
+      .catch(function(e) {
+        setError(e.message || 'Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Connect to Event';
+      });
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  // Wait for Office.js to be available
+  if (typeof Office !== 'undefined') {
+    initWithOffice();
+  } else {
+    // Poll for Office.js
+    var attempts = 0;
+    var poll = setInterval(function() {
+      attempts++;
+      if (typeof Office !== 'undefined') {
+        clearInterval(poll);
+        initWithOffice();
+      } else if (attempts > 50) {
+        clearInterval(poll);
+        setStatus('Office.js did not load. Open this from inside PowerPoint.', 'error');
+      }
+    }, 100);
+  }
+</script>
+</body>
+</html>
