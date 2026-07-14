@@ -28,10 +28,11 @@ export type DashboardBreadcrumb = {
 export type DashboardNavItem = {
   label: string;
   href?: string;
-  icon: React.ElementType;
+  icon?: React.ElementType;
   exact?: boolean;
   disabled?: boolean;
   badge?: React.ReactNode;
+  children?: DashboardNavItem[];
 };
 
 export interface DashboardShellProps {
@@ -101,17 +102,25 @@ function DashboardNavLink({
   item,
   collapsed,
   onNavigate,
+  depth = 0,
 }: {
   item: DashboardNavItem;
   collapsed?: boolean;
   onNavigate?: () => void;
+  depth?: number;
 }) {
   const pathname = usePathname();
   const active = isActivePath(pathname, item);
+  
+  // If a child is active, keep the accordion open by default
+  const isChildActive = item.children?.some(child => isActivePath(pathname, child));
+  const [isOpen, setIsOpen] = React.useState(isChildActive || false);
+
   const Icon = item.icon;
 
   const className = cn(
-    'group flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
+    'group flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors',
+    depth > 0 && 'ml-4', // Indent child items
     active
       ? 'bg-brand-subtle text-brand-subtle-text'
       : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
@@ -122,30 +131,62 @@ function DashboardNavLink({
 
   const content = (
     <>
-      <Icon
-        className={cn(
-          'h-4 w-4 shrink-0',
-          item.label === 'AI Studio' && !active && 'text-ai',
-        )}
-      />
+      {Icon && (
+        <Icon
+          className={cn(
+            'h-4 w-4 shrink-0',
+            item.label === 'AI Studio' && !active && 'text-ai',
+          )}
+        />
+      )}
       {!collapsed && (
         <>
-          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
           {item.badge}
+          {item.children && item.children.length > 0 && (
+            <ChevronRight
+              className={cn(
+                "h-4 w-4 shrink-0 transition-transform duration-200",
+                isOpen && "rotate-90"
+              )}
+            />
+          )}
         </>
       )}
     </>
   );
 
-  if (!item.href || item.disabled) {
+  // If item has children and NO href, render it as an accordion toggle
+  if (item.children && item.children.length > 0 && !item.href) {
     return (
-      <span className={className} aria-disabled="true" title={item.label}>
-        {content}
-      </span>
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          className={className}
+          onClick={() => setIsOpen(!isOpen)}
+          title={collapsed ? item.label : undefined}
+          aria-expanded={isOpen}
+        >
+          {content}
+        </button>
+        {isOpen && !collapsed && (
+          <div className="flex flex-col gap-1">
+            {item.children.map((child) => (
+              <DashboardNavLink
+                key={`${child.label}-${child.href ?? 'disabled'}`}
+                item={child}
+                collapsed={collapsed}
+                onNavigate={onNavigate}
+                depth={depth + 1}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     );
   }
 
-  return (
+  const linkContent = item.href && !item.disabled ? (
     <Link
       href={item.href}
       className={className}
@@ -155,6 +196,29 @@ function DashboardNavLink({
     >
       {content}
     </Link>
+  ) : (
+    <span className={className} aria-disabled={item.disabled ? 'true' : undefined} title={item.label}>
+      {content}
+    </span>
+  );
+
+  if (!item.children?.length) {
+    return linkContent;
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {linkContent}
+      {!collapsed && item.children.map((child) => (
+        <DashboardNavLink
+          key={`${child.label}-${child.href ?? 'disabled'}`}
+          item={child}
+          collapsed={collapsed}
+          onNavigate={onNavigate}
+          depth={depth + 1}
+        />
+      ))}
+    </div>
   );
 }
 

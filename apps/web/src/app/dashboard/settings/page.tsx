@@ -882,122 +882,157 @@ export default function SettingsPage() {
                 title="Integrations"
                 description="Connect third-party apps and services to IEP."
               />
-              <SettingsCard
-                title="Zoom App"
-                description="Run polls and Q&A directly inside your Zoom meetings."
-                icon={<Globe2 className="h-5 w-5" />}
-              >
-                <SettingRow label="Zoom Account" description="Connect your Zoom account to map meetings to events automatically.">
-                <Button variant="outline" onClick={async () => {
-                  try {
-                    const { apiFetch } = await import('@/lib/events-api');
-                    const data = await apiFetch<{url: string}>('api/zoom/authorize');
-                    if (data?.url) {
-                      window.location.href = data.url;
-                      return;
-                    }
-                    console.error('Failed to initiate Zoom connection', data);
-                  } catch (e) {
-                    console.error('Failed to connect to backend', e);
-                  }
-                }}>
-                  Connect Zoom
-                </Button>
-                </SettingRow>
-              </SettingsCard>
-
-              {/* Microsoft Teams */}
-              <SettingsCard
-                title="Microsoft Teams"
-                description="Embed live polls and Q&A as a meeting side panel in Microsoft Teams."
-                icon=<Globe2 className="h-5 w-5" />
-              >
-                <SettingRow label="Teams Account" description="Connect your Microsoft account to link Teams meetings to Pulse events automatically.">
-                  <Button variant="outline" onClick={async () => {
-                    try {
-                      const { apiFetch } = await import('@/lib/events-api');
-                      const data = await apiFetch<{url: string}>('api/teams/authorize');
-                      if (data?.url) {
-                        window.location.href = data.url;
-                        return;
-                      }
-                      console.error('Failed to initiate Teams connection', data);
-                    } catch (e) {
-                      console.error('Failed to connect Teams', e);
-                    }
-                  }}>
-                    Connect Teams
-                  </Button>
-                </SettingRow>
-              </SettingsCard>
-
-              {/* Google Meet */}
-              <SettingsCard
-                title="Google Meet"
-                description="Embed live polls and Q&A as a meeting Add-on side panel in Google Meet."
-                icon={<Globe2 className="h-5 w-5" />}
-              >
-                <SettingRow label="Google Account" description="Connect your Google account to link Meet sessions to Pulse events automatically.">
-                  <Button variant="outline" onClick={async () => {
-                    try {
-                      const { apiFetch } = await import('@/lib/events-api');
-                      const data = await apiFetch<{url: string}>('api/google-meet/authorize');
-                      if (data?.url) {
-                        window.location.href = data.url;
-                        return;
-                      }
-                      console.error('Failed to initiate Google Meet connection', data);
-                    } catch (e) {
-                      console.error('Failed to connect Google Meet', e);
-                    }
-                  }}>
-                    Connect Google Meet
-                  </Button>
-                </SettingRow>
-              </SettingsCard>
-
-              {/* PowerPoint Add-in */}
-              <SettingsCard
-                title="PowerPoint Add-in"
-                description="Embed live polls and Q&A as a task pane inside Microsoft PowerPoint presentations."
-                icon={<Globe2 className="h-5 w-5" />}
-              >
-                <SurfacePanel tone="ai" className="flex items-start gap-3 p-4">
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ai" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-ai-subtle-text">Office Add-in — Powered by Office.js</p>
-                    <p className="text-xs text-ai-subtle-text/80">
-                      The PowerPoint add-in runs as a task pane inside PowerPoint for Windows, Mac, and the Web.
-                      After connecting your Microsoft account below, sideload the{' '}
-                      <code className="rounded bg-black/10 px-1 py-0.5 font-mono">manifest.xml</code> file
-                      from the project root into PowerPoint to install the add-in.
-                    </p>
-                  </div>
-                </SurfacePanel>
-                <SettingRow
-                  label="Microsoft Account"
-                  description="Connect your Microsoft account to automatically link PowerPoint presentations to Pulse events."
+              <div id="zoom" className="scroll-mt-24">
+                <SettingsCard
+                  title="Zoom App"
+                  description="Run polls and Q&A directly inside your Zoom meetings."
+                  icon={<Globe2 className="h-5 w-5" />}
                 >
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
+                  <SettingRow label="Zoom Account" description="Connect your Zoom account to map meetings to events automatically.">
+                    <Button variant="outline" onClick={async () => {
                       try {
                         const { apiFetch } = await import('@/lib/events-api');
-                        const data = await apiFetch<{ url: string }>('api/powerpoint/authorize');
+                        const data = await apiFetch<{ url: string }>('api/zoom/authorize');
                         if (data?.url) {
                           window.location.href = data.url;
                           return;
                         }
-                        console.error('Failed to initiate PowerPoint connection', data);
+                        console.error('Failed to initiate Zoom connection', data);
                       } catch (e) {
-                        console.error('Failed to connect PowerPoint', e);
+                        console.error('Failed to connect to backend', e);
                       }
-                    }}
+                    }}>
+                      Connect Zoom
+                    </Button>
+                  </SettingRow>
+                </SettingsCard>
+              </div>
+
+              {/* Microsoft Teams */}
+              <div id="teams" className="scroll-mt-24">
+                <SettingsCard
+                  title="Microsoft Teams"
+                  description="Embed live polls and Q&A as a meeting side panel in Microsoft Teams."
+                  icon=<Globe2 className="h-5 w-5" />
+                >
+                  <SettingRow label="Teams Account" description="Connect your Microsoft account to link Teams meetings to Pulse events automatically.">
+                    <Button variant="outline" onClick={async () => {
+                      try {
+                        const { apiFetch } = await import('@/lib/events-api');
+                        const data = await apiFetch<{ url: string }>('api/teams/authorize');
+                        if (data?.url) {
+                          window.location.href = data.url;
+                          return;
+                        }
+                        console.error('Failed to initiate Teams connection', data);
+                      } catch (e) {
+                        console.error('Failed to connect Teams', e);
+                      }
+                    }}>
+                      Connect Teams
+                    </Button>
+                  </SettingRow>
+                </SettingsCard>
+              </div>
+
+              {/* Google Meet */}
+              <div id="google-meet" className="scroll-mt-24">
+                <SettingsCard
+                  title="Google Meet"
+                  description="Embed live polls and Q&A as a meeting Add-on side panel in Google Meet."
+                  icon={<Globe2 className="h-5 w-5" />}
+                >
+                  <SettingRow label="Google Account" description="Connect your Google account to link Meet sessions to Pulse events automatically.">
+                    <Button variant="outline" onClick={async () => {
+                      try {
+                        const { apiFetch } = await import('@/lib/events-api');
+                        const data = await apiFetch<{ url: string }>('api/google-meet/authorize');
+                        if (data?.url) {
+                          window.location.href = data.url;
+                          return;
+                        }
+                        console.error('Failed to initiate Google Meet connection', data);
+                      } catch (e) {
+                        console.error('Failed to connect Google Meet', e);
+                      }
+                    }}>
+                      Connect Google Meet
+                    </Button>
+                  </SettingRow>
+                </SettingsCard>
+              </div>
+
+              {/* PowerPoint Add-in */}
+              <div id="powerpoint" className="scroll-mt-24">
+                <SettingsCard
+                  title="PowerPoint Add-in"
+                  description="Embed live polls and Q&A as a task pane inside Microsoft PowerPoint presentations."
+                  icon={<Globe2 className="h-5 w-5" />}
+                >
+                  <SurfacePanel tone="ai" className="flex items-start gap-3 p-4">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ai" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-ai-subtle-text">Office Add-in — Powered by Office.js</p>
+                      <p className="text-xs text-ai-subtle-text/80">
+                        The PowerPoint add-in runs as a task pane inside PowerPoint for Windows, Mac, and the Web.
+                        After connecting your Microsoft account below, sideload the{' '}
+                        <code className="rounded bg-black/10 px-1 py-0.5 font-mono">manifest.xml</code> file
+                        from the project root into PowerPoint to install the add-in.
+                      </p>
+                    </div>
+                  </SurfacePanel>
+                  <SettingRow
+                    label="Microsoft Account"
+                    description="Connect your Microsoft account to automatically link PowerPoint presentations to Pulse events."
                   >
-                    Connect PowerPoint
-                  </Button>
-                </SettingRow>
-              </SettingsCard>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const { apiFetch } = await import('@/lib/events-api');
+                          const data = await apiFetch<{ url: string }>('api/powerpoint/authorize');
+                          if (data?.url) {
+                            window.location.href = data.url;
+                            return;
+                          }
+                          console.error('Failed to initiate PowerPoint connection', data);
+                        } catch (e) {
+                          console.error('Failed to connect PowerPoint', e);
+                        }
+                      }}
+                    >
+                      Connect PowerPoint
+                    </Button>
+                  </SettingRow>
+                </SettingsCard>
+              </div>
+
+              {/* Google Slides Add-on */}
+              <div id="google-slides" className="scroll-mt-24">
+                <SettingsCard
+                  title="Google Slides Add-on"
+                  description="Embed live polls and Q&A as a sidebar inside Google Slides presentations."
+                  icon={<Globe2 className="h-5 w-5" />}
+                >
+                  <SurfacePanel tone="ai" className="flex items-start gap-3 p-4">
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ai" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-ai-subtle-text">Google Workspace Add-on — Powered by Apps Script</p>
+                      <p className="text-xs text-ai-subtle-text/80">
+                        The Google Slides add-on runs entirely inside your Google Workspace environment.
+                        No OAuth connection is required. Simply install the add-on code from the project repository to get started.
+                      </p>
+                    </div>
+                  </SurfacePanel>
+                  <SettingRow label="Installation" description="Get the Apps Script source code to install the sidebar into your Google Slides.">
+                    <Button variant="outline" asChild>
+                      <a href="https://github.com/ayushprakash1010-jpg/interactive-engagement-app/tree/main/integrations/google-slides" target="_blank" rel="noreferrer">
+                        Get Add-on Code
+                      </a>
+                    </Button>
+                  </SettingRow>
+                </SettingsCard>
+              </div>
 
               {/* Enterprise SSO */}
               <SettingsCard
