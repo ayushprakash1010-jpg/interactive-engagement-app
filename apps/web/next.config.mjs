@@ -43,7 +43,7 @@ const nextConfig = {
         destination: `${base}/api/google-slides/:path*`,
       },
     ];
-  }
+  },
   async headers() {
     return [
       {
