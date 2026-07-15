@@ -69,6 +69,7 @@ const nextConfig = {
           'https://office.com',
           'https://*.sharepoint.com',
           'https://*.microsoft.com',
+          'https://*.cloud.microsoft',
         ].join(' '),
       },
       // OWASP security headers required by Zoom App Marketplace validation
