@@ -58,6 +58,9 @@ const nextConfig = {
           'https://meet.google.com',
           'https://*.meet.google.com',
           'https://meetingtools.googleapis.com',
+          'https://docs.google.com',
+          'https://*.googleusercontent.com',
+          'https://script.google.com',
           'https://*.zoom.us',
           'https://zoom.us',
           'https://*.teams.microsoft.com',
@@ -83,6 +86,7 @@ const nextConfig = {
       { source: '/teams/:path*', headers: iframeHeaders },
       { source: '/powerpoint/:path*', headers: iframeHeaders },
       { source: '/event/:path*', headers: iframeHeaders },
+      { source: '/google-slides/:path*', headers: iframeHeaders },
     ];
   },
 };
