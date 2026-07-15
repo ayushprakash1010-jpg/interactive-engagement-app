@@ -62,12 +62,21 @@ const nextConfig = {
           'https://zoom.us',
           'https://*.teams.microsoft.com',
           'https://teams.microsoft.com',
+          // Office Add-ins (PowerPoint task pane)
+          'https://*.officeapps.live.com',
+          'https://officeapps.live.com',
+          'https://*.office.com',
+          'https://office.com',
+          'https://*.sharepoint.com',
+          'https://*.microsoft.com',
         ].join(' '),
       },
     ];
     return [
       { source: '/meet/:path*', headers: iframeHeaders },
       { source: '/zoom/:path*', headers: iframeHeaders },
+      { source: '/teams/:path*', headers: iframeHeaders },
+      { source: '/powerpoint/:path*', headers: iframeHeaders },
       { source: '/event/:path*', headers: iframeHeaders },
     ];
   },
