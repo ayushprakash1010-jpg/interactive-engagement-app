@@ -44,6 +44,24 @@ const nextConfig = {
       },
     ];
   }
+  async headers() {
+    return [
+      {
+        // Allow Google Meet to embed the /meet route in an iframe (side panel)
+        source: '/meet/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'ALLOWALL',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://meet.google.com https://*.meet.google.com https://meetingtools.googleapis.com",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
