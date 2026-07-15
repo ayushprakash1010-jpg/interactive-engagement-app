@@ -71,6 +71,10 @@ const nextConfig = {
           'https://*.microsoft.com',
         ].join(' '),
       },
+      // OWASP security headers required by Zoom App Marketplace validation
+      { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
     ];
     return [
       { source: '/meet/:path*', headers: iframeHeaders },
