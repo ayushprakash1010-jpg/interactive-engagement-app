@@ -53,7 +53,7 @@ export default function TermsOfServicePage() {
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">5. Disclaimer of Warranties</h2>
         <p className="mb-4">
-          The service is provided on an "as is" and "as available" basis without any warranties of any kind, 
+          The service is provided on an &quot;as is&quot; and &quot;as available&quot; basis without any warranties of any kind, 
           either express or implied.
         </p>
       </section>
