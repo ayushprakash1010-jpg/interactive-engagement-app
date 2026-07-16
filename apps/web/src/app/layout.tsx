@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   icons: {
     icon: '/brand/pulse-logomark.svg',
   },
+  other: {
+    'zoom-domain-verification': 'ZOOM_verify_e0a018bf436247f68d1f969090f7291b',
+  },
 };
 
 export default function RootLayout({
