@@ -24,12 +24,8 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@nestjs/core",
-      "canvas",
       "esbuild",
       "unrs-resolver"
     ]
-  },
-  "dependencies": {
-    "canvas": "^3.2.3"
   }
 }
