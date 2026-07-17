@@ -12,7 +12,7 @@ export default function SupportPage() {
       <h1 className="text-3xl font-bold tracking-tight mb-8">Support & Help Center</h1>
       
       <p className="text-muted-foreground mb-8 text-lg">
-        We're here to help! If you're experiencing issues with Pulse or need assistance setting up your events, please reach out to us.
+        We&apos;re here to help! If you&apos;re experiencing issues with Pulse or need assistance setting up your events, please reach out to us.
       </p>
 
       <div className="bg-surface-card rounded-2xl border border-border p-8 mb-8 shadow-sm">
@@ -35,7 +35,7 @@ export default function SupportPage() {
           <div>
             <h3 className="font-medium text-foreground mb-2">How do I host an event?</h3>
             <p className="text-muted-foreground">
-              Go to the <Link href="/" className="text-[#00796B] hover:underline">Pulse Dashboard</Link> and click "Create Event". You can then share your event code with participants, or use our add-ons for PowerPoint, Google Meet, Zoom, or Microsoft Teams.
+              Go to the <Link href="/" className="text-[#00796B] hover:underline">Pulse Dashboard</Link> and click &quot;Create Event&quot;. You can then share your event code with participants, or use our add-ons for PowerPoint, Google Meet, Zoom, or Microsoft Teams.
             </p>
           </div>
 
@@ -47,7 +47,7 @@ export default function SupportPage() {
           </div>
 
           <div>
-            <h3 className="font-medium text-foreground mb-2">My Google Meet/Teams integration isn't working</h3>
+            <h3 className="font-medium text-foreground mb-2">My Google Meet/Teams integration isn&apos;t working</h3>
             <p className="text-muted-foreground">
               Please ensure you have granted the necessary permissions when installing the add-on. If the issue persists, try clearing your browser cache or opening the add-on in an incognito window.
             </p>
