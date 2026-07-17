@@ -66,10 +66,16 @@ export class ZoomService {
     const profileData = (await profileResponse.json()) as { id: string };
     const zoomUserId = profileData.id;
 
-    // 3. Save to user profile
+    // 3. Save to user profile (if auth0Sub was provided)
+    if (!auth0Sub) {
+      this.logger.log(`Zoom connected for Zoom ID ${zoomUserId} (Web Marketplace Install - no auth0Sub)`);
+      return;
+    }
+
     const user = await this.usersService.findByAuth0Sub(auth0Sub);
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      this.logger.warn(`User ${auth0Sub} not found during Zoom OAuth callback, but Zoom was successfully authorized.`);
+      return;
     }
 
     // Find and update the integration, or add it if it doesn't exist.
