@@ -130,6 +130,22 @@ export default function MeetPage() {
           </div>
         </div>
 
+        {/* Host Action card */}
+        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-surface-card p-6 shadow-xl ring-1 ring-black/5">
+          <h2 className="mb-1 text-lg font-semibold text-foreground">Host an Event</h2>
+          <p className="mb-6 text-sm text-ink-muted">
+            Want to run your own polls and Q&amp;A? Create a new event from the Pulse dashboard.
+          </p>
+          <button
+            onClick={() => {
+              window.open(window.location.origin, '_blank');
+            }}
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm font-semibold text-foreground shadow-sm transition-all hover:bg-surface-hover active:scale-[0.98]"
+          >
+            Create New Event
+          </button>
+        </div>
+
         {/* Debug info */}
         <div className="mt-6 rounded-lg bg-surface-raised p-3 text-left text-xs text-ink-subtle">
           <p>meetingId: {meetingId ?? 'n/a'}</p>
