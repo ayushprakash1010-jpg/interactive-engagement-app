@@ -17,9 +17,18 @@ export default function SupportPage() {
 
       <div className="bg-surface-card rounded-2xl border border-border p-8 mb-8 shadow-sm">
         <h2 className="text-xl font-semibold mb-4 mt-0">Contact Support</h2>
-        <p className="mb-6">
-          The fastest way to get help is to send an email directly to our support team. We typically respond within 24 hours.
+        <p className="mb-4">
+          The fastest way to get help is to send an email directly to our support team. You can also reach us through this email to create a support case.
         </p>
+        
+        <div className="mb-6 bg-surface p-4 rounded-xl border border-border">
+          <ul className="list-none pl-0 m-0 space-y-2 text-sm text-muted-foreground">
+            <li><strong>Support Hours:</strong> Monday - Friday, 9:00 AM - 5:00 PM (EST)</li>
+            <li><strong>First Response SLA:</strong> We guarantee a response to all inquiries within 24 business hours.</li>
+            <li><strong>Live Support:</strong> Currently unavailable. Please use email for all inquiries.</li>
+          </ul>
+        </div>
+
         <a 
           href="mailto:questliv.support@gmail.com" 
           className="inline-flex items-center justify-center rounded-xl bg-[#00796B] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#00695C] no-underline"
