@@ -1,0 +1,313 @@
+/* ============================================================
+ * Pulse — Color tokens
+ * Resolves the IEP codebase's two competing palettes into one
+ * canonical identity: TEAL primary + WARM SAND neutrals.
+ * (The live-activity components reached for `var(--color-primary,#01696f)`
+ *  and `var(--color-surface,#f9f8f5)` — that warm-teal system, never
+ *  formally declared, is promoted here to the real brand.)
+ * ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Brand: Teal ------------------------------------------------ */
+  --teal-50:  #e7f1f1;
+  --teal-100: #c6dedf;
+  --teal-200: #9cc6c8;
+  --teal-300: #6daab0;
+  --teal-400: #4f98a3;   /* chart teal-light */
+  --teal-500: #1a7d83;
+  --teal-600: #01696f;   /* PRIMARY — the de-facto brand teal */
+  --teal-700: #015358;
+  --teal-800: #013e42;
+  --teal-900: #04292c;
+
+  /* ---- Warm sand neutrals (paper + ink) -------------------------- */
+  --sand-50:  #faf9f6;   /* lightest surface */
+  --sand-100: #f5f3ee;   /* app canvas */
+  --sand-150: #f3f0ec;   /* surface-offset (chart hover) */
+  --sand-200: #eae6df;   /* raised / surface-2 */
+  --sand-300: #ddd8cf;   /* border */
+  --sand-400: #c8c2b6;   /* strong border / disabled */
+  --sand-500: #9a9488;   /* faint text */
+  --ink-700:  #6f6b62;   /* muted text */
+  --ink-800:  #45423b;   /* secondary text */
+  --ink-900:  #23211d;   /* primary text (warm charcoal) */
+  --white:    #ffffff;
+  --black:    #161410;
+
+  /* ---- AI accent: Iris ------------------------------------------- */
+  /* Drawn from the existing chart palette (#7a39bb), reserved for
+     AI-generated / AI-assisted surfaces so AI reads as one feature. */
+  --iris-50:  #f1ebfa;
+  --iris-100: #e2d3f5;
+  --iris-200: #c4a7ea;
+  --iris-400: #9b5fd4;
+  --iris-500: #7a39bb;   /* AI accent */
+  --iris-600: #682da3;
+  --iris-700: #4f2080;
+
+  /* ---- Semantic hues --------------------------------------------- */
+  --green-500: #6daa45;
+  --green-600: #437a22;  /* success */
+  --green-50:  #eaf3e1;
+  --gold-500:  #d19900;  /* warning */
+  --gold-50:   #f9efd2;
+  --red-500:   #cf3b30;  /* error / destructive */
+  --red-600:   #b22f25;
+  --red-50:    #fae6e3;
+  --blue-500:  #006494;  /* info */
+  --blue-50:   #e0eef4;
+
+  /* ---- Categorical data palette (poll bars, charts) -------------- */
+  --data-1: #01696f;
+  --data-2: #4f98a3;
+  --data-3: #6daa45;
+  --data-4: #d19900;
+  --data-5: #da7101;
+  --data-6: #006494;
+  --data-7: #7a39bb;
+  --data-8: #a12c7b;
+
+  /* ============================================================
+   * Semantic aliases — reference these in product code, not raw scales
+   * ============================================================ */
+
+  /* Surfaces */
+  --surface-canvas:     var(--sand-100);  /* page background */
+  --surface-card:       var(--white);     /* cards, sheets */
+  --surface-raised:     var(--sand-50);   /* nested panels */
+  --surface-sunken:     var(--sand-200);  /* wells, inputs-in-card */
+  --surface-offset:     var(--sand-150);  /* hover fills, table stripes */
+  --surface-inverse:    var(--teal-900);  /* projector / dark stage */
+
+  /* Text */
+  --text-primary:   var(--ink-900);
+  --text-secondary: var(--ink-800);
+  --text-muted:     var(--ink-700);
+  --text-faint:     var(--sand-500);
+  --text-on-brand:  var(--white);
+  --text-on-dark:   var(--sand-50);
+  --text-link:      var(--teal-600);
+
+  /* Borders & dividers */
+  --border-subtle:  var(--sand-200);
+  --border-default: var(--sand-300);
+  --border-strong:  var(--sand-400);
+  --divider:        var(--sand-200);
+  --ring-focus:     var(--teal-500);
+
+  /* Brand / primary actions */
+  --brand:             var(--teal-600);
+  --brand-hover:       var(--teal-700);
+  --brand-active:      var(--teal-800);
+  --brand-subtle:      var(--teal-50);    /* tinted fills, selected rows */
+  --brand-subtle-text: var(--teal-700);
+  --primary-highlight: var(--teal-50);    /* maps legacy --color-primary-highlight */
+
+  /* AI */
+  --ai:             var(--iris-500);
+  --ai-hover:       var(--iris-600);
+  --ai-subtle:      var(--iris-50);
+  --ai-subtle-text: var(--iris-700);
+  --ai-border:      var(--iris-200);
+  --ai-gradient:    linear-gradient(135deg, var(--iris-500) 0%, var(--teal-600) 100%);
+
+  /* Status */
+  --success:        var(--green-600);
+  --success-subtle: var(--green-50);
+  --warning:        var(--gold-500);
+  --warning-text:   #8a6500;
+  --warning-subtle: var(--gold-50);
+  --error:          var(--red-500);
+  --error-hover:    var(--red-600);
+  --error-subtle:   var(--red-50);
+  --info:           var(--blue-500);
+  --info-subtle:    var(--blue-50);
+  --live:           var(--green-500);     /* the live "on-air" dot */
+
+  /* ---- Legacy bridge: the undefined vars the IEP app referenced ---
+     Keep these so existing components resolve against real tokens. */
+  --color-primary:           var(--brand);
+  --color-primary-highlight: var(--primary-highlight);
+  --color-surface:           var(--surface-card);
+  --color-surface-2:         var(--surface-sunken);
+  --color-surface-offset:    var(--surface-offset);
+  --color-text:              var(--text-primary);
+  --color-text-muted:        var(--text-muted);
+  --color-border:            var(--border-default);
+  --color-divider:           var(--divider);
+  --color-success:           var(--success);
+  --color-error:             var(--error);
+  --color-error-highlight:   var(--error-subtle);
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* ---- Dark SaaS neutrals ---------------------------------------- */
+  --surface-canvas:  #0f172a;
+  --surface-card:    #1e293b;
+  --surface-raised:  #172033;
+  --surface-sunken:  #111827;
+  --surface-offset:  #243247;
+  --surface-inverse: #f8fafc;
+
+  --text-primary:   #f8fafc;
+  --text-secondary: #dbe5f0;
+  --text-muted:     #94a3b8;
+  --text-faint:     #64748b;
+  --text-on-brand:  #ffffff;
+  --text-on-dark:   #0f172a;
+  --text-link:      #67c7d0;
+
+  --border-subtle:  #27364b;
+  --border-default: #334155;
+  --border-strong:  #475569;
+  --divider:        #27364b;
+  --ring-focus:     #67c7d0;
+
+  --brand:             #4f98a3;
+  --brand-hover:       #67b3bd;
+  --brand-active:      #8bc6ce;
+  --brand-subtle:      #123940;
+  --brand-subtle-text: #9fe1e7;
+  --primary-highlight: var(--brand-subtle);
+
+  --ai:             #b794f4;
+  --ai-hover:       #c4a7ea;
+  --ai-subtle:      #33234a;
+  --ai-subtle-text: #e2d3f5;
+  --ai-border:      #5b3f82;
+  --ai-gradient:    linear-gradient(135deg, var(--ai) 0%, var(--brand) 100%);
+
+  --success:        #86efac;
+  --success-subtle: #173522;
+  --warning:        #facc15;
+  --warning-text:   #fde68a;
+  --warning-subtle: #3f3212;
+  --error:          #f87171;
+  --error-hover:    #fca5a5;
+  --error-subtle:   #3d1f24;
+  --info:           #7dd3fc;
+  --info-subtle:    #123246;
+  --live:           #86efac;
+
+  --data-1: #67c7d0;
+  --data-2: #86efac;
+  --data-3: #7dd3fc;
+  --data-4: #facc15;
+  --data-5: #fb923c;
+  --data-6: #b794f4;
+  --data-7: #f0abfc;
+  --data-8: #fda4af;
+
+  --color-primary:           var(--brand);
+  --color-primary-highlight: var(--primary-highlight);
+  --color-surface:           var(--surface-card);
+  --color-surface-2:         var(--surface-sunken);
+  --color-surface-offset:    var(--surface-offset);
+  --color-text:              var(--text-primary);
+  --color-text-muted:        var(--text-muted);
+  --color-border:            var(--border-default);
+  --color-divider:           var(--divider);
+  --color-success:           var(--success);
+  --color-error:             var(--error);
+  --color-error-highlight:   var(--error-subtle);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='system'] {
+    color-scheme: dark;
+
+    --surface-canvas:  #0f172a;
+    --surface-card:    #1e293b;
+    --surface-raised:  #172033;
+    --surface-sunken:  #111827;
+    --surface-offset:  #243247;
+    --surface-inverse: #f8fafc;
+
+    --text-primary:   #f8fafc;
+    --text-secondary: #dbe5f0;
+    --text-muted:     #94a3b8;
+    --text-faint:     #64748b;
+    --text-on-brand:  #ffffff;
+    --text-on-dark:   #0f172a;
+    --text-link:      #67c7d0;
+
+    --border-subtle:  #27364b;
+    --border-default: #334155;
+    --border-strong:  #475569;
+    --divider:        #27364b;
+    --ring-focus:     #67c7d0;
+
+    --brand:             #4f98a3;
+    --brand-hover:       #67b3bd;
+    --brand-active:      #8bc6ce;
+    --brand-subtle:      #123940;
+    --brand-subtle-text: #9fe1e7;
+    --primary-highlight: var(--brand-subtle);
+
+    --ai:             #b794f4;
+    --ai-hover:       #c4a7ea;
+    --ai-subtle:      #33234a;
+    --ai-subtle-text: #e2d3f5;
+    --ai-border:      #5b3f82;
+    --ai-gradient:    linear-gradient(135deg, var(--ai) 0%, var(--brand) 100%);
+
+    --success:        #86efac;
+    --success-subtle: #173522;
+    --warning:        #facc15;
+    --warning-text:   #fde68a;
+    --warning-subtle: #3f3212;
+    --error:          #f87171;
+    --error-hover:    #fca5a5;
+    --error-subtle:   #3d1f24;
+    --info:           #7dd3fc;
+    --info-subtle:    #123246;
+    --live:           #86efac;
+
+    --data-1: #67c7d0;
+    --data-2: #86efac;
+    --data-3: #7dd3fc;
+    --data-4: #facc15;
+    --data-5: #fb923c;
+    --data-6: #b794f4;
+    --data-7: #f0abfc;
+    --data-8: #fda4af;
+
+    --color-primary:           var(--brand);
+    --color-primary-highlight: var(--primary-highlight);
+    --color-surface:           var(--surface-card);
+    --color-surface-2:         var(--surface-sunken);
+    --color-surface-offset:    var(--surface-offset);
+    --color-text:              var(--text-primary);
+    --color-text-muted:        var(--text-muted);
+    --color-border:            var(--border-default);
+    --color-divider:           var(--divider);
+    --color-success:           var(--success);
+    --color-error:             var(--error);
+    --color-error-highlight:   var(--error-subtle);
+  }
+}
+
+/* ============================================================
+ * Inverse / stage scope — projector + dark "on-air" surfaces.
+ * Apply `.pulse-stage` to a dark full-bleed region.
+ * ============================================================ */
+.pulse-stage {
+  --surface-canvas: var(--teal-900);
+  --surface-card:   #0a3437;
+  --surface-raised: #0e3b3f;
+  --surface-sunken: #07292c;
+  --surface-offset: #0e3b3f;
+  --text-primary:   var(--sand-50);
+  --text-secondary: #cfe0df;
+  --text-muted:     #8fb0af;
+  --border-subtle:  #1a4a4d;
+  --border-default: #1f5256;
+  --border-strong:  #2c6468;
+  --brand-subtle:   #0e3b3f;
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+}

@@ -1,0 +1,49 @@
+/* ============================================================
+ * Pulse — Motion tokens
+ * Real-time product: motion should feel *responsive and calm*, never
+ * bouncy-playful. Results slide/grow in; live values count up; the
+ * on-air dot pulses. Respect prefers-reduced-motion everywhere.
+ * ============================================================ */
+
+:root {
+  /* Durations */
+  --dur-instant: 80ms;  /* @kind other */
+  --dur-fast:    140ms; /* @kind other */ /* hover, press, toggles */
+  --dur-base:    220ms; /* @kind other */ /* enter/leave, fades */
+  --dur-slow:    420ms; /* @kind other */ /* results animating in, bar growth */
+  --dur-slower:  700ms; /* @kind other */ /* count-ups, big-screen reveals */
+
+  /* Easing */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);      /* @kind other */ /* most UI */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);   /* @kind other */ /* enter */
+  --ease-in:       cubic-bezier(0.4, 0, 1, 1);      /* @kind other */ /* leave */
+  --ease-spring:   cubic-bezier(0.34, 1.4, 0.5, 1); /* @kind other */ /* overshoot, rare */
+}
+
+/* The live "on-air" pulse — used on the green dot in headers/badges */
+@keyframes pulse-live {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.35); opacity: 0.55; }
+}
+
+/* AI shimmer — a slow sheen for "thinking" / generating states */
+@keyframes pulse-shimmer {
+  0%   { background-position: -160% 0; }
+  100% { background-position: 160% 0; }
+}
+
+/* Result bar grow-in */
+@keyframes pulse-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-instant: 0ms; /* @kind other */
+    --dur-fast: 0ms;    /* @kind other */
+    --dur-base: 0ms;    /* @kind other */
+    --dur-slow: 0ms;    /* @kind other */
+    --dur-slower: 0ms;  /* @kind other */
+  }
+}

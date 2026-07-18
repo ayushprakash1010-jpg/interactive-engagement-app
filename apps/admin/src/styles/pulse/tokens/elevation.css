@@ -1,0 +1,38 @@
+/* ============================================================
+ * Pulse — Radii, borders, shadows (warm-tinted elevation)
+ * ============================================================ */
+
+:root {
+  /* Radii — app baseline is 0.5rem (8px) */
+  --radius-xs:   0.25rem;  /* 4 — chips, tags */
+  --radius-sm:   0.375rem; /* 6 — inputs, buttons */
+  --radius-md:   0.5rem;   /* 8 — cards (default) */
+  --radius-lg:   0.75rem;  /* 12 — panels, sheets */
+  --radius-xl:   1rem;     /* 16 — feature cards */
+  --radius-2xl:  1.5rem;   /* 24 — marketing hero blocks */
+  --radius-full: 9999px;   /* pills, avatars, badges, the live dot */
+
+  /* Border widths */
+  --border-1: 1px;
+  --border-2: 2px;
+
+  /* Elevation — shadows carry a faint warm/teal tint, never pure black,
+     so cards sit naturally on the sand canvas. */
+  --shadow-xs: 0 1px 2px rgba(35, 33, 29, 0.05);
+  --shadow-sm: 0 1px 2px rgba(35, 33, 29, 0.06),
+               0 1px 3px rgba(35, 33, 29, 0.05);
+  --shadow-md: 0 2px 4px rgba(35, 33, 29, 0.05),
+               0 4px 12px rgba(35, 33, 29, 0.07);
+  --shadow-lg: 0 8px 20px rgba(35, 33, 29, 0.08),
+               0 2px 6px rgba(35, 33, 29, 0.05);
+  --shadow-xl: 0 18px 48px rgba(35, 33, 29, 0.14),
+               0 6px 14px rgba(35, 33, 29, 0.07);
+
+  /* Brand & AI glows — for live / AI emphasis moments (sparingly) */
+  --glow-brand: 0 0 0 4px rgba(1, 105, 111, 0.14);
+  --glow-ai:    0 0 0 4px rgba(122, 57, 187, 0.16);
+  --glow-live:  0 0 0 4px rgba(109, 170, 69, 0.22);
+
+  /* Focus ring (paired with --ring-focus color) */
+  --ring-width: 3px;
+}
