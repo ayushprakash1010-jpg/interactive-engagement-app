@@ -322,7 +322,7 @@ export default function LandingPage() {
 
                   {/* Slot 1: Headline */}
                   <h1 className="mx-auto max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl lg:mx-0 lg:text-6xl">
-                    <span className="bg-gradient-to-b from-ink-primary to-ink-muted dark:from-white dark:to-white/70 bg-clip-text text-transparent">
+                    <span className="bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 bg-clip-text text-transparent">
                       Turn passive rooms into{' '}
                     </span>
                     <br className="hidden sm:block" />
