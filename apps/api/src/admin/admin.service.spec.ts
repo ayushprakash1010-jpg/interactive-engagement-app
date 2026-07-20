@@ -18,7 +18,9 @@ describe('AdminService', () => {
 
   beforeEach(async () => {
     userModel = {
-      countDocuments: jest.fn().mockResolvedValue(100),
+      countDocuments: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue(100)
+      }),
       aggregate: jest.fn().mockResolvedValue([{ totalAIRequests: 50 }]),
       findById: jest.fn(),
     };
@@ -229,6 +231,30 @@ describe('AdminService', () => {
       expect(auditLogModel.create).toHaveBeenCalledWith(expect.objectContaining({
         actionType: 'USER_REACTIVATED',
         reason: 'Appealed'
+      }));
+    });
+  });
+
+  describe('User Organization Membership', () => {
+    it('should filter users by organizationId in getUsers', async () => {
+      userModel.find = jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          sort: jest.fn().mockReturnValue({
+            skip: jest.fn().mockReturnValue({
+              limit: jest.fn().mockReturnValue({
+                lean: jest.fn().mockReturnValue({
+                  exec: jest.fn().mockResolvedValue([])
+                })
+              })
+            })
+          })
+        })
+      });
+
+      await service.getUsers({ organizationId: '5f4d2a8b9d8f8a1234567891' });
+
+      expect(userModel.find).toHaveBeenCalledWith(expect.objectContaining({
+        organizationId: new Types.ObjectId('5f4d2a8b9d8f8a1234567891')
       }));
     });
   });

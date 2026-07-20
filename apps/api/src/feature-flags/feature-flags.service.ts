@@ -4,11 +4,12 @@ import { Model } from 'mongoose';
 import { FeatureFlagEntity, FeatureFlagDocument } from './feature-flag.schema';
 import { AdminAuditLogEntity, AdminAuditLogDocument } from '../admin/audit-log.schema';
 
-import { IsString, IsNotEmpty, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsBoolean, IsOptional, Matches } from 'class-validator';
 
 export class CreateFeatureFlagDto {
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[a-z0-9-]+$/, { message: 'Key must be a lowercase slug containing only letters, numbers, and hyphens' })
   key!: string;
 
   @IsString()

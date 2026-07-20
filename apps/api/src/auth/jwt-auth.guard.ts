@@ -41,6 +41,12 @@ export class JwtAuthGuard extends AuthGuard(['jwt', 'impersonation']) {
     info: Error | string | null,
   ): TUser {
     if (err || !user) {
+      if (err instanceof UnauthorizedException) {
+        // Log it if needed
+        this.logger.warn(`JWT validation failed: ${err.message}`);
+        throw err;
+      }
+
       const detail =
         info instanceof Error
           ? info.message

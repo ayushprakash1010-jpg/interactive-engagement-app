@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken, withApiAuthRequired } from '@auth0/nextjs-auth0';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Authenticated reverse proxy for the Admin Console.
  *

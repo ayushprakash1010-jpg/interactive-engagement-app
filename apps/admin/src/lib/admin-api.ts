@@ -186,6 +186,7 @@ export async function fetchAdminUsers(
   if (params.limit) qs.set('limit', String(params.limit));
   if (params.sort) qs.set('sort', params.sort);
   if (params.order) qs.set('order', params.order);
+  if (params.organizationId) qs.set('organizationId', params.organizationId);
   const query = qs.toString();
   return adminFetch<AdminUserListResponse>(`admin/users${query ? `?${query}` : ''}`);
 }

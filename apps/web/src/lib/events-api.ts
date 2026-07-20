@@ -42,6 +42,13 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     } catch {
       // keep default message
     }
+
+    if (res.status === 401 && typeof window !== 'undefined' && message === 'User account is suspended') {
+      window.location.href = '/suspended';
+      // Return a never-resolving promise so the rest of the app doesn't try to render with errors while redirecting
+      return new Promise<T>(() => {});
+    }
+
     throw new ApiError(message, res.status);
   }
 
@@ -81,6 +88,12 @@ export async function publicApiFetch<T>(path: string, init?: RequestInit): Promi
     } catch {
       // keep default message
     }
+
+    if (res.status === 401 && typeof window !== 'undefined' && message === 'User account is suspended') {
+      window.location.href = '/suspended';
+      return new Promise<T>(() => {});
+    }
+
     throw new ApiError(message, res.status);
   }
 
@@ -116,6 +129,12 @@ export async function apiFetchBlob(
     } catch {
       // keep default message
     }
+
+    if (res.status === 401 && typeof window !== 'undefined' && message === 'User account is suspended') {
+      window.location.href = '/suspended';
+      return new Promise<Blob>(() => {});
+    }
+
     throw new ApiError(message, res.status);
   }
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccessToken, withApiAuthRequired } from '@auth0/nextjs-auth0';
 
+export const dynamic = 'force-dynamic';
+
 const API_URL =
   process.env.API_INTERNAL_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
