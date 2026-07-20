@@ -75,7 +75,7 @@ export async function fetchAdminMe(): Promise<AdminMe> {
 export async function fetchAdminMeServer(): Promise<AdminMe> {
   const { getAccessToken } = await import('@auth0/nextjs-auth0');
   let accessToken: string | undefined;
-  
+
   try {
     ({ accessToken } = await getAccessToken());
   } catch (err) {
@@ -98,4 +98,288 @@ export async function fetchAdminMeServer(): Promise<AdminMe> {
 /** Platform-wide statistics for the Workspace Launcher header. */
 export async function fetchAdminStats(): Promise<AdminStats> {
   return adminFetch<AdminStats>('admin/stats');
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Users & Hosts
+// ---------------------------------------------------------------------------
+
+export interface AdminUserSummary {
+  id: string;
+  name: string;
+  email: string;
+  role: 'host' | 'admin';
+  plan: string;
+  createdAt: string;
+}
+
+export interface AdminUserListMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface AdminUserListResponse {
+  data: AdminUserSummary[];
+  meta: AdminUserListMeta;
+}
+
+export interface AdminRecentEvent {
+  id: string;
+  name: string;
+  eventCode: string;
+  status: 'draft' | 'live' | 'ended';
+  createdAt: string;
+}
+
+export interface AdminIntegrationStatus {
+  zoom: boolean;
+  teams: boolean;
+  meet: boolean;
+  powerpoint: boolean;
+}
+
+export interface AdminUserDetail {
+  profile: {
+    id: string;
+    auth0Sub: string;
+    name: string;
+    email: string;
+    role: 'host' | 'admin';
+    plan: string;
+    aiUsageCount: number;
+    createdAt: string;
+  };
+  eventActivity: {
+    totalEvents: number;
+    liveEvents: number;
+    recentEvents: AdminRecentEvent[];
+  };
+  integrationStatus: AdminIntegrationStatus;
+}
+
+export interface UserSearchParams {
+  search?: string;
+  role?: string;
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: string;
+}
+
+/** Paginated global user search — all params validated server-side. */
+export async function fetchAdminUsers(
+  params: UserSearchParams = {},
+): Promise<AdminUserListResponse> {
+  const qs = new URLSearchParams();
+  if (params.search) qs.set('search', params.search);
+  if (params.role) qs.set('role', params.role);
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  if (params.sort) qs.set('sort', params.sort);
+  if (params.order) qs.set('order', params.order);
+  const query = qs.toString();
+  return adminFetch<AdminUserListResponse>(`admin/users${query ? `?${query}` : ''}`);
+}
+
+/** Fetch a single user's full detail view. */
+export async function fetchAdminUser(id: string): Promise<AdminUserDetail> {
+  return adminFetch<AdminUserDetail>(`admin/users/${encodeURIComponent(id)}`);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: Events
+// ---------------------------------------------------------------------------
+
+export interface AdminEventSummary {
+  id: string;
+  name: string;
+  eventCode: string;
+  status: 'draft' | 'live' | 'ended';
+  hostId: string;
+  hostName: string;
+  hostEmail: string;
+  createdAt: string;
+  scheduledStart: string | null;
+}
+
+export interface AdminEventListMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface AdminEventListResponse {
+  data: AdminEventSummary[];
+  meta: AdminEventListMeta;
+}
+
+export interface AdminEventDetail {
+  id: string;
+  name: string;
+  description?: string;
+  eventCode: string;
+  status: 'draft' | 'live' | 'ended';
+  createdAt: string;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  timezone: string | null;
+  settings: {
+    allowAnonymousQA: boolean;
+    requireModeration: boolean;
+    participantNames: boolean;
+  };
+  host: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  integrations: Array<{ provider: string; externalId: string }>;
+}
+
+export interface EventSearchParams {
+  search?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+  sort?: string;
+  order?: string;
+}
+
+/** Paginated global event search. */
+export async function fetchAdminEvents(
+  params: EventSearchParams = {},
+): Promise<AdminEventListResponse> {
+  const qs = new URLSearchParams();
+  if (params.search) qs.set('search', params.search);
+  if (params.status) qs.set('status', params.status);
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  if (params.sort) qs.set('sort', params.sort);
+  if (params.order) qs.set('order', params.order);
+  const query = qs.toString();
+  return adminFetch<AdminEventListResponse>(`admin/events${query ? `?${query}` : ''}`);
+}
+
+/** Fetch a single event's full detail view. */
+export async function fetchAdminEvent(id: string): Promise<AdminEventDetail> {
+  return adminFetch<AdminEventDetail>(`admin/events/${encodeURIComponent(id)}`);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 4: Live Event Operations
+// ---------------------------------------------------------------------------
+
+export interface AdminEventDiagnostics {
+  connectedSockets: number;
+  activeActivityId: string | null;
+}
+
+/** Fetch real-time diagnostics for a live event via the WebSockets gateway. */
+export async function fetchEventDiagnostics(id: string): Promise<AdminEventDiagnostics> {
+  return adminFetch<AdminEventDiagnostics>(`admin/events/${encodeURIComponent(id)}/diagnostics`);
+}
+
+/** Forcibly ends a live event, disconnecting all participants immediately. */
+export async function forceEndAdminEvent(id: string, reason?: string): Promise<void> {
+  return adminFetch<void>(`admin/events/${encodeURIComponent(id)}/end`, {
+    method: 'POST',
+    body: reason ? JSON.stringify({ reason }) : undefined,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5: Integration Diagnostics
+// ---------------------------------------------------------------------------
+
+export interface AdminIntegrationDetail {
+  provider: string;
+  externalId: string;
+  zoomUserId: string | null;
+  status: 'Configured' | 'Unknown';
+}
+
+export interface AdminUserIntegrations {
+  userId: string;
+  name: string;
+  email: string;
+  integrations: AdminIntegrationDetail[];
+}
+
+export interface AdminIntegrationList {
+  data: AdminUserIntegrations[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface IntegrationSearchParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+/** Fetch integration diagnostics, supports searching by email, name, or external IDs. */
+export async function fetchAdminIntegrations(
+  params: IntegrationSearchParams = {}
+): Promise<AdminIntegrationList> {
+  const q = new URLSearchParams();
+  if (params.page) q.set('page', params.page.toString());
+  if (params.limit) q.set('limit', params.limit.toString());
+  if (params.search) q.set('search', params.search);
+
+  return adminFetch<AdminIntegrationList>(`admin/integrations?${q.toString()}`);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6: Audit Logs
+// ---------------------------------------------------------------------------
+
+export interface AuditLogRecord {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  actionType: string;
+  targetResourceType: string;
+  targetResourceId: string;
+  reason: string | null;
+  metadata: Record<string, any>;
+  createdAt: string;
+}
+
+export interface AuditLogList {
+  data: AuditLogRecord[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface AuditLogSearchParams {
+  page?: number;
+  limit?: number;
+  actionType?: string;
+  targetResourceType?: string;
+  search?: string;
+}
+
+/** Fetch admin audit logs. */
+export async function fetchAuditLogs(
+  params: AuditLogSearchParams = {}
+): Promise<AuditLogList> {
+  const q = new URLSearchParams();
+  if (params.page) q.set('page', params.page.toString());
+  if (params.limit) q.set('limit', params.limit.toString());
+  if (params.actionType) q.set('actionType', params.actionType);
+  if (params.targetResourceType) q.set('targetResourceType', params.targetResourceType);
+  if (params.search) q.set('search', params.search);
+
+  return adminFetch<AuditLogList>(`admin/audit-logs?${q.toString()}`);
 }

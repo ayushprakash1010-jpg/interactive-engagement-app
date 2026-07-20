@@ -10,6 +10,7 @@ import {
   LifeBuoy,
   BookOpen,
   HeartPulse,
+  Search,
 } from 'lucide-react';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { WorkspaceCard } from '@/components/admin/workspace-card';
@@ -66,10 +67,16 @@ export default async function HomePage() {
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <WorkspaceCard
+              title="Global Support Search"
+              description="Unified search across users, events, and integrations for fast triage."
+              icon={Search}
+              href="/support"
+            />
+            <WorkspaceCard
               title="Users & Hosts"
               description="Look up a host by email, name, or ID. View profile, integrations, and run support actions."
               icon={Users}
-              comingSoon
+              href="/users"
             />
             <WorkspaceCard
               title="Support Inbox"
@@ -99,7 +106,7 @@ export default async function HomePage() {
               title="Events"
               description="Search events by code, host, or date. View event details and activity diagnostics."
               icon={CalendarDays}
-              comingSoon
+              href="/events"
             />
             <WorkspaceCard
               title="Live Sessions"
@@ -111,7 +118,7 @@ export default async function HomePage() {
               title="Integrations"
               description="Inspect Zoom, Teams, Meet, Slides, and PowerPoint integration health per user."
               icon={Puzzle}
-              comingSoon
+              href="/integrations"
             />
           </div>
         </section>
@@ -129,7 +136,7 @@ export default async function HomePage() {
               title="Audit Logs"
               description="Search the immutable log of all admin actions — who did what, and when."
               icon={ScrollText}
-              comingSoon
+              href="/audit-logs"
             />
           </div>
         </section>

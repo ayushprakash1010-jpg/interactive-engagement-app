@@ -72,6 +72,13 @@ export class ActivityService {
     return activities as unknown as ActivityDocument[];
   }
 
+  async findLiveActivity(eventId: string): Promise<ActivityDocument | null> {
+    return this.activityModel
+      .findOne({ eventId: new Types.ObjectId(eventId), status: 'live' })
+      .lean()
+      .exec() as unknown as Promise<ActivityDocument | null>;
+  }
+
   async findOne(id: string, eventId: string): Promise<ActivityDocument> {
     this.assertObjectId(id);
 
