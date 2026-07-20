@@ -588,10 +588,10 @@ export default function DashboardOverviewPage() {
       id: 'create-event',
       icon: Plus,
       label: 'Create Event',
-      description: 'Start a new interactive session',
+      description: user?.isImpersonating ? 'Restricted while impersonating' : 'Start a new interactive session',
       color: 'bg-brand-subtle',
       iconColor: 'text-brand',
-      href: '/dashboard/events/new',
+      href: user?.isImpersonating ? '#' : '/dashboard/events/new',
     },
     {
       id: 'generate-poll',

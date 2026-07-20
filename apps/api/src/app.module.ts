@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LoggerModule } from 'nestjs-pino';
@@ -25,6 +25,9 @@ import { TeamsModule } from './teams/teams.module';
 import { GoogleMeetModule } from './google-meet/google-meet.module';
 import { PowerPointModule } from './powerpoint/powerpoint.module';
 import { GoogleSlidesModule } from './google-slides/google-slides.module';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+
+import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.interceptor';
 
 @Module({
   imports: [
@@ -104,11 +107,16 @@ import { GoogleSlidesModule } from './google-slides/google-slides.module';
     GoogleMeetModule,
     PowerPointModule,
     GoogleSlidesModule,
+    FeatureFlagsModule,
   ],
   providers: [
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: PreventImpersonationInterceptor,
     },
   ],
 })

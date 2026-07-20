@@ -3,22 +3,63 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UserEntity, UserDocument } from '../users/user.schema';
 import { EventEntity, EventDocument } from '../events/event.schema';
+import { OrganizationEntity, OrganizationDocument } from '../organizations/organization.schema';
 import { AdminAuditLogEntity, AdminAuditLogDocument } from './audit-log.schema';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { EventsService } from '../events/events.service';
 import type { AuthenticatedUser } from '../auth/jwt.strategy';
+import { randomUUID } from 'node:crypto';
+import { JwtService } from '@nestjs/jwt';
 
 // ---------------------------------------------------------------------------
 // Response DTOs — explicit allowlist, never raw Mongoose documents
 // ---------------------------------------------------------------------------
 
+export interface AdminAnalyticsDto {
+  totalOrganizations: number;
+  totalUsers: number;
+  newUsersThisMonth: number;
+  totalEvents: number;
+  liveEvents: number;
+  newEventsThisMonth: number;
+  totalAIRequests: number;
+  dailyActiveUsers: number;
+  monthlyActiveUsers: number;
+}
+
 export interface AdminUserSummaryDto {
   id: string;
   name: string;
   email: string;
-  role: 'host' | 'admin';
+  role: 'host' | 'admin' | 'support';
   plan: string;
+  isSuspended: boolean;
+  organizationId?: string | null;
+  organizationName?: string | null;
   createdAt: string;
+}
+
+export interface AdminOrganizationSummaryDto {
+  id: string;
+  name: string;
+  plan: string;
+  totalUsers: number;
+  totalEvents: number;
+  createdAt: string;
+}
+
+export interface AdminOrganizationListDto {
+  data: AdminOrganizationSummaryDto[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
+
+export interface AdminOrganizationDetailDto extends AdminOrganizationSummaryDto {
+  activeEvents: number;
+  settings: {
+    aiStudioEnabled: boolean;
+    advancedAnalyticsEnabled: boolean;
+    customBrandingEnabled: boolean;
+  };
 }
 
 export interface AdminUserListDto {
@@ -47,9 +88,12 @@ export interface AdminUserDetailDto {
     auth0Sub: string;
     name: string;
     email: string;
-    role: 'host' | 'admin';
+    role: 'host' | 'admin' | 'support';
     plan: string;
     aiUsageCount: number;
+    isSuspended: boolean;
+    organizationId?: string | null;
+    organizationName?: string | null;
     createdAt: string;
   };
   eventActivity: {
@@ -165,6 +209,7 @@ export interface GetUsersQuery {
   role?: string;
   sort?: string;
   order?: string;
+  organizationId?: string;
 }
 
 export interface GetEventsQuery {
@@ -197,10 +242,15 @@ export class AdminService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(EventEntity.name)
     private readonly eventModel: Model<EventDocument>,
+    @InjectModel(OrganizationEntity.name)
+    private readonly organizationModel: Model<OrganizationDocument>,
     @InjectModel(AdminAuditLogEntity.name)
     private readonly auditLogModel: Model<AdminAuditLogDocument>,
+    @InjectModel('AiOperationLogEntity')
+    private readonly aiOperationLogModel: Model<any>,
     private readonly realtimeGateway: RealtimeGateway,
     private readonly coreEventsService: EventsService,
+    private readonly jwtService: JwtService,
   ) {}
 
   // ── Users List ─────────────────────────────────────────────────────────────
@@ -226,6 +276,10 @@ export class AdminService {
       filter.role = roleFilter;
     }
 
+    if (query.organizationId && Types.ObjectId.isValid(query.organizationId)) {
+      filter.organizationId = new Types.ObjectId(query.organizationId);
+    }
+
     if (query.search) {
       const raw = query.search.trim();
       if (raw) {
@@ -249,6 +303,7 @@ export class AdminService {
     const [docs, total] = await Promise.all([
       this.userModel
         .find(filter)
+        .populate<{ organizationId: OrganizationDocument }>('organizationId', 'name')
         .sort({ [sort]: order })
         .skip(skip)
         .limit(limit)
@@ -263,6 +318,9 @@ export class AdminService {
       email: u.email,
       role: u.role,
       plan: u.plan,
+      isSuspended: u.isSuspended,
+      organizationId: u.organizationId ? (u.organizationId._id as Types.ObjectId).toHexString() : null,
+      organizationName: u.organizationId ? u.organizationId.name : null,
       createdAt: (u as any).createdAt?.toISOString?.() ?? '',
     }));
 
@@ -284,7 +342,7 @@ export class AdminService {
       throw new NotFoundException(`User ${id} not found`);
     }
 
-    const user = await this.userModel.findById(id).lean().exec();
+    const user = await this.userModel.findById(id).populate<{ organizationId: OrganizationDocument }>('organizationId', 'name').lean().exec();
     if (!user) {
       throw new NotFoundException(`User ${id} not found`);
     }
@@ -335,6 +393,9 @@ export class AdminService {
         role: user.role,
         plan: user.plan,
         aiUsageCount: user.aiUsageCount ?? 0,
+        isSuspended: user.isSuspended,
+        organizationId: user.organizationId ? (user.organizationId._id as Types.ObjectId).toHexString() : null,
+        organizationName: user.organizationId ? user.organizationId.name : null,
         createdAt: (user as any).createdAt?.toISOString?.() ?? '',
       },
       eventActivity: {
@@ -671,6 +732,427 @@ export class AdminService {
         limit,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  // ── Organizations ──────────────────────────────────────────────────────────
+
+  async getOrganizations(query: { page?: number; limit?: number; search?: string }): Promise<AdminOrganizationListDto> {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(MAX_LIMIT, Math.max(1, Number(query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter: Record<string, unknown> = {};
+    if (query.search) {
+      filter.name = { $regex: escapeRegex(query.search.trim()), $options: 'i' };
+    }
+
+    const [docs, total] = await Promise.all([
+      this.organizationModel.find(filter).sort({ name: 1 }).skip(skip).limit(limit).lean().exec(),
+      this.organizationModel.countDocuments(filter).exec(),
+    ]);
+
+    const data: AdminOrganizationSummaryDto[] = await Promise.all(docs.map(async (o) => {
+      const orgId = o._id as Types.ObjectId;
+      const [totalUsers, totalEvents] = await Promise.all([
+        this.userModel.countDocuments({ organizationId: orgId }).exec(),
+        this.eventModel.countDocuments({ organizationId: orgId }).exec()
+      ]);
+      return {
+        id: orgId.toHexString(),
+        name: o.name,
+        plan: o.plan,
+        totalUsers,
+        totalEvents,
+        createdAt: (o as any).createdAt?.toISOString?.() ?? '',
+      };
+    }));
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getOrganizationById(id: string): Promise<AdminOrganizationDetailDto> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new NotFoundException(`Organization ${id} not found`);
+    }
+
+    const org = await this.organizationModel.findById(id).lean().exec();
+    if (!org) {
+      throw new NotFoundException(`Organization ${id} not found`);
+    }
+
+    const orgId = org._id as Types.ObjectId;
+    const [totalUsers, totalEvents, activeEvents] = await Promise.all([
+      this.userModel.countDocuments({ organizationId: orgId }).exec(),
+      this.eventModel.countDocuments({ organizationId: orgId }).exec(),
+      this.eventModel.countDocuments({ organizationId: orgId, status: 'live' }).exec()
+    ]);
+
+    return {
+      id: orgId.toHexString(),
+      name: org.name,
+      plan: org.plan,
+      totalUsers,
+      totalEvents,
+      activeEvents,
+      settings: {
+        aiStudioEnabled: org.settings?.aiStudioEnabled ?? false,
+        advancedAnalyticsEnabled: org.settings?.advancedAnalyticsEnabled ?? false,
+        customBrandingEnabled: org.settings?.customBrandingEnabled ?? false,
+      },
+      createdAt: (org as any).createdAt?.toISOString?.() ?? '',
+    };
+  }
+
+  async createOrganization(admin: AuthenticatedUser, data: { name: string; plan?: string }): Promise<AdminOrganizationSummaryDto> {
+    if (!data.name || !data.name.trim()) {
+      throw new BadRequestException('Organization name is required');
+    }
+
+    const created = await this.organizationModel.create({
+      name: data.name.trim(),
+      plan: data.plan?.trim() || 'free',
+      settings: {}
+    });
+
+    const orgId = created._id as Types.ObjectId;
+
+    await this.auditLogModel.create({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      actionType: 'ORGANIZATION_CREATED',
+      targetResourceType: 'Organization',
+      targetResourceId: orgId.toHexString(),
+      metadata: { name: created.name, plan: created.plan },
+    });
+
+    return {
+      id: orgId.toHexString(),
+      name: created.name,
+      plan: created.plan,
+      totalUsers: 0,
+      totalEvents: 0,
+      createdAt: (created as any).createdAt?.toISOString?.() ?? new Date().toISOString(),
+    };
+  }
+
+  async assignUserToOrganization(admin: AuthenticatedUser, orgId: string, userId: string): Promise<void> {
+    if (!Types.ObjectId.isValid(orgId) || !Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid Organization ID or User ID');
+    }
+
+    const org = await this.organizationModel.exists({ _id: orgId });
+    if (!org) {
+      throw new NotFoundException(`Organization ${orgId} not found`);
+    }
+
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
+    await this.userModel.updateOne(
+      { _id: user._id },
+      { $set: { organizationId: new Types.ObjectId(orgId) } }
+    ).exec();
+
+    await this.auditLogModel.create({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      actionType: 'USER_ASSIGNED_TO_ORGANIZATION',
+      targetResourceType: 'Organization',
+      targetResourceId: orgId,
+      metadata: { userId },
+    });
+  }
+
+  async unassignUserFromOrganization(admin: AuthenticatedUser, orgId: string, userId: string): Promise<void> {
+    if (!Types.ObjectId.isValid(orgId) || !Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid Organization ID or User ID');
+    }
+
+    const user = await this.userModel.findById(userId);
+    if (!user || !user.organizationId || user.organizationId.toHexString() !== orgId) {
+      throw new NotFoundException(`User ${userId} is not assigned to this organization`);
+    }
+
+    await this.userModel.updateOne(
+      { _id: user._id },
+      { $unset: { organizationId: 1 } }
+    ).exec();
+
+    await this.auditLogModel.create({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      actionType: 'USER_UNASSIGNED_FROM_ORGANIZATION',
+      targetResourceType: 'Organization',
+      targetResourceId: orgId,
+      metadata: { userId },
+    });
+  }
+
+  async getAnalytics(): Promise<AdminAnalyticsDto> {
+    const now = new Date();
+    const rolling24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const rolling30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalOrganizations,
+      totalUsers,
+      newUsersThisMonth,
+      totalEvents,
+      liveEvents,
+      newEventsThisMonth,
+      aiStats,
+      dailyActiveUsers,
+      monthlyActiveUsers,
+    ] = await Promise.all([
+      this.organizationModel.countDocuments(),
+      this.userModel.countDocuments(),
+      this.userModel.countDocuments({ createdAt: { $gte: rolling30Days } }),
+      this.eventModel.countDocuments(),
+      this.eventModel.countDocuments({ status: 'live' }),
+      this.eventModel.countDocuments({ createdAt: { $gte: rolling30Days } }),
+      this.userModel.aggregate([
+        { $group: { _id: null, totalAIRequests: { $sum: '$aiUsageCount' } } }
+      ]),
+      this.userModel.countDocuments({ lastActiveAt: { $gte: rolling24Hours } }),
+      this.userModel.countDocuments({ lastActiveAt: { $gte: rolling30Days } })
+    ]);
+
+    const totalAIRequests = aiStats.length > 0 ? aiStats[0].totalAIRequests : 0;
+
+    return {
+      totalOrganizations,
+      totalUsers,
+      newUsersThisMonth,
+      totalEvents,
+      liveEvents,
+      newEventsThisMonth,
+      totalAIRequests,
+      dailyActiveUsers,
+      monthlyActiveUsers,
+    };
+  }
+
+  // ── Impersonation ──────────────────────────────────────────────────────────
+
+  private handoffCodes = new Map<string, { token: string, expiresAt: number }>();
+
+  async createImpersonationToken(admin: AuthenticatedUser, userId: string, reason: string): Promise<{ handoffCode: string }> {
+    if (!reason || reason.trim().length < 10 || reason.length > 200) {
+      throw new BadRequestException('A valid reason between 10 and 200 characters is required');
+    }
+
+    const user = await this.userModel.findById(userId).lean().exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.role === 'admin' || user.role === 'support') {
+      await this.auditLogModel.create({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        actionType: 'IMPERSONATION_FAILED',
+        targetResourceType: 'User',
+        targetResourceId: user._id.toString(),
+        reason: 'Attempted to impersonate an admin or support user',
+        metadata: {},
+      });
+      throw new BadRequestException('Cannot impersonate an admin or support user.');
+    }
+
+    const payload = {
+      sub: user._id.toString(),
+      auth0Sub: user.auth0Sub,
+      name: user.name,
+      email: user.email,
+      role: 'host',
+      organizationId: user.organizationId?.toString(),
+      isImpersonating: true,
+      impersonatorId: admin.id,
+      impersonatorEmail: admin.email,
+    };
+
+    const token = this.jwtService.sign(payload);
+    
+    const handoffCode = randomUUID();
+    
+    this.handoffCodes.set(handoffCode, {
+      token,
+      expiresAt: Date.now() + 60 * 1000,
+    });
+
+    await this.auditLogModel.create({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      actionType: 'ADMIN_STARTED_IMPERSONATION',
+      targetResourceType: 'User',
+      targetResourceId: user._id.toString(),
+      reason: reason.trim(),
+      metadata: {},
+    });
+
+    return { handoffCode };
+  }
+
+  async exchangeHandoffCode(code: string): Promise<{ token: string }> {
+    const entry = this.handoffCodes.get(code);
+    if (!entry) {
+      throw new BadRequestException('Invalid or expired handoff code');
+    }
+    
+    this.handoffCodes.delete(code); // single-use
+    
+    if (Date.now() > entry.expiresAt) {
+      throw new BadRequestException('Handoff code expired');
+    }
+    
+    return { token: entry.token };
+  }
+
+  async logImpersonationStopped(user: AuthenticatedUser): Promise<{ success: boolean }> {
+    await this.auditLogModel.create({
+      adminId: user.impersonatorId,
+      adminEmail: user.impersonatorEmail || 'unknown@impersonator.com',
+      actionType: 'ADMIN_STOPPED_IMPERSONATION',
+      targetResourceType: 'User',
+      targetResourceId: user.id,
+      reason: null,
+      metadata: {},
+    });
+    return { success: true };
+  }
+
+  async suspendUser(
+    adminId: string,
+    adminEmail: string,
+    targetUserId: string,
+    reason: string
+  ): Promise<{ success: boolean }> {
+    if (!reason?.trim()) {
+      throw new BadRequestException('Suspension requires a reason.');
+    }
+    if (adminId === targetUserId) {
+      throw new BadRequestException('You cannot suspend your own account.');
+    }
+    const user = await this.userModel.findById(targetUserId).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.role === 'admin' || user.role === 'support') {
+      throw new BadRequestException('Cannot suspend a privileged account.');
+    }
+
+    user.isSuspended = true;
+    await user.save();
+
+    await this.auditLogModel.create({
+      adminId,
+      adminEmail,
+      actionType: 'USER_SUSPENDED',
+      targetResourceType: 'User',
+      targetResourceId: user._id.toString(),
+      reason: reason.trim(),
+      metadata: {},
+    });
+
+    return { success: true };
+  }
+
+  async reactivateUser(
+    adminId: string,
+    adminEmail: string,
+    targetUserId: string,
+    reason: string
+  ): Promise<{ success: boolean }> {
+    if (!reason?.trim()) {
+      throw new BadRequestException('Reactivation requires a reason.');
+    }
+    const user = await this.userModel.findById(targetUserId).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.isSuspended = false;
+    await user.save();
+
+    await this.auditLogModel.create({
+      adminId,
+      adminEmail,
+      actionType: 'USER_REACTIVATED',
+      targetResourceType: 'User',
+      targetResourceId: user._id.toString(),
+      reason: reason.trim(),
+      metadata: {},
+    });
+
+    return { success: true };
+  }
+
+  async getAiOperationsTelemetry(): Promise<any> {
+    const pipeline = [
+      {
+        $group: {
+          _id: null,
+          totalRequests: { $sum: 1 },
+          successfulRequests: {
+            $sum: { $cond: [{ $eq: ['$status', 'success'] }, 1, 0] },
+          },
+          failedRequests: {
+            $sum: { $cond: [{ $eq: ['$status', 'failure'] }, 1, 0] },
+          },
+          throttledRequests: {
+            $sum: { $cond: [{ $eq: ['$status', 'throttled'] }, 1, 0] },
+          },
+          totalTokens: { $sum: '$totalTokens' },
+          avgLatencyMs: { $avg: '$latencyMs' },
+        },
+      },
+    ];
+
+    const featurePipeline: any[] = [
+      {
+        $group: {
+          _id: '$featureName',
+          count: { $sum: 1 },
+          avgLatencyMs: { $avg: '$latencyMs' },
+          totalTokens: { $sum: '$totalTokens' },
+        },
+      },
+      { $sort: { count: -1 } },
+    ];
+
+    const [summaryResult, featuresResult] = await Promise.all([
+      this.aiOperationLogModel.aggregate(pipeline).exec(),
+      this.aiOperationLogModel.aggregate(featurePipeline).exec(),
+    ]);
+
+    const summary = summaryResult[0] || {
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      throttledRequests: 0,
+      totalTokens: 0,
+      avgLatencyMs: 0,
+    };
+
+    return {
+      summary,
+      features: featuresResult.map((f: any) => ({
+        featureName: f._id,
+        count: f.count,
+        avgLatencyMs: f.avgLatencyMs || 0,
+        totalTokens: f.totalTokens || 0,
+      })),
     };
   }
 }

@@ -38,6 +38,7 @@ import { useEvents } from '@/lib/use-events';
 import { useGlobalEventScheduler } from '@/lib/use-global-event-scheduler';
 import { openCommandPalette } from '@/lib/command-palette-store';
 import { CommandPalette } from '@/components/command-palette';
+import { FeatureFlagsProvider, useFeatureFlags } from '@/lib/use-feature-flags';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Events', icon: LayoutDashboard, exact: true },
@@ -60,7 +61,20 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <FeatureFlagsProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </FeatureFlagsProvider>
+  );
+}
+
+function DashboardLayoutContent({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { user, logoutUrl } = useAuth();
+  const { flags } = useFeatureFlags();
   const pathname = usePathname();
   const { data: events } = useEvents();
   useGlobalEventScheduler();
@@ -153,12 +167,12 @@ export default function DashboardLayout({
             href: '/dashboard/events',
             icon: CalendarDays,
           },
-          {
+          ...(flags['ai-studio'] ? [{
             label: 'AI Studio',
             href: '/dashboard/ai',
             icon: Sparkles,
             badge: <AIBadge label="New" size="sm" />,
-          },
+          }] : []),
           {
             label: 'Analytics',
             href: eventId ? `/dashboard/events/${eventId}/analytics` : undefined,

@@ -20,12 +20,10 @@ import type { AdminUserSummary, AdminUserListMeta } from '@/lib/admin-api';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function roleBadge(role: 'host' | 'admin') {
-  return role === 'admin' ? (
-    <Badge variant="brand" size="sm">Admin</Badge>
-  ) : (
-    <Badge variant="neutral" size="sm">Host</Badge>
-  );
+function roleBadge(role: 'host' | 'admin' | 'support') {
+  if (role === 'admin') return <Badge variant="brand">Admin</Badge>;
+  if (role === 'support') return <Badge variant="warning">Support</Badge>;
+  return <Badge variant="neutral">Host</Badge>;
 }
 
 function formatDate(iso: string) {
@@ -216,6 +214,7 @@ export default function UsersPage() {
                   <th className="px-4 py-3 text-left">Email</th>
                   <th className="px-4 py-3 text-left">Role</th>
                   <th className="px-4 py-3 text-left">Plan</th>
+                  <th className="px-4 py-3 text-left">Organization</th>
                   <th className="px-4 py-3 text-left">Joined</th>
                 </tr>
               </thead>
@@ -224,7 +223,7 @@ export default function UsersPage() {
 
                 {!loading && error && (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <ErrorState message={error} />
                     </td>
                   </tr>
@@ -232,7 +231,7 @@ export default function UsersPage() {
 
                 {!loading && !error && users.length === 0 && (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={6}>
                       <EmptyState search={search} />
                     </td>
                   </tr>
@@ -250,6 +249,15 @@ export default function UsersPage() {
                     <td className="px-4 py-3 text-ink-secondary">{user.email}</td>
                     <td className="px-4 py-3">{roleBadge(user.role)}</td>
                     <td className="px-4 py-3 capitalize text-ink-secondary">{user.plan}</td>
+                    <td className="px-4 py-3 text-ink-secondary">
+                      {user.organizationName ? (
+                        <Link href={`/organizations/${user.organizationId}`} onClick={e => e.stopPropagation()} className="hover:text-brand hover:underline">
+                          {user.organizationName}
+                        </Link>
+                      ) : (
+                        <span className="text-ink-muted italic">Unassigned</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-ink-secondary">{formatDate(user.createdAt)}</td>
                   </tr>
                 ))}

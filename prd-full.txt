@@ -1,0 +1,840 @@
+<USER_REQUEST>
+Internal Admin Console – Detailed Implementation Plan for IEP
+1. Overview
+
+As the Interactive Engagement Platform (IEP) grows and starts supporting more users and organizations, managing customer accounts, events, integrations, and technical issues directly through the database will become difficult and risky.
+
+We propose building a separate Internal Admin Console for the IEP team.
+
+The existing platform will effectively have three interfaces:
+
+IEP Platform
+│
+├── Participant Experience
+│   └── Join events and participate in Polls, Quizzes,
+│       Q&A, Surveys, Feedback and Word Clouds
+│
+├── Host Dashboard
+│   └── Create and manage events, activities,
+│       analytics, AI Studio and integrations
+│
+└── Internal Admin Console
+    └── Manage and support the entire IEP platform
+
+The Admin Console will only be accessible to authorized internal team members.
+
+The primary goal is to allow the support and operations teams to:
+
+Find and troubleshoot customer accounts.
+Monitor events.
+Investigate integration problems.
+Manage organizations and users.
+View platform-wide analytics.
+Investigate errors and support issues.
+Monitor platform and integration health.
+Perform controlled administrative actions.
+Maintain an audit trail of sensitive operations.
+
+This removes the need for support staff to directly access MongoDB or ask developers to investigate routine customer issues.
+
+2. Proposed Technical Architecture
+
+Since IEP already uses a Turborepo architecture, the Admin Console can be introduced as a separate frontend application.
+
+interactive-engagement-app/
+│
+├── apps/
+│   │
+│   ├── web/
+│   │   └── Existing Host + Participant application
+│   │
+│   ├── admin/
+│   │   └── New Internal Admin Console
+│   │
+│   └── api/
+│       └── Existing NestJS Backend
+│
+└── packages/
+    ├── ui/
+    ├── types/
+    └── shared/
+
+We will not initially create a completely separate backend.
+
+The architecture would be:
+
+                    Auth0
+                      │
+                      ▼
+              Admin Authentication
+                      │
+                      ▼
+              ┌───────────────┐
+              │   Admin App   │
+              │    Next.js    │
+              └───────┬───────┘
+                      │
+                      │ Admin APIs
+                      ▼
+              ┌───────────────┐
+              │  NestJS API   │
+              │ /api/admin/*  │
+              └───────┬───────┘
+                      │
+          ┌───────────┼───────────┐
+          ▼           ▼           ▼
+       MongoDB       Redis     Socket.IO
+          │
+          └───────────┬───────────┐
+                      ▼           ▼
+                AI Services   Integrations
+                              Zoom
+                              Teams
+                              Google Meet
+
+This approach allows us to reuse the existing backend services while maintaining a clear separation between customer-facing and internal administrative functionality.
+
+3. Authentication and Authorization
+
+Security should be the first implementation priority because the Admin Console will have access to sensitive platform-wide information.
+
+We should define multiple roles.
+
+Platform Admin
+    │
+    ├── Full platform access
+    │
+    ├── Manage users
+    ├── Manage organizations
+    ├── Manage events
+    ├── Change feature flags
+    └── Administrative actions
+
+
+Support Agent
+    │
+    ├── Search customers
+    ├── View events
+    ├── View integration status
+    └── Troubleshoot issues
+
+
+Operations
+    │
+    ├── Platform analytics
+    ├── System health
+    └── Usage monitoring
+
+
+Customer Success
+    │
+    ├── Organizations
+    ├── Plans
+    ├── Usage
+    └── Account information
+
+Initially, we can start with fewer roles, such as:
+
+host
+admin
+
+Later, the permission system can evolve into:
+
+host
+support
+operations
+admin
+super_admin
+
+Every Admin API request should pass through:
+
+Request
+   ↓
+JWT Validation
+   ↓
+Authentication Guard
+   ↓
+Role/Permission Guard
+   ↓
+Admin API
+   ↓
+Service
+   ↓
+Database
+
+Simply hiding admin pages in the frontend is not enough. Authorization must always be enforced by the NestJS backend.
+
+4. Phase 1 – Admin Foundation
+
+The first development phase establishes the Admin Console itself.
+
+Frontend
+
+Create:
+
+apps/admin
+
+Technology:
+
+Next.js
+TypeScript
+Tailwind
+Existing IEP design system where practical
+
+Initial layout:
+
+Admin Console
+
+Dashboard
+
+Organizations
+
+Users
+
+Events
+
+Integrations
+
+Support
+
+Analytics
+
+Audit Logs
+
+Moderation
+
+System Health
+
+Settings
+Backend
+
+Create an Admin domain:
+
+apps/api/src/admin/
+
+admin.module.ts
+
+admin.controller.ts
+
+admin.service.ts
+
+Admin routes will be isolated under a dedicated prefix, for example:
+
+/api/admin/*
+
+The goal of Phase 1 is not to implement every feature. It creates the secure foundation on which future modules can be added.
+
+5. Phase 2 – User Management
+
+This will likely be one of the most frequently used areas for client support.
+
+The Admin Console should provide global user search.
+
+Administrators should be able to search using:
+
+Email
+Name
+User ID
+Auth0 ID
+
+Opening a user should display:
+
+User Profile
+
+Name
+Email
+User ID
+Auth0 ID
+
+Role
+
+Organization
+
+Account Status
+
+Created Date
+
+Last Login
+
+Plan
+
+AI Usage
+
+Recent Events
+
+Connected Integrations
+
+From here, authorized administrators could perform controlled operations such as:
+
+Suspend account.
+Reactivate account.
+Reset selected usage quotas.
+View recent events.
+Check integration status.
+
+Dangerous actions must require confirmation.
+
+For example:
+
+Suspend User
+
+Are you sure you want to suspend this account?
+
+Reason:
+[________________________]
+
+Cancel          Confirm
+
+The reason and administrator identity should then be stored in the Audit Log.
+
+6. Phase 3 – Organization Management
+
+As IEP moves toward enterprise customers, individual users should eventually belong to organizations.
+
+For example:
+
+Organization
+
+ABC Corporation
+
+Plan
+Enterprise
+
+Users
+250
+
+Events
+4,520
+
+Active Events
+12
+
+AI Usage
+45,230 requests
+
+Integrations
+
+Zoom        Connected
+Teams       Connected
+Google Meet Connected
+
+Organization management would allow internal teams to understand the complete customer account rather than looking at individual users separately.
+
+The organization detail page could contain:
+
+Overview
+
+Users
+
+Events
+
+Usage
+
+Integrations
+
+Features
+
+Audit History
+
+This will become particularly important for enterprise customers.
+
+7. Phase 4 – Event Troubleshooting
+
+This should be one of the core client-support capabilities.
+
+Suppose a customer reports:
+
+"Our poll is stuck during a live event."
+
+The support agent should be able to search:
+
+Event Code: ABC123
+
+The Admin Console retrieves:
+
+Event
+
+Annual Conference
+
+Status
+LIVE
+
+Host
+customer@example.com
+
+Participants
+1,250
+
+Active Activity
+Poll #4
+
+Socket Connections
+1,203
+
+Created
+10:00 AM
+
+The support agent could then inspect:
+
+Event
+   │
+   ├── Activities
+   ├── Participants
+   ├── Analytics
+   ├── Realtime State
+   ├── Integrations
+   └── Audit Timeline
+
+Initially, administrative intervention should be limited to safe actions such as:
+
+Force-end event.
+Clear invalid active activity state.
+Inspect event configuration.
+
+More powerful actions should only be added when there is a demonstrated support requirement.
+
+8. Phase 5 – Integration Management
+
+Because IEP integrates with:
+
+Zoom
+Microsoft Teams
+Google Meet
+
+integration troubleshooting should have its own module.
+
+The Admin Console could display:
+
+Integration Health
+
+Zoom
+Status: Connected
+OAuth: Valid
+Last Sync: 10 minutes ago
+
+Microsoft Teams
+Status: Connected
+OAuth: Valid
+
+Google Meet
+Status: Error
+Last Error: Authentication Failed
+
+Support agents could inspect:
+
+User
+ ↓
+Integrations
+ ↓
+Zoom
+ ↓
+Connection Status
+ ↓
+Last Successful Operation
+ ↓
+Last Error
+
+Sensitive OAuth tokens should never be directly displayed in the Admin Console.
+
+The portal should show metadata such as validity and expiration status, not secrets.
+
+9. Phase 6 – Support Center
+
+The Support Center connects different Admin modules.
+
+For example:
+
+Customer reports issue
+
+        ↓
+
+Search customer
+
+        ↓
+
+View account
+
+        ↓
+
+Find event
+
+        ↓
+
+Check event status
+
+        ↓
+
+Check integrations
+
+        ↓
+
+Check system health
+
+        ↓
+
+Review audit timeline
+
+        ↓
+
+Identify problem
+
+This creates a centralized troubleshooting workflow.
+
+Instead of:
+
+Support
+   ↓
+Developer
+   ↓
+MongoDB Compass
+   ↓
+Server Logs
+   ↓
+Redis
+   ↓
+Find Problem
+
+we move toward:
+
+Support
+   ↓
+Admin Console
+   ↓
+Find Problem
+
+This is one of the biggest benefits of building the Admin Console.
+
+10. Phase 7 – Platform Analytics
+
+The existing IEP analytics focuses primarily on individual events.
+
+Admin Analytics should provide platform-wide metrics.
+
+For example:
+
+Organizations
+
+Total Users
+
+Daily Active Users
+
+Monthly Active Users
+
+Events Created
+
+Live Events
+
+Participants
+
+Poll Responses
+
+Survey Responses
+
+AI Requests
+
+Additional metrics could include:
+
+Most Used Activity
+
+Poll
+Quiz
+Q&A
+Survey
+Word Cloud
+
+Most Used Integration
+
+Zoom
+Teams
+Google Meet
+
+This helps the team understand how customers are actually using the platform.
+
+11. Phase 8 – AI Operations
+
+Since IEP already includes AI Studio and AI-generated content, AI usage should eventually have its own operational dashboard.
+
+It could show:
+
+AI Operations
+
+Requests Today
+
+Requests This Month
+
+Successful Requests
+
+Failed Requests
+
+Estimated Usage/Cost
+
+Top AI Features
+
+Top Organizations by Usage
+
+This will help detect:
+
+Unexpected usage spikes.
+API failures.
+Rate-limit problems.
+Customers consuming excessive resources.
+12. Phase 9 – Audit Logging
+
+Every sensitive administrative operation should create an immutable audit record.
+
+For example:
+
+Admin
+Ayush
+
+Action
+USER_SUSPENDED
+
+Target
+User #123
+
+Reason
+Terms violation
+
+Timestamp
+2026-07-16 10:30
+
+Actions worth auditing include:
+
+User suspension.
+User reactivation.
+Organization changes.
+Event termination.
+Plan changes.
+Feature flag changes.
+Admin login.
+Support access to sensitive account information.
+
+The Audit Log interface should support filtering by:
+
+Admin
+
+User
+
+Organization
+
+Event
+
+Action
+
+Date
+
+Severity
+
+This is especially important if IEP later serves enterprise customers.
+
+13. Phase 10 – Feature Flags
+
+Feature flags can allow us to control features without deploying new code.
+
+For example:
+
+Organization: ABC Corporation
+
+AI Studio            Enabled
+
+Advanced Analytics   Enabled
+
+Survey               Enabled
+
+Zoom                  Enabled
+
+Teams                 Disabled
+
+Google Meet           Enabled
+
+Feature flags could operate at different levels:
+
+Global
+
+Organization
+
+User
+
+This allows gradual feature rollout and enterprise-specific configurations.
+
+14. Phase 11 – System Health
+
+The Admin Console can eventually provide operational visibility.
+
+For example:
+
+System Health
+
+API                 Healthy
+
+MongoDB             Healthy
+
+Redis               Healthy
+
+Socket.IO           Healthy
+
+AI Provider         Healthy
+
+Zoom                Healthy
+
+Teams               Healthy
+
+Google Meet         Degraded
+
+This does not need to replace professional observability platforms. Instead, it should provide support teams with a simplified operational view.
+
+Detailed engineering logs and infrastructure monitoring should remain in dedicated observability systems.
+
+15. Impersonation – Implement Carefully
+
+The original proposal includes:
+
+"Log in as this user."
+
+This is useful but also one of the highest-risk features in the entire Admin Console.
+
+I would not include it in the MVP.
+
+Initially, support agents should be able to inspect:
+
+User
+
+Events
+
+Configuration
+
+Integrations
+
+Usage
+
+Audit History
+
+If impersonation becomes necessary later, it should use a temporary, restricted support session.
+
+For example:
+
+Support Agent
+
+↓
+
+Request Impersonation
+
+↓
+
+Provide Reason
+
+↓
+
+Create Temporary Session
+
+↓
+
+Read-Only by Default
+
+↓
+
+Session Automatically Expires
+
+↓
+
+Audit Log Created
+
+This prevents support staff from silently performing actions as customers.
+
+16. Recommended Implementation Roadmap
+
+I would prioritize development as follows:
+
+Stage	Scope	Priority
+Foundation	Admin App + Authentication + RBAC	Critical
+MVP	Dashboard + User Search + Event Search	Critical
+Support	Event Diagnostics + Integration Diagnostics	High
+Enterprise	Organization Management	High
+Governance	Audit Logs + Moderation	High
+Intelligence	Platform Analytics + AI Operations	Medium
+Operations	System Health	Medium
+Commercial	Plans + Billing	Future
+Platform Control	Feature Flags	Future
+Advanced Support	Secure Impersonation	Future
+
+This approach avoids trying to build everything at once.
+
+17. Recommended MVP
+
+For the first usable version, I would build only:
+
+Admin Console MVP
+
+Authentication & RBAC
+        │
+        ├── Dashboard
+        │
+        ├── User Search
+        │
+        ├── User Details
+        │
+        ├── Event Search
+        │
+        ├── Event Diagnostics
+        │
+        ├── Integration Diagnostics
+        │
+        └── Audit Logs
+
+This directly addresses Suman Sir's requirement of an Admin App for client support.
+
+Organizations, billing, feature flags, AI cost management, advanced moderation, and impersonation can come later.
+
+18. Key Decisions Before Implementation
+
+Before development starts, I recommend resolving four architectural decisions.
+
+Authentication: Decide whether internal admins use the existing Auth0 tenant or a dedicated employee authentication system.
+
+Authorization: Decide whether the initial model is simply host/admin or a more granular permissions model.
+
+Admin UI: Decide whether to reuse the existing IEP design system or use an admin-oriented framework. Since you already have a developed design system, I would initially reuse it to maintain consistency and avoid introducing another major dependency.
+
+Organizations: Determine whether the current data model already supports multi-tenancy properly. If not, organization architecture should be designed before building organization management.
+
+Final Proposed Direction
+
+The Admin Console should not simply be another dashboard. It should become the internal client-support and operations layer of IEP.
+
+The most important initial workflow should be:
+
+Customer reports problem
+        ↓
+Support searches customer
+        ↓
+Support identifies organization
+        ↓
+Support finds affected event
+        ↓
+Support checks event state
+        ↓
+Support checks integrations
+        ↓
+Support identifies error
+        ↓
+Support performs authorized action
+        ↓
+Action recorded in Audit Log
+        ↓
+Issue resolved
+
+
+what you think abot this
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-17T18:45:30+05:30.
+
+The user's current state is as follows:
+Other open documents:
+- c:\Users\ayush\Downloads\interactive-engagement-app\apps\web\src\app\support\page.tsx (LANGUAGE_TSX)
+- c:\Users\ayush\Downloads\interactive-engagement-app\apps\api\src\analytics\templates\report-template.ts (LANGUAGE_TYPESCRIPT)
+- c:\Users\ayush\Downloads\interactive-engagement-app\apps\web\.env.local (LANGUAGE_UNSPECIFIED)
+- c:\Users\ayush\Downloads\interactive-engagement-app\apps\web\src\app\api\powerpoint\link-presentation\route.ts (LANGUAGE_TYPESCRIPT)
+- c:\Users\ayush\Downloads\interactive-engagement-app\apps\api\src\powerpoint\powerpoint.module.ts (LANGUAGE_TYPESCRIPT)
+</ADDITIONAL_METADATA>

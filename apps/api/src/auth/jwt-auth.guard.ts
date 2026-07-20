@@ -9,7 +9,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Observable } from 'rxjs';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
+export class JwtAuthGuard extends AuthGuard(['jwt', 'impersonation']) {
   private readonly logger = new Logger(JwtAuthGuard.name);
   /**
    * Delegates to Passport's 'jwt' strategy (registered by JwtStrategy).

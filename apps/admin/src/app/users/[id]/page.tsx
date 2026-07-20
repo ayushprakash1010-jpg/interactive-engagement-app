@@ -21,8 +21,9 @@ import {
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { AdminApiError, fetchAdminUser } from '@/lib/admin-api';
+import { AdminApiError, fetchAdminUser, suspendUser, reactivateUser } from '@/lib/admin-api';
 import type { AdminUserDetail, AdminRecentEvent } from '@/lib/admin-api';
+import { ImpersonateButton } from './impersonate-button';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -37,12 +38,10 @@ function formatDate(iso: string) {
   });
 }
 
-function roleBadge(role: 'host' | 'admin') {
-  return role === 'admin' ? (
-    <Badge variant="brand">Admin</Badge>
-  ) : (
-    <Badge variant="neutral">Host</Badge>
-  );
+function roleBadge(role: 'host' | 'admin' | 'support') {
+  if (role === 'admin') return <Badge variant="brand">Admin</Badge>;
+  if (role === 'support') return <Badge variant="warning">Support</Badge>;
+  return <Badge variant="neutral">Host</Badge>;
 }
 
 function eventStatusBadge(status: 'draft' | 'live' | 'ended') {
@@ -125,6 +124,77 @@ function RecentEventRow({ event }: { event: AdminRecentEvent }) {
 }
 
 // ---------------------------------------------------------------------------
+// Account Status Component
+// ---------------------------------------------------------------------------
+
+function AccountStatusCard({ user, onUpdate }: { user: AdminUserDetail; onUpdate: () => void }) {
+  const [loading, setLoading] = React.useState(false);
+
+  const handleToggle = async () => {
+    const isSuspending = !user.profile.isSuspended;
+    const action = isSuspending ? 'suspend' : 'reactivate';
+    const reason = window.prompt(`Please provide a reason to ${action} this user:`);
+    if (reason === null) return;
+    if (!reason.trim()) {
+      alert('A reason is required.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (isSuspending) {
+        await suspendUser(user.profile.id, reason);
+      } else {
+        await reactivateUser(user.profile.id, reason);
+      }
+      onUpdate();
+    } catch (err: any) {
+      alert(`Failed to ${action} user: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SectionCard icon={TriangleAlert} title="Account Status">
+      <div className="flex flex-col gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-medium text-foreground">Current Status:</span>
+            {user.profile.isSuspended ? (
+              <Badge variant="destructive">Suspended</Badge>
+            ) : (
+              <Badge variant="success">Active</Badge>
+            )}
+          </div>
+          <p className="text-xs text-ink-muted">
+            {user.profile.isSuspended
+              ? 'This user is currently suspended and cannot access protected application features.'
+              : 'This user is active and has normal access to the application.'}
+          </p>
+        </div>
+        
+        {user.profile.role !== 'admin' && user.profile.role !== 'support' && (
+          <button
+            onClick={handleToggle}
+            disabled={loading}
+            className={cn(
+              "inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+              user.profile.isSuspended
+                ? "bg-success text-success-foreground hover:bg-success/90"
+                : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            )}
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {user.profile.isSuspended ? 'Reactivate Account' : 'Suspend Account'}
+          </button>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Loading skeleton
 // ---------------------------------------------------------------------------
 
@@ -203,14 +273,20 @@ export default function UserDetailPage() {
                   {user.profile.name}
                 </h1>
                 {roleBadge(user.profile.role)}
+                {user.profile.isSuspended && <Badge variant="destructive">Suspended</Badge>}
               </div>
-              <Link 
-                href={`/audit-logs?resource=${user.profile.id}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken transition-colors"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Audit History
-              </Link>
+              <div className="flex items-center gap-3">
+                {user.profile.role !== 'admin' && (
+                  <ImpersonateButton userId={user.profile.id} userName={user.profile.name} />
+                )}
+                <Link 
+                  href={`/audit-logs?resource=${user.profile.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken transition-colors"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  Audit History
+                </Link>
+              </div>
             </div>
           )}
           {!loading && notFound && (
@@ -264,6 +340,18 @@ export default function UserDetailPage() {
                   <ProfileRow label="Email" value={user.profile.email} />
                   <ProfileRow label="Role" value={roleBadge(user.profile.role)} />
                   <ProfileRow label="Plan" value={<span className="capitalize">{user.profile.plan}</span>} />
+                  <ProfileRow
+                    label="Organization"
+                    value={
+                      user.profile.organizationId && user.profile.organizationName ? (
+                        <Link href={`/organizations/${user.profile.organizationId}`} className="text-brand hover:underline">
+                          {user.profile.organizationName}
+                        </Link>
+                      ) : (
+                        <span className="text-ink-muted italic">Unassigned</span>
+                      )
+                    }
+                  />
                   <ProfileRow label="Joined" value={formatDate(user.profile.createdAt)} />
                   <ProfileRow
                     label="Auth0 ID"
@@ -296,6 +384,16 @@ export default function UserDetailPage() {
                   Lifetime AI activity requests by this user.
                 </p>
               </SectionCard>
+
+              {/* Account Status */}
+              <AccountStatusCard 
+                user={user} 
+                onUpdate={() => {
+                  fetchAdminUser(id)
+                    .then(setUser)
+                    .catch((err) => setError(err.message));
+                }}
+              />
             </div>
 
             {/* Right column — Events + Integrations */}

@@ -33,6 +33,29 @@ export default function RootLayout({
   const initialResolvedTheme: ResolvedTheme =
     initialTheme === 'dark' ? 'dark' : 'light';
 
+  const impToken = cookies().get('iep_impersonation_token')?.value;
+  let impersonationUser = null;
+  if (impToken) {
+    try {
+      const parts = impToken.split('.');
+      if (parts.length >= 2) {
+        const base64Url = parts[1];
+        if (base64Url) {
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+          const payload = JSON.parse(Buffer.from(base64, 'base64').toString());
+          impersonationUser = {
+            name: payload.name,
+            email: payload.email,
+            sub: payload.sub,
+            isImpersonating: payload.isImpersonating,
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse impersonation token', e);
+    }
+  }
+
   return (
     <html
       lang="en"
@@ -44,8 +67,27 @@ export default function RootLayout({
         <Providers
           initialTheme={initialTheme}
           initialResolvedTheme={initialResolvedTheme}
+          impersonationUser={impersonationUser}
         >
-          {children}
+          {impersonationUser && impersonationUser.isImpersonating && (
+            <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground shadow-sm">
+              <div className="flex items-center gap-2">
+                <span aria-hidden="true">⚠️</span>
+                <span>
+                  You are currently impersonating <strong>{impersonationUser.name}</strong>. Some actions are restricted.
+                </span>
+              </div>
+              <a
+                href="/api/auth/stop-impersonation"
+                className="rounded bg-destructive-foreground/10 px-2 py-1 text-xs font-semibold hover:bg-destructive-foreground/20"
+              >
+                Stop Impersonating
+              </a>
+            </div>
+          )}
+          <div className={cn(impersonationUser?.isImpersonating ? "mt-10" : "")}>
+            {children}
+          </div>
           <Toaster />
         </Providers>
         <SpeedInsights />

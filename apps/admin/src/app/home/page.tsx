@@ -11,6 +11,7 @@ import {
   BookOpen,
   HeartPulse,
   Search,
+  Building,
 } from 'lucide-react';
 import { AdminShell } from '@/components/admin/admin-shell';
 import { WorkspaceCard } from '@/components/admin/workspace-card';
@@ -120,6 +121,12 @@ export default async function HomePage() {
               icon={Puzzle}
               href="/integrations"
             />
+            <WorkspaceCard
+              title="Feature Flags"
+              description="Manage platform toggles and organization-specific overrides."
+              icon={Puzzle}
+              href="/feature-flags"
+            />
           </div>
         </section>
 
@@ -138,6 +145,12 @@ export default async function HomePage() {
               icon={ScrollText}
               href="/audit-logs"
             />
+            <WorkspaceCard
+              title="Organizations"
+              description="Manage multi-tenant organizations, their plans, and their affiliated users."
+              icon={Building}
+              href="/organizations"
+            />
           </div>
         </section>
 
@@ -154,13 +167,19 @@ export default async function HomePage() {
               title="Platform Analytics"
               description="Platform-wide usage metrics, host growth, and activity trends."
               icon={BarChart3}
-              comingSoon
+              href="/analytics"
             />
             <WorkspaceCard
               title="System Health"
               description="MongoDB, Redis, Socket.IO, and API endpoint status at a glance."
               icon={HeartPulse}
-              comingSoon
+              href="/health"
+            />
+            <WorkspaceCard
+              title="AI Operations"
+              description="Monitor system-wide AI usage, latency, and costs across all organizations."
+              icon={BarChart3}
+              href="/ai-operations"
             />
           </div>
         </section>

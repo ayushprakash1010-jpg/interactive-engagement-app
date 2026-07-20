@@ -14,7 +14,7 @@ export class AdminAuditLogEntity {
   @Prop({ type: String, required: true, index: true })
   actionType!: string;
 
-  @Prop({ type: String, required: true, enum: ['Event', 'User', 'System'] })
+  @Prop({ type: String, required: true, enum: ['Event', 'User', 'System', 'Organization'] })
   targetResourceType!: string;
 
   @Prop({ type: String, required: true, index: true })
@@ -22,6 +22,12 @@ export class AdminAuditLogEntity {
 
   @Prop({ type: String, default: null })
   reason?: string | null;
+
+  @Prop({ type: String, default: null })
+  impersonatorId?: string | null;
+
+  @Prop({ type: String, default: null })
+  impersonatorEmail?: string | null;
 
   @Prop({ type: MongooseSchema.Types.Mixed, default: {} })
   metadata?: Record<string, any>;

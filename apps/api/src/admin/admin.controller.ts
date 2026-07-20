@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Param, Query, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { PreventImpersonation, AllowImpersonationMutation } from '../auth/prevent-impersonation.decorator';
 import type { AuthenticatedUser } from '../auth/jwt.strategy';
 import { AdminService } from './admin.service';
 import type { GetUsersQuery, GetEventsQuery } from './admin.service';
@@ -15,7 +16,7 @@ import type { GetUsersQuery, GetEventsQuery } from './admin.service';
  */
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin')
+@Roles('admin', 'support')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -95,6 +96,8 @@ export class AdminController {
    * Phase 4 & 6 — Force end event
    */
   @Post('events/:id/end')
+  @Roles('admin')
+  @PreventImpersonation()
   @HttpCode(HttpStatus.NO_CONTENT)
   forceEndEvent(
     @Param('id') id: string,
@@ -119,4 +122,114 @@ export class AdminController {
   getAuditLogs(@Query() query: any) {
     return this.adminService.getAuditLogs(query);
   }
+
+  // ── Organizations ──────────────────────────────────────────────────────────
+
+  @Get('organizations')
+  getOrganizations(@Query() query: any) {
+    return this.adminService.getOrganizations(query);
+  }
+
+  @Get('organizations/:id')
+  getOrganizationById(@Param('id') id: string) {
+    return this.adminService.getOrganizationById(id);
+  }
+
+  @Post('organizations')
+  @Roles('admin')
+  @PreventImpersonation()
+  createOrganization(@CurrentUser() admin: AuthenticatedUser, @Body() body: { name: string; plan?: string }) {
+    return this.adminService.createOrganization(admin, body);
+  }
+
+  @Patch('organizations/:id/users/:userId')
+  @Roles('admin')
+  @PreventImpersonation()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async assignUserToOrganization(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('userId') userId: string
+  ) {
+    await this.adminService.assignUserToOrganization(admin, id, userId);
+  }
+
+  @Delete('organizations/:id/users/:userId')
+  @Roles('admin')
+  @PreventImpersonation()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unassignUserFromOrganization(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Param('id') id: string,
+    @Param('userId') userId: string
+  ) {
+    await this.adminService.unassignUserFromOrganization(admin, id, userId);
+  }
+
+  // ── Analytics ──────────────────────────────────────────────────────────────
+
+  @Get('analytics')
+  getAnalytics() {
+    return this.adminService.getAnalytics();
+  }
+
+  // ── Impersonation ──────────────────────────────────────────────────────────
+
+  @Post('impersonate/stop')
+  @Roles('host', 'admin', 'support')
+  @AllowImpersonationMutation()
+  @HttpCode(HttpStatus.OK)
+  async stopImpersonation(@CurrentUser() user: AuthenticatedUser) {
+    if (!user.isImpersonating) {
+      throw new ForbiddenException('Not an impersonation session');
+    }
+    return this.adminService.logImpersonationStopped(user);
+  }
+
+  @Post('impersonate/:userId')
+  @HttpCode(HttpStatus.OK)
+  async createImpersonationToken(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Param('userId') userId: string,
+    @Body('reason') reason: string
+  ) {
+    if (admin.isImpersonating) {
+      throw new ForbiddenException('Cannot impersonate while already impersonating.');
+    }
+    return this.adminService.createImpersonationToken(admin, userId, reason);
+  }
+
+  // ── User Management ────────────────────────────────────────────────────────
+
+  @Patch('users/:id/suspend')
+  @Roles('admin') // explicitly admin only, not support
+  @PreventImpersonation()
+  @HttpCode(HttpStatus.OK)
+  async suspendUser(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Param('id') targetUserId: string,
+    @Body('reason') reason: string
+  ) {
+    return this.adminService.suspendUser(admin.id, admin.email, targetUserId, reason);
+  }
+
+  @Patch('users/:id/reactivate')
+  @Roles('admin')
+  @PreventImpersonation()
+  @HttpCode(HttpStatus.OK)
+  async reactivateUser(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Param('id') targetUserId: string,
+    @Body('reason') reason: string
+  ) {
+    return this.adminService.reactivateUser(admin.id, admin.email, targetUserId, reason);
+  }
+
+  // ── AI Operations ────────────────────────────────────────────────────────
+  @Get('ai-operations')
+  @Roles('admin', 'support')
+  async getAiOperationsTelemetry() {
+    return this.adminService.getAiOperationsTelemetry();
+  }
 }
+

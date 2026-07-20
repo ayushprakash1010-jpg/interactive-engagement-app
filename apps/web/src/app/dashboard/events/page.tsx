@@ -25,11 +25,13 @@ import {
 } from '@/components/ui';
 import { JoinCode } from '@/components/pulse';
 import { useDeleteEvent, useEvents } from '@/lib/use-events';
+import { useAuth } from '@/lib/use-auth';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiError } from '@/lib/events-api';
 import { getComputedEventStatus } from '@/lib/event-status';
 
 export default function EventsPage() {
+  const { user } = useAuth();
   const { data: events, isLoading, isError, error } = useEvents();
   const deleteEvent = useDeleteEvent();
   const { toast } = useToast();
@@ -109,11 +111,18 @@ export default function EventsPage() {
         title="Events"
         description="Create an event, then share its code or QR with your audience."
         actions={
-          <Button asChild>
-            <Link href="/dashboard/events/new">
-              <Plus className="h-4 w-4" />
-              Create event
-            </Link>
+          <Button asChild={!user?.isImpersonating} disabled={!!user?.isImpersonating}>
+            {user?.isImpersonating ? (
+              <span title="Restricted while impersonating">
+                <Plus className="mr-2 h-4 w-4" />
+                Create event
+              </span>
+            ) : (
+              <Link href="/dashboard/events/new">
+                <Plus className="mr-2 h-4 w-4" />
+                Create event
+              </Link>
+            )}
           </Button>
         }
       />
@@ -188,11 +197,18 @@ export default function EventsPage() {
           title="No events yet"
           description="Create your first event to get a join code and QR."
           action={
-            <Button asChild>
-              <Link href="/dashboard/events/new">
-                <Plus className="h-4 w-4" />
-                Create event
-              </Link>
+            <Button asChild={!user?.isImpersonating} disabled={!!user?.isImpersonating}>
+              {user?.isImpersonating ? (
+                <span title="Restricted while impersonating">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create event
+                </span>
+              ) : (
+                <Link href="/dashboard/events/new">
+                  <Plus className="h-4 w-4" />
+                  Create event
+                </Link>
+              )}
             </Button>
           }
         />

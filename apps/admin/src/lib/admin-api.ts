@@ -20,7 +20,7 @@ export class AdminApiError extends Error {
   }
 }
 
-async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const normalizedPath = path.replace(/^\/+/, '');
   const res = await fetch(`${PROXY_BASE}/${normalizedPath}`, {
     ...init,
@@ -108,8 +108,11 @@ export interface AdminUserSummary {
   id: string;
   name: string;
   email: string;
-  role: 'host' | 'admin';
+  role: 'host' | 'admin' | 'support';
   plan: string;
+  isSuspended: boolean;
+  organizationId?: string | null;
+  organizationName?: string | null;
   createdAt: string;
 }
 
@@ -146,9 +149,12 @@ export interface AdminUserDetail {
     auth0Sub: string;
     name: string;
     email: string;
-    role: 'host' | 'admin';
+    role: 'host' | 'admin' | 'support';
     plan: string;
     aiUsageCount: number;
+    isSuspended: boolean;
+    organizationId?: string | null;
+    organizationName?: string | null;
     createdAt: string;
   };
   eventActivity: {
@@ -166,6 +172,7 @@ export interface UserSearchParams {
   limit?: number;
   sort?: string;
   order?: string;
+  organizationId?: string;
 }
 
 /** Paginated global user search — all params validated server-side. */
@@ -382,4 +389,180 @@ export async function fetchAuditLogs(
   if (params.search) q.set('search', params.search);
 
   return adminFetch<AuditLogList>(`admin/audit-logs?${q.toString()}`);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 9: Platform Analytics & System Health
+// ---------------------------------------------------------------------------
+
+export interface AdminAnalytics {
+  totalOrganizations: number;
+  totalUsers: number;
+  newUsersThisMonth: number;
+  totalEvents: number;
+  liveEvents: number;
+  newEventsThisMonth: number;
+  totalAIRequests: number;
+  dailyActiveUsers: number;
+  monthlyActiveUsers: number;
+}
+
+export async function fetchAdminAnalytics(): Promise<AdminAnalytics> {
+  return adminFetch<AdminAnalytics>('admin/analytics');
+}
+
+export interface SystemHealth {
+  status: 'ok' | 'error' | 'shutting_down';
+  info: Record<string, { status: string; [key: string]: any }>;
+  error: Record<string, { status: string; [key: string]: any }>;
+  details: Record<string, { status: string; [key: string]: any }>;
+}
+
+export async function fetchSystemHealth(): Promise<SystemHealth> {
+  return adminFetch<SystemHealth>('health');
+}
+
+// ---------------------------------------------------------------------------
+// Phase 8: Organizations / Multi-tenancy
+// ---------------------------------------------------------------------------
+
+export interface AdminOrganizationSummary {
+  id: string;
+  name: string;
+  plan: string;
+  totalUsers: number;
+  totalEvents: number;
+  createdAt: string;
+}
+
+export interface AdminOrganizationListResponse {
+  data: AdminOrganizationSummary[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
+
+export interface AdminOrganizationDetail extends AdminOrganizationSummary {
+  activeEvents: number;
+  settings: {
+    aiStudioEnabled: boolean;
+    advancedAnalyticsEnabled: boolean;
+    customBrandingEnabled: boolean;
+  };
+}
+
+export async function fetchAdminOrganizations(params: { page?: number; limit?: number; search?: string } = {}): Promise<AdminOrganizationListResponse> {
+  const qs = new URLSearchParams();
+  if (params.search) qs.set('search', params.search);
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  const query = qs.toString();
+  return adminFetch<AdminOrganizationListResponse>(`admin/organizations${query ? `?${query}` : ''}`);
+}
+
+export async function fetchAdminOrganizationById(id: string): Promise<AdminOrganizationDetail> {
+  return adminFetch<AdminOrganizationDetail>(`admin/organizations/${encodeURIComponent(id)}`);
+}
+
+export async function createAdminOrganization(data: { name: string; plan?: string }): Promise<AdminOrganizationSummary> {
+  return adminFetch<AdminOrganizationSummary>('admin/organizations', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function assignAdminUserToOrg(orgId: string, userId: string): Promise<void> {
+  return adminFetch<void>(`admin/organizations/${encodeURIComponent(orgId)}/users/${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+  });
+}
+
+export async function unassignAdminUserFromOrg(orgId: string, userId: string): Promise<void> {
+  return adminFetch<void>(`admin/organizations/${encodeURIComponent(orgId)}/users/${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+  });
+}
+
+// ── FEATURE FLAGS ─────────────────────────────────────────────────────────────
+
+export interface FeatureFlag {
+  key: string;
+  name: string;
+  description: string;
+  isGlobalEnabled: boolean;
+  organizationOverrides: Record<string, boolean>;
+}
+
+export async function fetchFeatureFlags(): Promise<FeatureFlag[]> {
+  return adminFetch<FeatureFlag[]>('admin/feature-flags');
+}
+
+export async function createFeatureFlag(payload: { key: string, name: string, description: string, isGlobalEnabled: boolean }): Promise<FeatureFlag> {
+  return adminFetch<FeatureFlag>('admin/feature-flags', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function updateFeatureFlag(key: string, payload: { name?: string, description?: string, isGlobalEnabled?: boolean }): Promise<FeatureFlag> {
+  return adminFetch<FeatureFlag>(`admin/feature-flags/${encodeURIComponent(key)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  });
+}
+
+export async function setFeatureFlagOverride(key: string, orgId: string, isEnabled: boolean): Promise<any> {
+  return adminFetch<any>(`admin/feature-flags/${encodeURIComponent(key)}/overrides/${encodeURIComponent(orgId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isEnabled })
+  });
+}
+
+export async function deleteFeatureFlagOverride(key: string, orgId: string): Promise<any> {
+  return adminFetch<any>(`admin/feature-flags/${encodeURIComponent(key)}/overrides/${encodeURIComponent(orgId)}`, {
+    method: 'DELETE'
+  });
+}
+
+export async function deleteFeatureFlag(key: string): Promise<void> {
+  return adminFetch<void>(`admin/feature-flags/${encodeURIComponent(key)}`, {
+    method: 'DELETE'
+  });
+}
+
+// ── USER MANAGEMENT MUTATIONS ────────────────────────────────────────────────
+
+export async function suspendUser(id: string, reason: string): Promise<{ success: boolean }> {
+  return adminFetch<{ success: boolean }>(`admin/users/${encodeURIComponent(id)}/suspend`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function reactivateUser(id: string, reason: string): Promise<{ success: boolean }> {
+  return adminFetch<{ success: boolean }>(`admin/users/${encodeURIComponent(id)}/reactivate`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+// ── AI OPERATIONS ────────────────────────────────────────────────────────────
+
+export interface AiOperationsTelemetry {
+  summary: {
+    totalRequests: number;
+    successfulRequests: number;
+    failedRequests: number;
+    throttledRequests: number;
+    totalTokens: number;
+    avgLatencyMs: number;
+  };
+  features: Array<{
+    featureName: string;
+    count: number;
+    avgLatencyMs: number;
+    totalTokens: number;
+  }>;
+}
+
+export async function fetchAiOperationsTelemetry(): Promise<AiOperationsTelemetry> {
+  return adminFetch<AiOperationsTelemetry>('admin/ai-operations');
 }
