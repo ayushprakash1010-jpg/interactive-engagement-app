@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useFeatureFlags } from '@/lib/use-feature-flags';
 
 import {
   Sparkles,
@@ -618,6 +619,13 @@ function normaliseActivity(
 
 export default function AIStudioPage() {
   const router = useRouter();
+  const { flags, loading } = useFeatureFlags();
+
+  React.useEffect(() => {
+    if (!loading && !flags['ai-studio']) {
+      router.replace('/dashboard');
+    }
+  }, [flags, loading, router]);
 
   const [prompt, setPrompt] = React.useState('');
   const [generating, setGenerating] = React.useState(false);
@@ -691,6 +699,8 @@ export default function AIStudioPage() {
   }, []);
 
   const handleGenerate = async () => {
+    if (!flags['ai-studio']) return;
+
     const cleanPrompt = prompt.trim();
 
     if (!cleanPrompt) {
@@ -1013,6 +1023,10 @@ export default function AIStudioPage() {
       : [];
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
+
+  if (loading || !flags['ai-studio']) {
+    return null;
+  }
 
   return (
     <div className="space-y-7">

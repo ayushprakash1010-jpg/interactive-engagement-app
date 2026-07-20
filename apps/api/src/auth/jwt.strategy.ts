@@ -88,8 +88,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       skipProfileUpdate = true;
     } else {
       // 3. If trusted validated token claims already contain a usable real email/name, use those
-      let tokenEmail = payload.email ?? payload['https://iep.app/email'];
-      let tokenName = payload.name ?? payload['https://iep.app/name'];
+      const tokenEmail = payload.email ?? payload['https://iep.app/email'];
+      const tokenName = payload.name ?? payload['https://iep.app/name'];
       
       const tokenHasRealProfile = tokenEmail && !tokenEmail.endsWith('@users.noreply.iep');
       

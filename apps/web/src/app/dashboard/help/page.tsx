@@ -45,6 +45,7 @@ import {
 } from '@/components/ui';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { useFeatureFlags } from '@/lib/use-feature-flags';
 
 type GuideItem = {
   title: string;
@@ -467,6 +468,7 @@ function FeatureCard({ guide }: { guide: FeatureGuide }) {
 export default function HelpCenterPage() {
   const [query, setQuery] = React.useState('');
   const [activeSection, setActiveSection] = React.useState<string>('getting-started');
+  const { flags } = useFeatureFlags();
 
   React.useEffect(() => {
     const observer = new IntersectionObserver(
@@ -488,22 +490,28 @@ export default function HelpCenterPage() {
     return () => observer.disconnect();
   }, [query]);
 
-  const visibleQuickGuides = gettingStarted.filter((guide) =>
-    matchesSearch(query, [guide.title, guide.description, ...guide.tags]),
-  );
+  const visibleQuickGuides = gettingStarted
+    .filter((guide) => flags['ai-studio'] || !guide.tags.includes('ai'))
+    .filter((guide) =>
+      matchesSearch(query, [guide.title, guide.description, ...guide.tags]),
+    );
 
-  const visibleFeatureGuides = featureGuides.filter((guide) =>
-    matchesSearch(query, [
-      guide.title,
-      guide.description,
-      ...guide.items,
-      ...guide.tags,
-    ]),
-  );
+  const visibleFeatureGuides = featureGuides
+    .filter((guide) => flags['ai-studio'] || guide.title !== 'AI Studio')
+    .filter((guide) =>
+      matchesSearch(query, [
+        guide.title,
+        guide.description,
+        ...guide.items,
+        ...guide.tags,
+      ]),
+    );
 
-  const visibleFaqs = faqs.filter((faq) =>
-    matchesSearch(query, [faq.question, faq.answer]),
-  );
+  const visibleFaqs = faqs
+    .filter((faq) => flags['ai-studio'] || !faq.question.includes('AI'))
+    .filter((faq) =>
+      matchesSearch(query, [faq.question, faq.answer]),
+    );
 
   const noResults =
     query.trim() &&
@@ -697,7 +705,7 @@ export default function HelpCenterPage() {
               />
               <SurfacePanel className="p-0">
                 <ol className="divide-y divide-border">
-                  {updates.map(([title, description], index) => (
+                  {updates.filter(u => flags['ai-studio'] || u[0] !== 'AI Studio').map(([title, description], index) => (
                     <li key={title} className="flex gap-4 p-5">
                       <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand">
                         {index === 0 ? (
@@ -730,7 +738,7 @@ export default function HelpCenterPage() {
                   ['Pulse version', '0.1.0'],
                   ['UI version', 'Pulse SaaS redesign'],
                   ['Theme support', 'Light, Dark, System'],
-                  ['Powered by AI', 'AI Studio and insights'],
+                  ...(flags['ai-studio'] ? [['Powered by AI', 'AI Studio and insights']] : []),
                   ['Last updated', 'June 27, 2026'],
                 ].map(([label, value]) => (
                   <SurfacePanel key={label} tone="sunken" className="space-y-1 p-4">

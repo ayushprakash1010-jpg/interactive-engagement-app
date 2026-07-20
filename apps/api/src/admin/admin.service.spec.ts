@@ -8,6 +8,7 @@ import { OrganizationEntity } from '../organizations/organization.schema';
 import { AdminAuditLogEntity } from './audit-log.schema';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { EventsService } from '../events/events.service';
+import { AiOperationLogEntity } from '../ai/ai-operation-log.schema';
 import { Types } from 'mongoose';
 
 describe('AdminService', () => {
@@ -29,6 +30,7 @@ describe('AdminService', () => {
         { provide: getModelToken(EventEntity.name), useValue: { countDocuments: jest.fn().mockResolvedValue(50) } },
         { provide: getModelToken(OrganizationEntity.name), useValue: { countDocuments: jest.fn().mockResolvedValue(10) } },
         { provide: getModelToken(AdminAuditLogEntity.name), useValue: { create: jest.fn().mockResolvedValue({}) } },
+        { provide: getModelToken(AiOperationLogEntity.name), useValue: { aggregate: jest.fn().mockResolvedValue([]) } },
         { provide: RealtimeGateway, useValue: {} },
         { provide: EventsService, useValue: {} },
         { provide: JwtService, useValue: { sign: jest.fn().mockReturnValue('signed-token') } },

@@ -58,6 +58,7 @@ import { cn } from '@/lib/utils';
 import type { Event } from '@iep/types';
 import type { Notification } from '@/lib/notification-store';
 import { useOverviewStats } from '@/lib/use-overview';
+import { useFeatureFlags } from '@/lib/use-feature-flags';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -536,7 +537,7 @@ function SessionSummaryPanel({ events }: { events: Event[] | undefined }) {
 // Empty state (no events at all)
 // ---------------------------------------------------------------------------
 
-function WorkspaceEmptyState() {
+function WorkspaceEmptyState({ aiStudioEnabled }: { aiStudioEnabled?: boolean }) {
   return (
     <EmptyState
       icon={<LayoutDashboard className="h-8 w-8 text-brand" />}
@@ -551,12 +552,14 @@ function WorkspaceEmptyState() {
               Create your first event
             </Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/dashboard/ai">
-              <Sparkles className="h-4 w-4 text-ai" />
-              Open AI Studio
-            </Link>
-          </Button>
+          {aiStudioEnabled && (
+            <Button asChild variant="outline">
+              <Link href="/dashboard/ai">
+                <Sparkles className="h-4 w-4 text-ai" />
+                Open AI Studio
+              </Link>
+            </Button>
+          )}
         </div>
       }
     />
@@ -571,6 +574,7 @@ export default function DashboardOverviewPage() {
   const { data: events, isLoading: eventsLoading } = useEvents();
   const { notifications } = useNotifications();
   const { user } = useAuth();
+  const { flags } = useFeatureFlags();
   
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -665,7 +669,7 @@ export default function DashboardOverviewPage() {
       iconColor: 'text-[var(--warning-text)]',
       href: `/dashboard/events/${draftEvent._id}`,
     }] : []),
-  ];
+  ].filter(action => flags['ai-studio'] || !action.id.startsWith('generate-'));
 
   if (!mounted) return null;
 
@@ -684,12 +688,14 @@ export default function DashboardOverviewPage() {
                 <span className="hidden sm:inline">Events</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="transition-all hover:bg-ai-subtle hover:text-ai hover:border-ai/30">
-              <Link href="/dashboard/ai">
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">AI Studio</span>
-              </Link>
-            </Button>
+            {flags['ai-studio'] && (
+              <Button asChild variant="outline" size="sm" className="transition-all hover:bg-ai-subtle hover:text-ai hover:border-ai/30">
+                <Link href="/dashboard/ai">
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">AI Studio</span>
+                </Link>
+              </Button>
+            )}
             <Button asChild size="sm" className="transition-all shadow-sm hover:shadow-md">
               <Link href="/dashboard/events/new">
                 <Plus className="h-4 w-4" />
@@ -707,7 +713,7 @@ export default function DashboardOverviewPage() {
       </section>
 
       {/* ── Empty state (no events) ──────────────────────────────────────── */}
-      {!eventsLoading && !hasEvents && <WorkspaceEmptyState />}
+      {!eventsLoading && !hasEvents && <WorkspaceEmptyState aiStudioEnabled={flags['ai-studio']} />}
 
       {/* Rest of sections only meaningful when there are events */}
       {(eventsLoading || hasEvents) && (
@@ -781,8 +787,8 @@ export default function DashboardOverviewPage() {
           </section>
 
           {/* ── Sections 6 + 7: AI Workspace + Session Summary ───────────── */}
-          <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-            {eventsLoading ? <ChartSkeleton /> : <AIWorkspacePanel notifications={notifications} />}
+          <div className={cn("grid gap-8", flags['ai-studio'] ? "lg:grid-cols-[1fr_360px]" : "lg:grid-cols-1")}>
+            {flags['ai-studio'] && (eventsLoading ? <ChartSkeleton /> : <AIWorkspacePanel notifications={notifications} />)}
             {eventsLoading ? <ChartSkeleton /> : <SessionSummaryPanel events={events} />}
           </div>
         </>

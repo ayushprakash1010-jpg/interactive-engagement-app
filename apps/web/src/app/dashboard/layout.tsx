@@ -279,19 +279,21 @@ function DashboardLayoutContent({
                 );
               })}
 
-              <Link
-                href="/dashboard/ai"
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  isActive('/dashboard/ai')
-                    ? 'bg-ai-subtle text-ai-subtle-text'
-                    : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
-                )}
-              >
-                <Sparkles className="h-4 w-4 text-ai" />
-                AI Studio
-                <AIBadge label="New" size="sm" />
-              </Link>
+              {flags['ai-studio'] && (
+                <Link
+                  href="/dashboard/ai"
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    isActive('/dashboard/ai')
+                      ? 'bg-ai-subtle text-ai-subtle-text'
+                      : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
+                  )}
+                >
+                  <Sparkles className="h-4 w-4 text-ai" />
+                  AI Studio
+                  <AIBadge label="New" size="sm" />
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -328,18 +330,20 @@ function DashboardLayoutContent({
               </Link>
             );
           })}
-          <Link
-            href="/dashboard/ai"
-            className={cn(
-              'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              isActive('/dashboard/ai')
-                ? 'bg-ai-subtle text-ai-subtle-text'
-                : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
-            )}
-          >
-            <Sparkles className="h-4 w-4 text-ai" />
-            AI Studio
-          </Link>
+          {flags['ai-studio'] && (
+            <Link
+              href="/dashboard/ai"
+              className={cn(
+                'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                isActive('/dashboard/ai')
+                  ? 'bg-ai-subtle text-ai-subtle-text'
+                  : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
+              )}
+            >
+              <Sparkles className="h-4 w-4 text-ai" />
+              AI Studio
+            </Link>
+          )}
         </nav>
       </header>
 

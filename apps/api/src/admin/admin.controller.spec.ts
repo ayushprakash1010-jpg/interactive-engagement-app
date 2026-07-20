@@ -52,7 +52,7 @@ describe('AdminController', () => {
   });
 
   describe('RBAC Verification', () => {
-    const runRolesGuard = (user: Partial<AuthenticatedUser>, handler: Function) => {
+    const runRolesGuard = (user: Partial<AuthenticatedUser>, handler: (...args: any[]) => any) => {
       const guard = new RolesGuard(new Reflector());
       const context = {
         getHandler: () => handler,
@@ -83,7 +83,7 @@ describe('AdminController', () => {
   });
 
   describe('Impersonation Validation', () => {
-    const runPreventImpersonationInterceptor = (user: Partial<AuthenticatedUser>, method: string, handler: Function) => {
+    const runPreventImpersonationInterceptor = (user: Partial<AuthenticatedUser>, method: string, handler: (...args: any[]) => any) => {
       const interceptor = new PreventImpersonationInterceptor(new Reflector());
       const context = {
         getHandler: () => handler,
