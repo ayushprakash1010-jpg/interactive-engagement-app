@@ -50,7 +50,7 @@ export function ImpersonateButton({ userId, userName }: ImpersonateButtonProps) 
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl bg-surface p-6 shadow-2xl ring-1 ring-border">
+          <div className="w-full max-w-md rounded-xl bg-background p-6 shadow-2xl ring-1 ring-border">
             <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
               <ShieldAlert className="h-5 w-5 text-destructive" />
               Start Impersonation Session
