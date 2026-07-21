@@ -643,7 +643,7 @@ export class AdminService {
 
   // ── Audit Logs ─────────────────────────────────────────────────────────────
 
-  private async createAuditLog(
+  async createAuditLog(
     data: {
       adminId: string;
       adminEmail: string;

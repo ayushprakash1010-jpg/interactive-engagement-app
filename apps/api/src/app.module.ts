@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { validateEnv, type Env } from './config/env.validation';
@@ -26,6 +27,8 @@ import { GoogleMeetModule } from './google-meet/google-meet.module';
 import { PowerPointModule } from './powerpoint/powerpoint.module';
 import { GoogleSlidesModule } from './google-slides/google-slides.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+import { SupportModule } from './support/support.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
 
 import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.interceptor';
 
@@ -37,6 +40,10 @@ import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.in
       cache: true,
       validate: validateEnv,
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 10,
+    }]),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => {
@@ -108,8 +115,14 @@ import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.in
     PowerPointModule,
     GoogleSlidesModule,
     FeatureFlagsModule,
+    SupportModule,
+    KnowledgeModule,
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,

@@ -46,7 +46,11 @@ export async function adminFetch<T>(path: string, init?: RequestInit): Promise<T
   }
 
   if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  
+  const text = await res.text();
+  if (!text) return undefined as T;
+  
+  return JSON.parse(text) as T;
 }
 
 // ---------------------------------------------------------------------------
@@ -566,4 +570,120 @@ export interface AiOperationsTelemetry {
 
 export async function fetchAiOperationsTelemetry(): Promise<AiOperationsTelemetry> {
   return adminFetch<AiOperationsTelemetry>('admin/ai-operations');
+}
+
+// ── SUPPORT INBOX ────────────────────────────────────────────────────────────
+
+export interface SupportTicketSummary {
+  _id: string;
+  customerEmail: string;
+  customerName?: string;
+  subject: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  createdAt: string;
+}
+
+export interface SupportTicketDetail extends SupportTicketSummary {
+  description: string;
+  userId?: string;
+  assignedTo?: string;
+  resolutionNote?: string;
+  internalNotes: Array<{
+    authorId: string;
+    authorName: string;
+    note: string;
+    createdAt: string;
+  }>;
+}
+
+export interface SupportTicketListResponse {
+  items: SupportTicketSummary[];
+  meta: { total: number; page: number; limit: number; pages: number };
+}
+
+export async function fetchSupportTickets(params: { page?: number; limit?: number; status?: string; priority?: string; search?: string } = {}): Promise<SupportTicketListResponse> {
+  const qs = new URLSearchParams();
+  if (params.search) qs.set('search', params.search);
+  if (params.status) qs.set('status', params.status);
+  if (params.priority) qs.set('priority', params.priority);
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  const query = qs.toString();
+  return adminFetch<SupportTicketListResponse>(`support${query ? `?${query}` : ''}`);
+}
+
+export async function fetchSupportTicket(id: string): Promise<SupportTicketDetail> {
+  return adminFetch<SupportTicketDetail>(`support/${encodeURIComponent(id)}`);
+}
+
+export async function updateSupportTicket(id: string, payload: { status?: string; priority?: string; assignedTo?: string; resolutionNote?: string }): Promise<SupportTicketDetail> {
+  return adminFetch<SupportTicketDetail>(`support/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function addSupportTicketNote(id: string, note: string): Promise<SupportTicketDetail> {
+  return adminFetch<SupportTicketDetail>(`support/${encodeURIComponent(id)}/notes`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+}
+
+// ── KNOWLEDGE BASE ───────────────────────────────────────────────────────────
+
+export interface KnowledgeArticleSummary {
+  _id: string;
+  title: string;
+  slug: string;
+  category: string;
+  status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KnowledgeArticleDetail extends KnowledgeArticleSummary {
+  summary: string;
+  content: string;
+  tags: string[];
+}
+
+export interface KnowledgeArticleListResponse {
+  items: KnowledgeArticleSummary[];
+  meta: { total: number; page: number; limit: number; pages: number };
+}
+
+export async function fetchKnowledgeArticles(params: { page?: number; limit?: number; search?: string; category?: string } = {}): Promise<KnowledgeArticleListResponse> {
+  const qs = new URLSearchParams();
+  if (params.search) qs.set('search', params.search);
+  if (params.category) qs.set('category', params.category);
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  const query = qs.toString();
+  return adminFetch<KnowledgeArticleListResponse>(`knowledge${query ? `?${query}` : ''}`);
+}
+
+export async function fetchKnowledgeArticle(slug: string): Promise<KnowledgeArticleDetail> {
+  return adminFetch<KnowledgeArticleDetail>(`knowledge/${encodeURIComponent(slug)}`);
+}
+
+export async function createKnowledgeArticle(payload: { title: string; slug: string; summary: string; content: string; category: string; tags: string[]; status: string }): Promise<KnowledgeArticleDetail> {
+  return adminFetch<KnowledgeArticleDetail>('knowledge', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateKnowledgeArticle(slug: string, payload: { title?: string; slug?: string; summary?: string; content?: string; category?: string; tags?: string[]; status?: string }): Promise<KnowledgeArticleDetail> {
+  return adminFetch<KnowledgeArticleDetail>(`knowledge/${encodeURIComponent(slug)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteKnowledgeArticle(slug: string): Promise<void> {
+  return adminFetch<void>(`knowledge/${encodeURIComponent(slug)}`, {
+    method: 'DELETE',
+  });
 }

@@ -5,7 +5,7 @@ import { AdminService } from './admin.service';
 import { UserEntity } from '../users/user.schema';
 import { EventEntity } from '../events/event.schema';
 import { OrganizationEntity } from '../organizations/organization.schema';
-import { AdminAuditLogEntity } from './audit-log.schema';
+import { AdminAuditLogEntity, AdminAuditLogEntitySchema } from './audit-log.schema';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { EventsService } from '../events/events.service';
 import { AiOperationLogEntity } from '../ai/ai-operation-log.schema';
@@ -15,8 +15,12 @@ describe('AdminService', () => {
   let service: AdminService;
   let userModel: any;
   let auditLogModel: any;
+  let eventModel: any;
+  let realtimeGateway: any;
+  let mockAdminUser: any;
 
   beforeEach(async () => {
+    mockAdminUser = { id: 'admin-id', email: 'admin@test.com' };
     userModel = {
       countDocuments: jest.fn().mockReturnValue({
         exec: jest.fn().mockResolvedValue(100)
@@ -24,17 +28,25 @@ describe('AdminService', () => {
       aggregate: jest.fn().mockResolvedValue([{ totalAIRequests: 50 }]),
       findById: jest.fn(),
     };
+    eventModel = { 
+      countDocuments: jest.fn().mockResolvedValue(50),
+      findByIdAndUpdate: jest.fn()
+    };
+    realtimeGateway = {
+      getEventDiagnostics: jest.fn(),
+      forceEndEventBroadcast: jest.fn()
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdminService,
         { provide: getModelToken(UserEntity.name), useValue: userModel },
-        { provide: getModelToken(EventEntity.name), useValue: { countDocuments: jest.fn().mockResolvedValue(50) } },
+        { provide: getModelToken(EventEntity.name), useValue: eventModel },
         { provide: getModelToken(OrganizationEntity.name), useValue: { countDocuments: jest.fn().mockResolvedValue(10) } },
         { provide: getModelToken(AdminAuditLogEntity.name), useValue: { create: jest.fn().mockResolvedValue({}) } },
         { provide: getModelToken(AiOperationLogEntity.name), useValue: { aggregate: jest.fn().mockResolvedValue([]) } },
-        { provide: RealtimeGateway, useValue: {} },
-        { provide: EventsService, useValue: {} },
+        { provide: RealtimeGateway, useValue: realtimeGateway },
+        { provide: EventsService, useValue: { endEvent: jest.fn().mockResolvedValue({}) } },
         { provide: JwtService, useValue: { sign: jest.fn().mockReturnValue('signed-token') } },
       ],
     }).compile();
@@ -257,5 +269,40 @@ describe('AdminService', () => {
         organizationId: new Types.ObjectId('5f4d2a8b9d8f8a1234567891')
       }));
     });
+  });
+  describe('Live Session Operations', () => {
+    const validId = '5f4d2a8b9d8f8a1234567891';
+    
+    it('should fetch event diagnostics', async () => {
+      const mockDiag = { connectedSockets: 5, activeActivityId: 'act1' };
+      realtimeGateway.getEventDiagnostics.mockResolvedValue(mockDiag);
+      const res = await service.getEventDiagnostics(validId);
+      expect(res).toEqual(mockDiag);
+      expect(realtimeGateway.getEventDiagnostics).toHaveBeenCalledWith(validId);
+    });
+
+    it('should force end a live event', async () => {
+      eventModel.findById = jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue({ _id: validId, status: 'live' }) });
+      realtimeGateway.getEventDiagnostics.mockResolvedValue({ connectedSockets: 5, activeActivityId: null });
+      const eventsService = service['coreEventsService'];
+      
+      await service.forceEndEvent(validId, mockAdminUser, 'Test reason');
+      
+      expect(eventsService.endEvent).toHaveBeenCalledWith(validId);
+      expect(realtimeGateway.forceEndEventBroadcast).toHaveBeenCalledWith(validId);
+      expect(auditLogModel.create).toHaveBeenCalledWith(expect.objectContaining({
+        actionType: 'FORCE_END_EVENT',
+        targetResourceId: validId,
+        reason: 'Test reason'
+      }));
+    });
+  });
+});
+
+describe('AdminAuditLog Schema Validation', () => {
+  it('should allow SupportTicket and KnowledgeArticle as targetResourceType', () => {
+    const enumValues = AdminAuditLogEntitySchema.path('targetResourceType').options.enum;
+    expect(enumValues).toContain('SupportTicket');
+    expect(enumValues).toContain('KnowledgeArticle');
   });
 });

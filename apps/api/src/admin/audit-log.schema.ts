@@ -14,7 +14,7 @@ export class AdminAuditLogEntity {
   @Prop({ type: String, required: true, index: true })
   actionType!: string;
 
-  @Prop({ type: String, required: true, enum: ['Event', 'User', 'System', 'Organization'] })
+  @Prop({ type: String, required: true, enum: ['Event', 'User', 'System', 'Organization', 'SupportTicket', 'KnowledgeArticle'] })
   targetResourceType!: string;
 
   @Prop({ type: String, required: true, index: true })

@@ -83,13 +83,13 @@ export default async function HomePage() {
               title="Support Inbox"
               description="Triage support submissions from the public contact form."
               icon={LifeBuoy}
-              comingSoon
+              href="/support-inbox"
             />
             <WorkspaceCard
               title="Knowledge Base"
               description="Author the support team's internal runbooks and grounding content."
               icon={BookOpen}
-              comingSoon
+              href="/knowledge-base"
             />
           </div>
         </section>
@@ -113,7 +113,7 @@ export default async function HomePage() {
               title="Live Sessions"
               description="Monitor currently live events. View real-time diagnostics and force-end sessions if needed."
               icon={Radio}
-              comingSoon
+              href="/live-sessions"
             />
             <WorkspaceCard
               title="Integrations"
