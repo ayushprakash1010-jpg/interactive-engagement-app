@@ -162,7 +162,7 @@ ${kbContext ? `\n--- KNOWLEDGE BASE CONTEXT ---\n${kbContext}\n--- END KNOWLEDGE
 export class CopilotService {
   private readonly ai: GoogleGenAI;
   private readonly logger = new Logger(CopilotService.name);
-  private readonly MODEL = 'gemini-2.5-flash';
+  private readonly MODEL = 'gemini-3.5-flash';
 
   constructor(
     private readonly configService: ConfigService<Env, true>,
@@ -834,7 +834,7 @@ export class CopilotService {
         latencyMs: Date.now() - startTime,
         errorMessage: message,
       });
-      if (message.includes('503') || message.includes('quota') || message.includes('rate')) {
+      if (message.includes('503') || message.includes('quota') || /\brate\b/i.test(message)) {
         throw new ServiceUnavailableException('AI service temporarily busy. Please try again in a moment.');
       }
       throw new InternalServerErrorException('Copilot request failed. Please try again.');

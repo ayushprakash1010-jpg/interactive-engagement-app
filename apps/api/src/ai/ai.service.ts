@@ -135,7 +135,7 @@ export class AiService {
       const startTime = Date.now();
       try {
         const response = await this.ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
           contents,
         });
 
@@ -223,7 +223,7 @@ export class AiService {
     this.aiOperationLogModel.create({
       ...data,
       provider: 'google-genai',
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.5-flash',
     }).catch(err => {
       this.logger.error(`Failed to log AI operation: ${data.featureName}`, err);
     });
