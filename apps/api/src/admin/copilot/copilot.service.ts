@@ -823,7 +823,7 @@ export class CopilotService {
       }
 
       if (!finalReply) {
-        finalReply = 'I completed the requested operation. Please see the result above.';
+        finalReply = 'I have checked the system but I could not find a conclusive answer. Could you provide more specific details?';
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
