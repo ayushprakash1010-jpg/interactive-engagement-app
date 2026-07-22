@@ -43,7 +43,7 @@ import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.in
     }),
     ThrottlerModule.forRoot([{
       ttl: 60000,
-      limit: 10,
+      limit: 100, // Increased from 10 to support Global Search
     }]),
     LoggerModule.forRootAsync({
       inject: [ConfigService],

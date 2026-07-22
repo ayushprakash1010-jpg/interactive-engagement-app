@@ -45,11 +45,17 @@ export class SupportService {
     }
 
     if (query.search) {
-      filter.$or = [
-        { customerEmail: { $regex: query.search, $options: 'i' } },
-        { customerName: { $regex: query.search, $options: 'i' } },
-        { subject: { $regex: query.search, $options: 'i' } },
-      ];
+      const raw = query.search.trim();
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(raw)) {
+        filter._id = new mongoose.Types.ObjectId(raw);
+      } else {
+        filter.$or = [
+          { customerEmail: { $regex: raw, $options: 'i' } },
+          { customerName: { $regex: raw, $options: 'i' } },
+          { subject: { $regex: raw, $options: 'i' } },
+        ];
+      }
     }
 
     const [items, total] = await Promise.all([
