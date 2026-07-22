@@ -206,6 +206,7 @@ export interface GetUsersQuery {
   page?: number;
   limit?: number;
   search?: string;
+  status?: string;
   role?: string;
   sort?: string;
   order?: string;
@@ -274,6 +275,12 @@ export class AdminService {
 
     if (roleFilter) {
       filter.role = roleFilter;
+    }
+
+    if (query.status === 'suspended') {
+      filter.isSuspended = true;
+    } else if (query.status === 'active') {
+      filter.isSuspended = false;
     }
 
     if (query.organizationId && Types.ObjectId.isValid(query.organizationId)) {
@@ -488,15 +495,21 @@ export class AdminService {
   // ── Event Detail ───────────────────────────────────────────────────────────
 
   async getEventById(id: string): Promise<AdminEventDetailDto> {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new NotFoundException(`Event ${id} not found`);
-    }
+    let event;
 
-    const event = await this.eventModel
-      .findById(id)
-      .populate('hostId', 'name email')
-      .lean()
-      .exec();
+    if (Types.ObjectId.isValid(id) && id.length === 24) {
+      event = await this.eventModel
+        .findById(id)
+        .populate('hostId', 'name email')
+        .lean()
+        .exec();
+    } else if (typeof id === 'string' && id.length === 6) {
+      event = await this.eventModel
+        .findOne({ eventCode: id.toUpperCase() })
+        .populate('hostId', 'name email')
+        .lean()
+        .exec();
+    }
 
     if (!event) {
       throw new NotFoundException(`Event ${id} not found`);
@@ -537,7 +550,7 @@ export class AdminService {
     return this.realtimeGateway.getEventDiagnostics(id);
   }
 
-  async forceEndEvent(id: string, admin: AuthenticatedUser, reason?: string): Promise<void> {
+  async forceEndEvent(id: string, admin: AuthenticatedUser, reason?: string, options?: { metadata?: Record<string, any> }): Promise<void> {
     if (!Types.ObjectId.isValid(id)) {
       throw new NotFoundException(`Event ${id} not found`);
     }
@@ -572,6 +585,7 @@ export class AdminService {
           eventName: preTerminationName,
           previousStatus: preTerminationStatus,
           connectedSocketsDisconnected: diagnostics.connectedSockets,
+          ...(options?.metadata || {}),
         },
       },
       true // failOpen = true
@@ -1036,7 +1050,8 @@ export class AdminService {
     adminId: string,
     adminEmail: string,
     targetUserId: string,
-    reason: string
+    reason: string,
+    options?: { metadata?: Record<string, any> }
   ): Promise<{ success: boolean }> {
     if (!reason?.trim()) {
       throw new BadRequestException('Suspension requires a reason.');
@@ -1062,7 +1077,7 @@ export class AdminService {
       targetResourceType: 'User',
       targetResourceId: user._id.toString(),
       reason: reason.trim(),
-      metadata: {},
+      metadata: options?.metadata || {},
     });
 
     return { success: true };
@@ -1072,7 +1087,8 @@ export class AdminService {
     adminId: string,
     adminEmail: string,
     targetUserId: string,
-    reason: string
+    reason: string,
+    options?: { metadata?: Record<string, any> }
   ): Promise<{ success: boolean }> {
     if (!reason?.trim()) {
       throw new BadRequestException('Reactivation requires a reason.');
@@ -1092,7 +1108,7 @@ export class AdminService {
       targetResourceType: 'User',
       targetResourceId: user._id.toString(),
       reason: reason.trim(),
-      metadata: {},
+      metadata: options?.metadata || {},
     });
 
     return { success: true };

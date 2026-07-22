@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { getModelToken } from '@nestjs/mongoose';
+import { NotFoundException } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { UserEntity } from '../users/user.schema';
 import { EventEntity } from '../events/event.schema';
@@ -248,7 +249,7 @@ describe('AdminService', () => {
   });
 
   describe('User Organization Membership', () => {
-    it('should filter users by organizationId in getUsers', async () => {
+    beforeEach(() => {
       userModel.find = jest.fn().mockReturnValue({
         populate: jest.fn().mockReturnValue({
           sort: jest.fn().mockReturnValue({
@@ -262,6 +263,10 @@ describe('AdminService', () => {
           })
         })
       });
+      userModel.countDocuments = jest.fn().mockReturnValue({ exec: jest.fn().mockResolvedValue(0) });
+    });
+
+    it('should filter users by organizationId in getUsers', async () => {
 
       await service.getUsers({ organizationId: '5f4d2a8b9d8f8a1234567891' });
 
@@ -269,7 +274,63 @@ describe('AdminService', () => {
         organizationId: new Types.ObjectId('5f4d2a8b9d8f8a1234567891')
       }));
     });
+
+    it('should filter by suspended status', async () => {
+      await service.getUsers({ status: 'suspended' });
+      expect(userModel.find).toHaveBeenCalledWith(expect.objectContaining({ isSuspended: true }));
+    });
+
+    it('should filter by active status', async () => {
+      await service.getUsers({ status: 'active' });
+      expect(userModel.find).toHaveBeenCalledWith(expect.objectContaining({ isSuspended: false }));
+    });
+
+    it('should not filter by isSuspended when status is all', async () => {
+      await service.getUsers({ status: 'all' });
+      expect(userModel.find).toHaveBeenCalledWith(expect.not.objectContaining({ isSuspended: expect.anything() }));
+    });
   });
+
+  describe('getEventById', () => {
+    it('should query by eventCode when id is exactly 6 characters', async () => {
+      eventModel.findOne = jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue({ _id: new Types.ObjectId(), name: 'Test', eventCode: 'ABCDEF' })
+          })
+        })
+      });
+
+      await service.getEventById('abcdef');
+      expect(eventModel.findOne).toHaveBeenCalledWith({ eventCode: 'ABCDEF' });
+    });
+
+    it('should query by _id when id is a valid 24-character ObjectId', async () => {
+      const validId = new Types.ObjectId().toHexString();
+      eventModel.findById = jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue({ _id: new Types.ObjectId(), name: 'Test', eventCode: 'ABCDEF' })
+          })
+        })
+      });
+
+      await service.getEventById(validId);
+      expect(eventModel.findById).toHaveBeenCalledWith(validId);
+    });
+
+    it('should throw NotFoundException if 6 character join code is not found', async () => {
+      eventModel.findOne = jest.fn().mockReturnValue({
+        populate: jest.fn().mockReturnValue({
+          lean: jest.fn().mockReturnValue({
+            exec: jest.fn().mockResolvedValue(null)
+          })
+        })
+      });
+      await expect(service.getEventById('NONEXT')).rejects.toThrow(NotFoundException);
+    });
+  });
+
   describe('Live Session Operations', () => {
     const validId = '5f4d2a8b9d8f8a1234567891';
     

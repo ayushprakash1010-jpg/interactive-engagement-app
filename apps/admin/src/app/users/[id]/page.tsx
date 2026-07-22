@@ -24,6 +24,8 @@ import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { AdminApiError, fetchAdminUser, suspendUser, reactivateUser } from '@/lib/admin-api';
 import type { AdminUserDetail, AdminRecentEvent } from '@/lib/admin-api';
 import { ImpersonateButton } from './impersonate-button';
+import { InvestigateButton } from '@/components/admin/investigate-button';
+import { GlobalCopilot } from '@/components/admin/global-copilot';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -276,6 +278,7 @@ export default function UserDetailPage() {
                 {user.profile.isSuspended && <Badge variant="destructive">Suspended</Badge>}
               </div>
               <div className="flex items-center gap-3">
+                <InvestigateButton resourceType="user" resourceId={user.profile.id} />
                 {user.profile.role !== 'admin' && (
                   <ImpersonateButton userId={user.profile.id} userName={user.profile.name} />
                 )}
@@ -448,6 +451,14 @@ export default function UserDetailPage() {
           </div>
         )}
       </div>
+      {!loading && user && (
+        <GlobalCopilot 
+          pageContext={{ 
+            type: 'user', 
+            id: user.profile.id
+          }} 
+        />
+      )}
     </div>
   );
 }

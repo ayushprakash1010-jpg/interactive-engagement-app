@@ -7,6 +7,8 @@ import { ChevronLeft, LifeBuoy, Loader2, Send } from 'lucide-react';
 import { fetchSupportTicket, updateSupportTicket, addSupportTicketNote } from '@/lib/admin-api';
 import type { SupportTicketDetail } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
+import { InvestigateButton } from '@/components/admin/investigate-button';
+import { GlobalCopilot } from '@/components/admin/global-copilot';
 
 export default function TicketDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -93,6 +95,7 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <InvestigateButton resourceType="ticket" resourceId={ticket._id} />
             <select
               disabled={isUpdatingStatus}
               value={ticket.status}
@@ -188,6 +191,14 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
           </section>
         </div>
       </div>
+      {ticket && (
+        <GlobalCopilot 
+          pageContext={{ 
+            type: 'ticket', 
+            id: ticket._id
+          }} 
+        />
+      )}
     </div>
   );
 }

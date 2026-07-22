@@ -29,6 +29,7 @@ import { GoogleSlidesModule } from './google-slides/google-slides.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { SupportModule } from './support/support.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
+import { CopilotModule } from './admin/copilot/copilot.module';
 
 import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.interceptor';
 
@@ -117,6 +118,7 @@ import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.in
     FeatureFlagsModule,
     SupportModule,
     KnowledgeModule,
+    CopilotModule,
   ],
   providers: [
     {

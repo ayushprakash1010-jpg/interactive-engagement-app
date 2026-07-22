@@ -22,6 +22,8 @@ import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { AdminApiError, fetchAdminEvent } from '@/lib/admin-api';
 import type { AdminEventDetail } from '@/lib/admin-api';
 import { LiveDiagnostics } from './live-diagnostics';
+import { InvestigateButton } from '@/components/admin/investigate-button';
+import { GlobalCopilot } from '@/components/admin/global-copilot';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -176,13 +178,16 @@ export default function EventDetailPage() {
                 </h1>
                 {eventStatusBadge(event.status)}
               </div>
-              <Link 
-                href={`/audit-logs?resource=${event.id}`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken transition-colors"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Audit History
-              </Link>
+              <div className="flex items-center gap-3">
+                <InvestigateButton resourceType="event" resourceId={event.id} />
+                <Link 
+                  href={`/audit-logs?resource=${event.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken transition-colors"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  Audit History
+                </Link>
+              </div>
             </div>
           )}
           {!loading && notFound && (
@@ -305,6 +310,14 @@ export default function EventDetailPage() {
           </>
         )}
       </div>
+      {!loading && event && (
+        <GlobalCopilot 
+          pageContext={{ 
+            type: 'event', 
+            id: event.id
+          }} 
+        />
+      )}
     </div>
   );
 }
