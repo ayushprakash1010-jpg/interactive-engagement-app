@@ -32,6 +32,7 @@ import {
   SectionHeader,
   Select,
   SurfacePanel,
+  VideoCallout,
 } from '@/components/ui';
 import {
   AIBadge,
@@ -49,6 +50,7 @@ import {
   feedbackConfigSchema,
   surveyConfigSchema,
 } from '@iep/types';
+import { getVideoByFeature } from '@/lib/tutorial-videos';
 
 type DraftActivity = {
   id: string;
@@ -1036,6 +1038,18 @@ export default function AIStudioPage() {
         badge={<AIBadge label="Beta" size="sm" />}
         description="Draft sessions, review suggested activities, and summarize live audience responses from one focused workspace."
       />
+
+      {/* Tutorial callout — subtle, does not interfere with the AI workflow */}
+      {(() => {
+        const video = getVideoByFeature('ai-studio');
+        return video ? (
+          <VideoCallout
+            video={video}
+            label="New to AI Studio? Watch a quick walkthrough"
+            tone="ai"
+          />
+        ) : null;
+      })()}
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <SurfacePanel tone="ai" className="space-y-5 p-4 sm:p-5">

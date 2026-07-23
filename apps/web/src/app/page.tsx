@@ -32,6 +32,7 @@ import {
   CursorParallax,
   FloatingShape,
 } from '@/components/marketing/landing-animations';
+import { LandingDemoButton, StepDemoLink } from '@/components/marketing/landing-video-buttons';
 
 const SIGNUP_HREF = '/api/auth/signup?returnTo=/dashboard';
 
@@ -351,6 +352,7 @@ export default function LandingPage() {
                           Join an event
                         </Link>
                       </Button>
+                      <LandingDemoButton />
                     </div>
                     <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted lg:justify-start">
                       <span className="inline-flex items-center gap-1.5">
@@ -511,6 +513,9 @@ export default function LandingPage() {
                     </div>
                     <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-ink-muted">{step.body}</p>
+                    {i === 0 && <StepDemoLink videoId="create-event" label="Watch 30s clip" />}
+                    {i === 1 && <StepDemoLink videoId="getting-started" label="Watch 30s clip" />}
+                    {i === 2 && <StepDemoLink videoId="live-poll" label="Watch 30s clip" />}
                   </div>
                 ))}
               </StaggerContainer>

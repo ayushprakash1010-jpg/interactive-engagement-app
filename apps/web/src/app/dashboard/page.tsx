@@ -48,6 +48,7 @@ import {
   MetricCard,
   PageHeader,
   StatusBadge,
+  WelcomeVideoCard,
 } from '@/components/ui';
 import { useDeleteEvent, useEvents } from '@/lib/use-events';
 import { useNotifications } from '@/lib/notification-store';
@@ -714,6 +715,9 @@ export default function DashboardOverviewPage() {
 
       {/* ── Empty state (no events) ──────────────────────────────────────── */}
       {!eventsLoading && !hasEvents && <WorkspaceEmptyState aiStudioEnabled={flags['ai-studio']} />}
+
+      {/* ── Welcome video card (first-time users) ──────────────────────── */}
+      {!eventsLoading && !hasEvents && <WelcomeVideoCard className="mt-2" />}
 
       {/* Rest of sections only meaningful when there are events */}
       {(eventsLoading || hasEvents) && (

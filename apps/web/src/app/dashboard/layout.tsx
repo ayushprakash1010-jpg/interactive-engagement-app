@@ -90,6 +90,7 @@ function DashboardLayoutContent({
   const isAIStudioPage = pathname === '/dashboard/ai';
   const isSettingsPage = pathname === '/dashboard/settings';
   const isHelpPage = pathname === '/dashboard/help';
+  const isTutorialsPage = pathname === '/dashboard/tutorials';
   const isOverviewPage = pathname === '/dashboard';
   const isEventsListPage = pathname === '/dashboard/events';
 
@@ -101,6 +102,7 @@ function DashboardLayoutContent({
     isAIStudioPage ||
     isSettingsPage ||
     isHelpPage ||
+    isTutorialsPage ||
     eventDetailMatch ||
     analyticsMatch
   ) {
@@ -145,7 +147,12 @@ function DashboardLayoutContent({
                     { label: 'Workspace', href: '/dashboard' },
                     { label: 'Help Center' },
                   ]
-                  : [{ label: 'Overview' }];
+                  : isTutorialsPage
+                    ? [
+                      { label: 'Workspace', href: '/dashboard' },
+                      { label: 'Tutorials' },
+                    ]
+                    : [{ label: 'Overview' }];
 
     const displayName = user?.nickname || user?.name?.split('@')[0] || 'User';
     const displayInitial = displayName?.[0]?.toUpperCase() || 'U';
@@ -199,6 +206,11 @@ function DashboardLayoutContent({
             label: 'Help',
             href: '/dashboard/help',
             icon: HelpCircle,
+          },
+          {
+            label: 'Tutorials',
+            href: '/dashboard/tutorials',
+            icon: PlayCircle,
           },
         ]}
         topActions={

@@ -55,12 +55,14 @@ import {
   MetricCard,
   PageHeader,
   StatusBadge,
+  VideoCallout,
 } from "@/components/ui";
 import { useAnalytics, downloadReport } from "@/hooks/use-analytics";
 import { useEvent } from "@/lib/use-events";
 import { apiFetch } from "@/lib/events-api";
 import { notify } from "@/lib/notification-store";
 import { WordCloud } from "@/components/wordcloud/wordcloud-cloud";
+import { getVideoByFeature } from "@/lib/tutorial-videos";
 
 const CHART_COLORS = [
   "var(--data-1)",
@@ -1183,6 +1185,18 @@ Q&A: ${qaSummary}
           </CardContent>
         </Card>
       )}
+
+      {/* Tutorial callout — subtle, contextual help for the analytics page */}
+      {(() => {
+        const video = getVideoByFeature('analytics');
+        return video ? (
+          <VideoCallout
+            video={video}
+            label="Understand your analytics — Watch the reports tutorial"
+            className="mb-2"
+          />
+        ) : null;
+      })()}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
