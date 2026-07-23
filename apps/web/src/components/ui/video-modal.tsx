@@ -45,7 +45,7 @@ function buildEmbedUrl(video: TutorialVideo): string | null {
       return video.videoUrl;
     case 'placeholder':
       // Use the raw URL as-is for placeholder testing
-      return video.videoUrl ? `${video.videoUrl}?autoplay=1&rel=0` : null;
+      return video.videoUrl || null;
     default:
       return video.videoUrl || null;
   }

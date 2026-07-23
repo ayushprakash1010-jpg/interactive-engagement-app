@@ -90,8 +90,9 @@ export type TutorialVideo = {
 // This is a publicly available YouTube video used as a safe placeholder.
 // Replace each entry's `videoUrl` with your real AI-generated video URL.
 // =============================================================================
-const PLACEHOLDER_EMBED = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
-const PLACEHOLDER_THUMBNAIL = 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg';
+// =============================================================================
+const PLACEHOLDER_EMBED = 'https://embed.app.guidde.com/playbooks/aeXzY7rCCT7zVZgYZzwjmX?mode=videoOnly';
+const PLACEHOLDER_THUMBNAIL = '';
 
 // =============================================================================
 // TUTORIAL VIDEO LIBRARY
@@ -128,12 +129,12 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     title: 'Create Your First Event',
     description:
       'Step-by-step guide to creating an event: set a title, configure participant access, and get your shareable join code and QR.',
-    duration: '1:20', // ⚠️ REPLACE with real duration
+    duration: '1:29',
     category: 'events',
     feature: 'events',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'guidde',
+    videoUrl: 'https://embed.app.guidde.com/playbooks/eETWUmd7MSREdzq37RJ6Ea?mode=videoOnly',
+    thumbnailUrl: '',
     relatedRoute: '/dashboard/events',
     featured: true,
     order: 1,
