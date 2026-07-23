@@ -116,7 +116,7 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     feature: 'overview',
     provider: 'guidde',
     videoUrl: 'https://embed.app.guidde.com/playbooks/aeXzY7rCCT7zVZgYZzwjmX?mode=videoOnly',
-    thumbnailUrl: '', // Uses the VideoPlayer generic fallback icon
+    thumbnailUrl: '/assets/pulse_video_cover.png', // Uses the VideoPlayer generic fallback icon
     relatedRoute: '/dashboard',
     featured: true,
     order: 1,
@@ -134,7 +134,7 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     feature: 'events',
     provider: 'guidde',
     videoUrl: 'https://embed.app.guidde.com/playbooks/eETWUmd7MSREdzq37RJ6Ea?mode=videoOnly',
-    thumbnailUrl: '',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/events',
     featured: true,
     order: 1,
@@ -147,12 +147,12 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     title: 'Run a Live Poll',
     description:
       'Create single-choice, multiple-choice, rating, and open-text polls. Launch them live and watch real-time results animate as votes come in.',
-    duration: '1:30', // ⚠️ REPLACE
+    duration: '1:45',
     category: 'features',
     feature: 'poll',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'guidde',
+    videoUrl: 'https://embed.app.guidde.com/playbooks/ijTwYW2JjL4GfQw3e28PPx?mode=videoOnly',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/events',
     order: 1,
   },
@@ -161,12 +161,12 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     title: 'Run an Interactive Quiz',
     description:
       'Build timed knowledge checks, reveal correct answers live, and watch the leaderboard update in real-time as participants compete.',
-    duration: '1:50', // ⚠️ REPLACE
+    duration: '2:27',
     category: 'features',
     feature: 'quiz',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'guidde',
+    videoUrl: 'https://embed.app.guidde.com/playbooks/hAk8HGnTWZdRYi7xXt8iDS?mode=videoOnly',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/events',
     order: 2,
   },
@@ -175,12 +175,12 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     title: 'Moderate Q&A in Real Time',
     description:
       'How to enable anonymous Q&A, review the question queue, approve or hide submissions, and mark questions as answered during a live session.',
-    duration: '1:25', // ⚠️ REPLACE
+    duration: '1:25',
     category: 'features',
     feature: 'qa',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'guidde',
+    videoUrl: 'https://embed.app.guidde.com/playbooks/pGLndrdU9apfgfmxetgN36?mode=videoOnly',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/events',
     order: 3,
   },
@@ -189,12 +189,12 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     title: 'Create Surveys & Collect Feedback',
     description:
       'Build multi-step surveys and feedback forms, capture ratings and open text, then export structured responses to CSV or PDF.',
-    duration: '1:40', // ⚠️ REPLACE
+    duration: '1:25',
     category: 'features',
     feature: 'feedback',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'guidde',
+    videoUrl: 'https://embed.app.guidde.com/playbooks/6r4tcFnNwfFidZEzkDc9DE?mode=videoOnly',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/events',
     order: 4,
   },
@@ -203,12 +203,12 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     title: 'Word Cloud in Action',
     description:
       'Collect short free-text responses and display a live weighted word cloud that surfaces the most popular themes from your audience.',
-    duration: '1:10', // ⚠️ REPLACE
+    duration: '1:34',
     category: 'features',
     feature: 'wordcloud',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'guidde',
+    videoUrl: 'https://embed.app.guidde.com/playbooks/o5KnwnExvQVHGgVU1JkMwR?mode=videoOnly',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/events',
     order: 5,
   },
@@ -220,12 +220,12 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     title: 'Use AI Studio',
     description:
       'Describe your session in natural language and let AI Studio draft a full agenda of polls, quizzes, and Q&A activities in seconds.',
-    duration: '2:00', // ⚠️ REPLACE
+    duration: '1:39',
     category: 'ai',
     feature: 'ai-studio',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'guidde',
+    videoUrl: 'https://embed.app.guidde.com/playbooks/pu1wFvxk7jFSbRwqA8Frk1?mode=videoOnly',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/ai',
     featured: true,
     order: 1,
@@ -238,12 +238,12 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
     title: 'Analytics & Reports',
     description:
       'Explore engagement timelines, per-activity breakdowns, and AI-generated insights. Export full session reports to CSV and PDF.',
-    duration: '1:35', // ⚠️ REPLACE
+    duration: '1:39',
     category: 'analytics',
     feature: 'analytics',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'guidde',
+    videoUrl: 'https://embed.app.guidde.com/playbooks/2nH1QjBwD14DVcxjPjNZay?mode=videoOnly',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/events',
     order: 1,
   },
@@ -252,57 +252,57 @@ export const TUTORIAL_VIDEOS: TutorialVideo[] = [
 
   {
     id: 'integration-powerpoint-slides',
-    title: 'Connect PowerPoint & Google Slides',
+    title: 'Connect PowerPoint & Google Slides (Coming Soon)',
     description:
       'Embed live Pulse polls and Q&A directly inside your presentation slides — no tab switching, no friction for your audience.',
-    duration: '2:10', // ⚠️ REPLACE
+    duration: '',
     category: 'integrations',
     feature: 'powerpoint',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'placeholder',
+    videoUrl: '',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/integrations/powerpoint',
     order: 1,
   },
   {
     id: 'integration-google-meet',
-    title: 'Google Meet Integration',
+    title: 'Google Meet Integration (Coming Soon)',
     description:
       'Use the native Google Meet Activities sidebar to run Pulse polls and Q&A without ever leaving the video call.',
-    duration: '1:45', // ⚠️ REPLACE
+    duration: '',
     category: 'integrations',
     feature: 'google-meet',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'placeholder',
+    videoUrl: '',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/integrations/google-meet',
     order: 2,
   },
   {
     id: 'integration-zoom',
-    title: 'Zoom Integration',
+    title: 'Zoom Integration (Coming Soon)',
     description:
       'Authorize Pulse with Zoom, then launch polls and Q&A directly from the Zoom Apps tray during your meeting.',
-    duration: '1:50', // ⚠️ REPLACE
+    duration: '',
     category: 'integrations',
     feature: 'zoom',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'placeholder',
+    videoUrl: '',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/integrations/zoom',
     order: 3,
   },
   {
     id: 'integration-teams',
-    title: 'Microsoft Teams Integration',
+    title: 'Microsoft Teams Integration (Coming Soon)',
     description:
       'Embed Pulse as a seamless side panel in Microsoft Teams meetings to run real-time polls without disrupting your call flow.',
-    duration: '1:55', // ⚠️ REPLACE
+    duration: '',
     category: 'integrations',
     feature: 'teams',
-    provider: 'placeholder', // ⚠️ REPLACE
-    videoUrl: PLACEHOLDER_EMBED, // ⚠️ REPLACE
-    thumbnailUrl: PLACEHOLDER_THUMBNAIL, // ⚠️ REPLACE
+    provider: 'placeholder',
+    videoUrl: '',
+    thumbnailUrl: '/assets/pulse_video_cover.png',
     relatedRoute: '/dashboard/integrations/teams',
     order: 4,
   },
