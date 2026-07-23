@@ -22,6 +22,10 @@
     "typescript": "^5.7.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "unrs-resolver", "@nestjs/core"]
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "esbuild",
+      "unrs-resolver"
+    ]
   }
 }

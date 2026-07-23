@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { notFound } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { SectionHeader } from '@/components/ui';
+import { SectionHeader, VideoCallout } from '@/components/ui';
 import {
   ZoomIcon,
   TeamsIcon,
@@ -12,6 +12,7 @@ import {
   GoogleMeetIcon,
 } from '@/components/brand-icons';
 import { CheckCircle2, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { getVideoByFeature } from '@/lib/tutorial-videos';
 
 type ProviderConfig = {
   id: string;
@@ -97,9 +98,21 @@ export default function IntegrationPage({ params }: { params: { provider: string
 
   if (!provider) {
     notFound();
+    return null; // satisfy TypeScript if notFound type is lost by IDE
   }
 
   const Icon = provider.icon;
+
+  // Map provider id to tutorial video feature slug
+  const providerVideoFeatureMap: Record<string, string> = {
+    zoom: 'zoom',
+    teams: 'teams',
+    'google-meet': 'google-meet',
+    powerpoint: 'powerpoint',
+    'google-slides': 'powerpoint', // shares the same slides+PPT video
+  };
+  const tutorialFeature = providerVideoFeatureMap[provider.id];
+  const tutorialVideo = tutorialFeature ? getVideoByFeature(tutorialFeature) : undefined;
 
   const handleAction = async () => {
     if (provider.href) {
@@ -144,6 +157,14 @@ export default function IntegrationPage({ params }: { params: { provider: string
             {provider.buttonText}
           </Button>
         </div>
+
+        {/* Tutorial video callout */}
+        {tutorialVideo && (
+          <VideoCallout
+            video={tutorialVideo}
+            label={`New to ${provider.title}? Watch the setup walkthrough`}
+          />
+        )}
 
         <hr className="border-border" />
 

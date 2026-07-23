@@ -1,0 +1,5 @@
+<svg width="208" height="56" viewBox="0 0 208 56" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Pulse">
+  <rect x="0" y="4" width="48" height="48" rx="12" fill="#faf9f6"></rect>
+  <path d="M9 28H16L19.8 19L25.8 37L29.6 28H39" stroke="#01696f" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path>
+  <text x="62" y="37" font-family="&#39;Space Grotesk&#39;, sans-serif" font-size="30" font-weight="700" letter-spacing="-0.5" fill="#faf9f6">Pulse</text>
+</svg>

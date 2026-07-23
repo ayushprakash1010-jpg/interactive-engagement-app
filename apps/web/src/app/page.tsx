@@ -32,6 +32,7 @@ import {
   CursorParallax,
   FloatingShape,
 } from '@/components/marketing/landing-animations';
+import { LandingDemoButton, StepDemoLink } from '@/components/marketing/landing-video-buttons';
 
 const SIGNUP_HREF = '/api/auth/signup?returnTo=/dashboard';
 
@@ -351,6 +352,7 @@ export default function LandingPage() {
                           Join an event
                         </Link>
                       </Button>
+                      <LandingDemoButton />
                     </div>
                     <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-medium text-ink-muted lg:justify-start">
                       <span className="inline-flex items-center gap-1.5">
@@ -368,20 +370,20 @@ export default function LandingPage() {
 
               {/* Right Column: Visual */}
               <div className="relative w-full lg:mt-0 flex justify-center lg:justify-start lg:block lg:h-[700px] min-h-[250px] sm:min-h-[350px]">
-                 {/* Decorative glow */}
-                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] -z-10 rounded-full bg-brand/15 blur-[100px]" />
-                 
-                 {/* Container for centering the scaled visual */}
-                 <ScrollReveal delay={300} className="w-full flex justify-center lg:block">
-                   {/* Bounding box to prevent mobile overflow */}
-                   <div className="relative w-[315px] sm:w-[450px] md:w-[540px] lg:w-full h-[250px] sm:h-[350px] md:h-[400px] lg:h-auto">
-                     <div className="absolute top-0 left-1/2 -translate-x-1/2 lg:left-0 lg:-translate-x-0 w-[900px] origin-top scale-[0.35] sm:scale-[0.5] md:scale-[0.6] lg:scale-[0.65] xl:scale-[0.70] lg:origin-top-left">
-                       <div className="transform perspective-[2500px] hover:rotate-0 transition-transform duration-700 ease-out lg:-rotate-y-12 lg:rotate-x-8 shadow-2xl rounded-xl">
-                         <ProductPreview />
-                       </div>
-                     </div>
-                   </div>
-                 </ScrollReveal>
+                {/* Decorative glow */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] -z-10 rounded-full bg-brand/15 blur-[100px]" />
+
+                {/* Container for centering the scaled visual */}
+                <ScrollReveal delay={300} className="w-full flex justify-center lg:block">
+                  {/* Bounding box to prevent mobile overflow */}
+                  <div className="relative w-[315px] sm:w-[450px] md:w-[540px] lg:w-full h-[250px] sm:h-[350px] md:h-[400px] lg:h-auto">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 lg:left-0 lg:-translate-x-0 w-[900px] origin-top scale-[0.35] sm:scale-[0.5] md:scale-[0.6] lg:scale-[0.65] xl:scale-[0.70] lg:origin-top-left">
+                      <div className="transform perspective-[2500px] hover:rotate-0 transition-transform duration-700 ease-out lg:-rotate-y-12 lg:rotate-x-8 shadow-2xl rounded-xl">
+                        <ProductPreview />
+                      </div>
+                    </div>
+                  </div>
+                </ScrollReveal>
               </div>
             </div>
           </div>
@@ -511,6 +513,9 @@ export default function LandingPage() {
                     </div>
                     <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-ink-muted">{step.body}</p>
+                    {i === 0 && <StepDemoLink videoId="create-event" label="Watch 30s clip" />}
+                    {i === 1 && <StepDemoLink videoId="getting-started" label="Watch 30s clip" />}
+                    {i === 2 && <StepDemoLink videoId="live-poll" label="Watch 30s clip" />}
                   </div>
                 ))}
               </StaggerContainer>

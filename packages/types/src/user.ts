@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { objectId, timestamps } from './common.js';
 
 /** Hosts/admins only. Authenticated via Auth0; `auth0Sub` is the token `sub` claim. */
-export const userRole = z.enum(['host', 'admin']);
+export const userRole = z.enum(['host', 'admin', 'support']);
 export type UserRole = z.infer<typeof userRole>;
 
 export const userIntegrationSchema = z.object({

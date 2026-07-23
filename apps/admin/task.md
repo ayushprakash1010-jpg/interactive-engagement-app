@@ -1,0 +1,33 @@
+# Admin Console Implementation Tasks
+
+- [x] Create `admin-portal` branch
+- [x] Configure backend API
+    - [x] Implement `GET /admin/me` in `admin.controller.ts`
+- [x] Scaffold `apps/admin` application
+    - [x] Create package.json with necessary dependencies
+    - [x] Create tsconfig.json and Next.js configuration
+    - [x] Configure Tailwind CSS and PostCSS
+    - [x] Create `.env.local.example` with Auth0 requirements
+- [x] Integrate Pulse Design System
+    - [x] Copy CSS tokens (colors, typography, spacing, etc.)
+    - [x] Copy core UI primitives (`button`, `card`, `badge`, etc.)
+    - [x] Copy brand assets and logos
+    - [x] Set up global CSS and `utils.ts`
+- [x] Implement Auth0 & Proxy Routes
+    - [x] Create Auth0 route handler
+    - [x] Implement server-side proxy route to API
+- [x] Build Workspace Launcher UI
+    - [x] Create `AdminShell` navigation component
+    - [x] Create `WorkspaceCard` component with hover/coming-soon states
+    - [x] Build `HomePage` with 9 categorised module cards
+- [x] Add Authentication/RBAC Guards
+    - [x] Add Next.js middleware to guard routes and enforce login
+    - [x] Create `/login` page
+    - [x] Create `/access-denied` page
+    - [x] Enforce server-side `fetchAdminMeServer` on `/home`
+- [x] Verify Implementation
+    - [x] Run `pnpm install` across workspace
+    - [x] Run `pnpm typecheck` successfully
+    - [x] Run `pnpm lint` successfully
+    - [x] Build `apps/admin` successfully
+    - [x] Build `apps/api` successfully

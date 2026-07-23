@@ -30,7 +30,6 @@ export default function PowerPointLayout({
        */}
       <Script
         src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"
-        strategy="beforeInteractive"
       />
       <PowerPointProvider>{children}</PowerPointProvider>
     </>

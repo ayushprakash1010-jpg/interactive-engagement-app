@@ -44,6 +44,7 @@ import { requestOpenNotificationCenter } from '@/lib/notification-center-store';
 import { useEvents } from '@/lib/use-events';
 import { EVENT_TEMPLATES } from '@/lib/templates';
 import { Star } from 'lucide-react';
+import { useFeatureFlags } from '@/lib/use-feature-flags';
 
 
 
@@ -104,6 +105,7 @@ function buildCommands(
   router: ReturnType<typeof useRouter>,
   setTheme: (t: 'light' | 'dark' | 'system') => void,
   events: any[] = [],
+  aiStudioEnabled: boolean = false,
 ): CommandItem[] {
   const eventCommands = events.map(event => ({
     id: `event-${event._id}`,
@@ -161,7 +163,7 @@ function buildCommands(
       shortcut: ['G', 'E'],
       action: nav('/dashboard'),
     },
-    {
+    ...(aiStudioEnabled ? [{
       id: 'nav-ai-studio',
       title: 'AI Studio',
       description: 'Create and manage AI-powered activities',
@@ -169,7 +171,7 @@ function buildCommands(
       icon: Sparkles,
       shortcut: ['G', 'A'],
       action: nav('/dashboard/ai'),
-    },
+    } as CommandItem] : []),
     {
       id: 'nav-settings',
       typeLabel: 'Settings',
@@ -228,65 +230,67 @@ function buildCommands(
     },
 
     // ── AI ───────────────────────────────────────────────────────────────────
-    {
-      id: 'ai-studio',
-      typeLabel: 'Action',
-      title: 'Open AI Studio',
-      description: 'Generate activities with the Pulse AI',
-      group: 'AI',
-      icon: Sparkles,
-      action: nav('/dashboard/ai'),
-    },
-    {
-      id: 'ai-generate-poll',
-      title: 'Generate Poll',
-      description: 'Use AI to create an interactive poll',
-      group: 'AI',
-      icon: RadioTower,
-      action: nav('/dashboard/ai'),
-    },
-    {
-      id: 'ai-generate-quiz',
-      title: 'Generate Quiz',
-      description: 'Use AI to build a scored quiz',
-      group: 'AI',
-      icon: BrainCircuit,
-      action: nav('/dashboard/ai'),
-    },
-    {
-      id: 'ai-generate-feedback',
-      title: 'Generate Feedback Form',
-      description: 'Use AI to draft a feedback survey',
-      group: 'AI',
-      icon: FileText,
-      action: nav('/dashboard/ai'),
-    },
-    {
-      id: 'ai-generate-wordcloud',
-      title: 'Generate Word Cloud',
-      description: 'Use AI to create a word cloud prompt',
-      group: 'AI',
-      icon: Cloud,
-      action: nav('/dashboard/ai'),
-    },
-    {
-      id: 'ai-generate-survey',
-      title: 'Generate Survey',
-      description: 'Use AI to draft a comprehensive survey',
-      group: 'AI',
-      icon: ClipboardList,
-      action: nav('/dashboard/ai'),
-    },
-    {
-      id: 'ai-summary',
-      typeLabel: 'Analytics',
-      shortcut: ['Cmd', 'A'],
-      title: 'AI Summary',
-      description: 'View AI-generated session summaries',
-      group: 'AI',
-      icon: Sparkles,
-      action: nav('/dashboard/ai'),
-    },
+    ...(aiStudioEnabled ? [
+      {
+        id: 'ai-studio',
+        typeLabel: 'Action',
+        title: 'Open AI Studio',
+        description: 'Generate activities with the Pulse AI',
+        group: 'AI',
+        icon: Sparkles,
+        action: nav('/dashboard/ai'),
+      },
+      {
+        id: 'ai-generate-poll',
+        title: 'Generate Poll',
+        description: 'Use AI to create an interactive poll',
+        group: 'AI',
+        icon: RadioTower,
+        action: nav('/dashboard/ai'),
+      },
+      {
+        id: 'ai-generate-quiz',
+        title: 'Generate Quiz',
+        description: 'Use AI to build a scored quiz',
+        group: 'AI',
+        icon: BrainCircuit,
+        action: nav('/dashboard/ai'),
+      },
+      {
+        id: 'ai-generate-feedback',
+        title: 'Generate Feedback Form',
+        description: 'Use AI to draft a feedback survey',
+        group: 'AI',
+        icon: FileText,
+        action: nav('/dashboard/ai'),
+      },
+      {
+        id: 'ai-generate-wordcloud',
+        title: 'Generate Word Cloud',
+        description: 'Use AI to create a word cloud prompt',
+        group: 'AI',
+        icon: Cloud,
+        action: nav('/dashboard/ai'),
+      },
+      {
+        id: 'ai-generate-survey',
+        title: 'Generate Survey',
+        description: 'Use AI to draft a comprehensive survey',
+        group: 'AI',
+        icon: ClipboardList,
+        action: nav('/dashboard/ai'),
+      },
+      {
+        id: 'ai-summary',
+        typeLabel: 'Analytics',
+        shortcut: ['Cmd', 'A'],
+        title: 'AI Summary',
+        description: 'View AI-generated session summaries',
+        group: 'AI',
+        icon: Sparkles,
+        action: nav('/dashboard/ai'),
+      }
+    ] as CommandItem[] : []),
 
     // ── Appearance ───────────────────────────────────────────────────────────
     {
@@ -564,6 +568,7 @@ export function CommandPalette() {
   const { open, recentCommands, favoriteCommands } = useCommandPalette();
   const router = useRouter();
   const { setTheme } = useTheme();
+  const { flags } = useFeatureFlags();
   
   const { data: events } = useEvents();
 
@@ -579,8 +584,8 @@ export function CommandPalette() {
 
   // Build the command list (memoised so it only rebuilds when deps change)
   const allCommands = React.useMemo(
-    () => buildCommands(router, setTheme, events || []),
-    [router, setTheme, events],
+    () => buildCommands(router, setTheme, events || [], flags['ai-studio'] || false),
+    [router, setTheme, events, flags],
   );
 
   // Filter by query and tab

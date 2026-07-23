@@ -49,6 +49,14 @@ export class EventEntity {
   })
   hostId!: Types.ObjectId;
 
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'OrganizationEntity',
+    default: null,
+    index: true,
+  })
+  organizationId?: Types.ObjectId | null;
+
   @Prop({ required: true, trim: true, maxlength: 120 })
   name!: string;
 

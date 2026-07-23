@@ -9,28 +9,51 @@ export interface UpsertUserDto {
   email: string;
 }
 
+export interface UpsertOptions {
+  skipProfileUpdate?: boolean;
+}
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
+  private readonly activityCache = new Map<string, number>();
 
   constructor(
     @InjectModel(UserEntity.name)
     private readonly userModel: Model<UserDocument>,
   ) {}
 
-  async upsert(dto: UpsertUserDto): Promise<UserDocument> {
+  async upsert(dto: UpsertUserDto, options?: UpsertOptions): Promise<UserDocument> {
+    const now = Date.now();
+    const lastActive = this.activityCache.get(dto.auth0Sub) || 0;
+    
+    // Throttle updates to once every 15 minutes per user
+    const shouldUpdateActivity = (now - lastActive) > 15 * 60 * 1000;
+
+    const setPayload: any = {};
+    if (!options?.skipProfileUpdate) {
+      setPayload.name = dto.name;
+      setPayload.email = dto.email;
+    }
+
+    if (shouldUpdateActivity) {
+      setPayload.lastActiveAt = new Date();
+    }
+
+    // If nothing to set and the user already exists, we could theoretically skip the DB call entirely.
+    // However, upsert must return the UserDocument, and we still need to insert if they don't exist.
+    // For safety, we always run the findOneAndUpdate.
+
     const user = await this.userModel
       .findOneAndUpdate(
         { auth0Sub: dto.auth0Sub },
         {
-          $set: {
-            name: dto.name,
-            email: dto.email,
-          },
+          $set: setPayload,
           $setOnInsert: {
             auth0Sub: dto.auth0Sub,
             role: 'host',
             plan: 'free',
+            ...(options?.skipProfileUpdate ? { name: dto.name, email: dto.email } : {})
           },
         },
         {
@@ -41,6 +64,10 @@ export class UsersService {
         },
       )
       .exec();
+
+    if (shouldUpdateActivity) {
+      this.activityCache.set(dto.auth0Sub, now);
+    }
 
     return user as UserDocument;
   }

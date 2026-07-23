@@ -20,6 +20,9 @@ import { notify } from '@/lib/notification-store';
 import { TemplateGallery } from '@/components/templates/template-gallery';
 import type { EventTemplate } from '@/lib/templates';
 import type { Activity } from '@/hooks/use-activities';
+import { useAuth } from '@/lib/use-auth';
+import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui';
 
 type CreationMode = 'select' | 'blank' | 'template';
 
@@ -29,6 +32,7 @@ export default function NewEventPage() {
   const createEvent = useCreateEvent();
   const [mode, setMode] = React.useState<CreationMode>('select');
   const [creatingTemplateId, setCreatingTemplateId] = React.useState<string | null>(null);
+  const { user } = useAuth();
 
   const handleCreateFromTemplate = async (template: EventTemplate) => {
     try {
@@ -193,6 +197,25 @@ export default function NewEventPage() {
           </Card>
         </div>
       </div>
+    );
+  }
+
+  if (user?.isImpersonating) {
+    return (
+      <Card className="border-destructive/20 bg-destructive/5 mt-8">
+        <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+          <div className="rounded-full bg-destructive/10 p-3 mb-4">
+            <AlertCircle className="h-6 w-6 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Restricted Action</h2>
+          <p className="text-muted-foreground max-w-[400px]">
+            You cannot create new events while impersonating another user. This restriction protects the workspace data integrity.
+          </p>
+          <Button asChild variant="outline" className="mt-6">
+            <Link href="/dashboard/events">Back to Events</Link>
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 

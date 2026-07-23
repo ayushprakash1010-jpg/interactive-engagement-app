@@ -19,6 +19,7 @@ async function bootstrap(): Promise<void> {
 
   const config = app.get(ConfigService<Env, true>);
   const webOrigin = config.get('WEB_ORIGIN', { infer: true });
+  const adminOrigin = config.get('ADMIN_PORTAL_URL', { infer: true });
   const port = config.get('PORT', { infer: true });
 
   // Security headers. crossOriginResourcePolicy relaxed so the separate web
@@ -28,7 +29,8 @@ async function bootstrap(): Promise<void> {
       crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
-  const corsOrigins = webOrigin ? [...webOrigin.split(','), 'http://localhost:3000'] : ['http://localhost:3000'];
+  
+  const corsOrigins = webOrigin ? [...webOrigin.split(','), adminOrigin, 'http://localhost:3000', 'http://localhost:3001'] : ['http://localhost:3000', 'http://localhost:3001'];
   
   app.enableCors({ origin: corsOrigins, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

@@ -5,9 +5,9 @@
   "id": "04c1b8af-f149-4415-a918-e51815b2b809",
   "developer": {
     "name": "Pulse IEP",
-    "websiteUrl": "https://causal-kitten-mountable.ngrok-free.dev",
-    "privacyUrl": "https://causal-kitten-mountable.ngrok-free.dev/privacy",
-    "termsOfUseUrl": "https://causal-kitten-mountable.ngrok-free.dev/terms"
+    "websiteUrl": "https://questliv.com",
+    "privacyUrl": "https://questliv.com/privacy",
+    "termsOfUseUrl": "https://questliv.com/terms"
   },
   "name": {
     "short": "Pulse",
@@ -27,8 +27,8 @@
     {
       "entityId": "pulse-home",
       "name": "Pulse",
-      "contentUrl": "https://causal-kitten-mountable.ngrok-free.dev/teams",
-      "websiteUrl": "https://causal-kitten-mountable.ngrok-free.dev/teams",
+      "contentUrl": "https://questliv.com/teams",
+      "websiteUrl": "https://questliv.com/teams",
       "scopes": ["personal"]
     }
   ],
@@ -38,11 +38,11 @@
   },
   "permissions": ["identity", "messageTeamMembers"],
   "validDomains": [
-    "causal-kitten-mountable.ngrok-free.dev"
+    "questliv.com"
   ],
   "webApplicationInfo": {
     "id": "04c1b8af-f149-4415-a918-e51815b2b809",
-    "resource": "api://causal-kitten-mountable.ngrok-free.dev/04c1b8af-f149-4415-a918-e51815b2b809"
+    "resource": "api://questliv.com/04c1b8af-f149-4415-a918-e51815b2b809"
   },
   "authorization": {
     "permissions": {

@@ -1,0 +1,54 @@
+/* ============================================================
+ * Pulse Admin Console — Global Styles
+ * Copied from apps/web/src/app/globals.css (minimum required subset).
+ * Future: extract to packages/ui when design system is shared.
+ * ============================================================ */
+@import '../styles/pulse/tokens/fonts.css';
+@import '../styles/pulse/tokens/colors.css';
+@import '../styles/pulse/tokens/typography.css';
+@import '../styles/pulse/tokens/spacing.css';
+@import '../styles/pulse/tokens/elevation.css';
+@import '../styles/pulse/tokens/motion.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: var(--radius-md);
+    /* Tailwind compat aliases */
+    --background: var(--surface-canvas);
+    --foreground: var(--text-primary);
+    --border: var(--border-default);
+    --ring: var(--brand);
+    --brand-foreground: var(--text-on-brand);
+    --brand-subtle-text: var(--brand-subtle-text, var(--teal-700));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    color: var(--text-primary);
+    background: var(--surface-canvas);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: var(--weight-bold);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+    color: var(--text-primary);
+    margin: 0;
+  }
+}

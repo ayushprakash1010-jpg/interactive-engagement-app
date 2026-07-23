@@ -7,6 +7,9 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { AuthService } from './auth.service';
 import { RolesGuard } from './roles.guard';
+import { ImpersonationStrategy } from './impersonation.strategy';
+import { JwtModule } from '@nestjs/jwt';
+import { PreventImpersonationInterceptor } from './prevent-impersonation.interceptor';
 
 /**
  * AuthModule wires together Passport, the Users dependency, and the
@@ -24,6 +27,10 @@ import { RolesGuard } from './roles.guard';
     // Registers Passport and sets 'jwt' as the default strategy, so
     // AuthGuard() (no argument) resolves to JwtStrategy.
     PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.register({
+      secret: process.env.SESSION_SECRET || 'fallback-dev-secret-do-not-use-in-prod',
+      signOptions: { expiresIn: '1h' },
+    }),
 
     // Provides UsersService — required by JwtStrategy.validate()
     UsersModule,
@@ -31,14 +38,18 @@ import { RolesGuard } from './roles.guard';
   providers: [
     AuthService,
     JwtStrategy,
+    ImpersonationStrategy,
     JwtAuthGuard,
     RolesGuard,
+    PreventImpersonationInterceptor,
   ],
   exports: [
     AuthService,
     JwtAuthGuard,   // controllers in other modules: @UseGuards(JwtAuthGuard)
     RolesGuard,     // controllers: @UseGuards(JwtAuthGuard, RolesGuard) + @Roles()
     PassportModule, // exposes AuthGuard() to importing modules
+    JwtModule,
+    PreventImpersonationInterceptor,
   ],
 })
 export class AuthModule {}

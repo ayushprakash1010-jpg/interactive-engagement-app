@@ -43,7 +43,52 @@ const nextConfig = {
         destination: `${base}/api/google-slides/:path*`,
       },
     ];
-  }
+  },
+  async headers() {
+    // Allow platform side panels (Zoom, Google Meet, Teams) to embed app pages in iframes.
+    const iframeHeaders = [
+      {
+        key: 'X-Frame-Options',
+        value: 'ALLOWALL',
+      },
+      {
+        key: 'Content-Security-Policy',
+        value: [
+          "frame-ancestors 'self'",
+          'https://meet.google.com',
+          'https://*.meet.google.com',
+          'https://meetingtools.googleapis.com',
+          'https://docs.google.com',
+          'https://*.googleusercontent.com',
+          'https://script.google.com',
+          'https://*.zoom.us',
+          'https://zoom.us',
+          'https://*.teams.microsoft.com',
+          'https://teams.microsoft.com',
+          // Office Add-ins (PowerPoint task pane)
+          'https://*.officeapps.live.com',
+          'https://officeapps.live.com',
+          'https://*.office.com',
+          'https://office.com',
+          'https://*.sharepoint.com',
+          'https://*.microsoft.com',
+          'https://*.cloud.microsoft',
+        ].join(' '),
+      },
+      // OWASP security headers required by Zoom App Marketplace validation
+      { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+    ];
+    return [
+      { source: '/meet/:path*', headers: iframeHeaders },
+      { source: '/zoom/:path*', headers: iframeHeaders },
+      { source: '/teams/:path*', headers: iframeHeaders },
+      { source: '/powerpoint/:path*', headers: iframeHeaders },
+      { source: '/event/:path*', headers: iframeHeaders },
+      { source: '/google-slides/:path*', headers: iframeHeaders },
+    ];
+  },
 };
 
 export default nextConfig;

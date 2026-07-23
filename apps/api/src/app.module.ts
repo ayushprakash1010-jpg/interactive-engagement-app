@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { validateEnv, type Env } from './config/env.validation';
@@ -25,6 +26,12 @@ import { TeamsModule } from './teams/teams.module';
 import { GoogleMeetModule } from './google-meet/google-meet.module';
 import { PowerPointModule } from './powerpoint/powerpoint.module';
 import { GoogleSlidesModule } from './google-slides/google-slides.module';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+import { SupportModule } from './support/support.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
+import { CopilotModule } from './admin/copilot/copilot.module';
+
+import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.interceptor';
 
 @Module({
   imports: [
@@ -34,6 +41,10 @@ import { GoogleSlidesModule } from './google-slides/google-slides.module';
       cache: true,
       validate: validateEnv,
     }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100, // Increased from 10 to support Global Search
+    }]),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) => {
@@ -104,11 +115,23 @@ import { GoogleSlidesModule } from './google-slides/google-slides.module';
     GoogleMeetModule,
     PowerPointModule,
     GoogleSlidesModule,
+    FeatureFlagsModule,
+    SupportModule,
+    KnowledgeModule,
+    CopilotModule,
   ],
   providers: [
     {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: PreventImpersonationInterceptor,
     },
   ],
 })

@@ -13,6 +13,7 @@ export const envSchema = z.object({
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   WEB_ORIGIN: z.string().min(1).default('http://localhost:3000'),
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
+  ADMIN_PORTAL_URL: z.string().url().default('http://localhost:3001'),
   // Auth0 — consumed from Sprint 1 onward; optional in the Sprint 0 skeleton.
   AUTH0_ISSUER_BASE_URL: z.string().url().optional(),
   AUTH0_AUDIENCE: z.string().optional(),

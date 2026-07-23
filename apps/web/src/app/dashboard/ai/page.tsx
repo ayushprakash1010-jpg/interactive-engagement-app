@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useFeatureFlags } from '@/lib/use-feature-flags';
 
 import {
   Sparkles,
@@ -31,6 +32,7 @@ import {
   SectionHeader,
   Select,
   SurfacePanel,
+  VideoCallout,
 } from '@/components/ui';
 import {
   AIBadge,
@@ -48,6 +50,7 @@ import {
   feedbackConfigSchema,
   surveyConfigSchema,
 } from '@iep/types';
+import { getVideoByFeature } from '@/lib/tutorial-videos';
 
 type DraftActivity = {
   id: string;
@@ -618,6 +621,13 @@ function normaliseActivity(
 
 export default function AIStudioPage() {
   const router = useRouter();
+  const { flags, loading } = useFeatureFlags();
+
+  React.useEffect(() => {
+    if (!loading && !flags['ai-studio']) {
+      router.replace('/dashboard');
+    }
+  }, [flags, loading, router]);
 
   const [prompt, setPrompt] = React.useState('');
   const [generating, setGenerating] = React.useState(false);
@@ -691,6 +701,8 @@ export default function AIStudioPage() {
   }, []);
 
   const handleGenerate = async () => {
+    if (!flags['ai-studio']) return;
+
     const cleanPrompt = prompt.trim();
 
     if (!cleanPrompt) {
@@ -1014,6 +1026,10 @@ export default function AIStudioPage() {
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
 
+  if (loading || !flags['ai-studio']) {
+    return null;
+  }
+
   return (
     <div className="space-y-7">
       <PageHeader
@@ -1022,6 +1038,18 @@ export default function AIStudioPage() {
         badge={<AIBadge label="Beta" size="sm" />}
         description="Draft sessions, review suggested activities, and summarize live audience responses from one focused workspace."
       />
+
+      {/* Tutorial callout — subtle, does not interfere with the AI workflow */}
+      {(() => {
+        const video = getVideoByFeature('ai-studio');
+        return video ? (
+          <VideoCallout
+            video={video}
+            label="New to AI Studio? Watch a quick walkthrough"
+            tone="ai"
+          />
+        ) : null;
+      })()}
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <SurfacePanel tone="ai" className="space-y-5 p-4 sm:p-5">

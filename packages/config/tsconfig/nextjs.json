@@ -6,7 +6,7 @@
     "target": "ES2022",
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "jsx": "preserve",
     "noEmit": true,
     "allowJs": true,

@@ -30,16 +30,16 @@ export class ZoomController {
 
   @Get('callback')
   async callback(@Query('code') code: string, @Query('state') state: string, @Res() res: Response) {
-    if (!code || !state) {
-      throw new UnauthorizedException('Missing code or state');
+    if (!code) {
+      throw new UnauthorizedException('Missing code');
     }
 
-    // Exchange code for token and save it to the user profile
+    // Exchange code for token and save it to the user profile (if state is present)
     await this.zoomService.handleCallback(code, state);
 
-    // Redirect to frontend dashboard settings
+    // Zoom Apps requirement: Redirect to a success page that deep-links back to the Zoom Client
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/dashboard/settings?zoom=connected`);
+    res.redirect(`${frontendUrl}/zoom/success`);
   }
 
   @Get('context-to-event')

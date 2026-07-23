@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const searchParams = url.searchParams;
 
   // Forward the browser to the backend callback endpoint
-  const backendUrl = process.env.API_INTERNAL_URL || 'http://localhost:4000';
+  const backendUrl = process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const targetUrl = `${backendUrl}/api/powerpoint/callback?${searchParams.toString()}`;
 
   return NextResponse.redirect(targetUrl);

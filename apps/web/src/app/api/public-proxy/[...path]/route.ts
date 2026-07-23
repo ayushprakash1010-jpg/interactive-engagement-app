@@ -9,7 +9,10 @@
  */
 import { type NextRequest, NextResponse } from 'next/server';
 
-const BACKEND = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
+const BACKEND = 
+  process.env.API_INTERNAL_URL ?? 
+  process.env.NEXT_PUBLIC_API_URL ?? 
+  'http://localhost:4000';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +45,9 @@ async function proxy(req: NextRequest): Promise<NextResponse> {
   }
 
   const resBody = await backendRes.text();
-  return new NextResponse(resBody, {
+  const bodyForResponse = (backendRes.status === 204 || backendRes.status === 304) ? null : resBody;
+  
+  return new NextResponse(bodyForResponse, {
     status: backendRes.status,
     headers: {
       'content-type': backendRes.headers.get('content-type') ?? 'application/json',

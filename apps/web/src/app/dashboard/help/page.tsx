@@ -42,15 +42,22 @@ import {
   PageHeader,
   SectionHeader,
   SurfacePanel,
+  VideoPlayer,
+  VideoModal,
+  useVideoModal,
 } from '@/components/ui';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import { useFeatureFlags } from '@/lib/use-feature-flags';
+import { getVideoByFeature } from '@/lib/tutorial-videos';
 
 type GuideItem = {
   title: string;
   description: string;
   icon: React.ElementType;
   tags: string[];
+  /** Optional feature slug to link a tutorial video (e.g. 'poll', 'quiz') */
+  videoFeature?: string;
 };
 
 type FeatureGuide = {
@@ -78,6 +85,7 @@ const gettingStarted: GuideItem[] = [
       'From Events, create a session, add a title, and configure participant settings before inviting your audience.',
     icon: Rocket,
     tags: ['event', 'create', 'start'],
+    videoFeature: 'events',
   },
   {
     title: 'Launch a poll',
@@ -85,6 +93,7 @@ const gettingStarted: GuideItem[] = [
       'Add a poll activity, review options, then launch it live so participants can respond from their devices.',
     icon: BarChart3,
     tags: ['poll', 'launch'],
+    videoFeature: 'poll',
   },
   {
     title: 'Launch a quiz',
@@ -92,6 +101,7 @@ const gettingStarted: GuideItem[] = [
       'Build quiz questions, set answers, run the quiz, and use the leaderboard to keep the room engaged.',
     icon: ListChecks,
     tags: ['quiz', 'leaderboard'],
+    videoFeature: 'quiz',
   },
   {
     title: 'Use Word Cloud',
@@ -99,6 +109,7 @@ const gettingStarted: GuideItem[] = [
       'Collect short audience responses and show the strongest themes visually during the session.',
     icon: Cloud,
     tags: ['word cloud', 'responses'],
+    videoFeature: 'wordcloud',
   },
   {
     title: 'Run Feedback',
@@ -106,6 +117,7 @@ const gettingStarted: GuideItem[] = [
       'Gather ratings and comments after a session or activity to understand sentiment and follow-up needs.',
     icon: MessageSquare,
     tags: ['feedback', 'ratings'],
+    videoFeature: 'feedback',
   },
   {
     title: 'Moderate Q&A',
@@ -113,6 +125,7 @@ const gettingStarted: GuideItem[] = [
       'Review submitted questions, keep the useful ones visible, and mark answered questions as the session moves.',
     icon: ShieldQuestion,
     tags: ['qa', 'moderation'],
+    videoFeature: 'qa',
   },
   {
     title: 'Export analytics',
@@ -120,6 +133,7 @@ const gettingStarted: GuideItem[] = [
       'Open event analytics to review participation, response trends, and export-ready reporting views.',
     icon: FileDown,
     tags: ['analytics', 'export'],
+    videoFeature: 'analytics',
   },
   {
     title: 'Use AI Studio',
@@ -127,6 +141,7 @@ const gettingStarted: GuideItem[] = [
       'Describe a session, review suggested activities, and accept the ideas you want before creating the event.',
     icon: Sparkles,
     tags: ['ai', 'studio'],
+    videoFeature: 'ai-studio',
   },
 ];
 
@@ -409,9 +424,10 @@ function HelpNav({ query, setQuery, activeSection }: {
   );
 }
 
-function QuickGuideCard({ guide }: { guide: GuideItem }) {
+function QuickGuideCard({ guide, onPlayVideo }: { guide: GuideItem; onPlayVideo?: (feature: string) => void }) {
   const Icon = guide.icon;
   const id = `guide-${guide.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  const video = guide.videoFeature ? getVideoByFeature(guide.videoFeature) : undefined;
   return (
     <Card id={id} className="group shadow-xs scroll-mt-24">
       <CardHeader className="flex-row items-start gap-3 space-y-0 p-5">
@@ -426,15 +442,35 @@ function QuickGuideCard({ guide }: { guide: GuideItem }) {
           <CardDescription className="leading-relaxed">
             {guide.description}
           </CardDescription>
+          {video && (
+            <VideoPlayer
+              video={video}
+              variant="compact"
+              className="mt-2"
+              onPlay={() => onPlayVideo?.(guide.videoFeature!)}
+            />
+          )}
         </div>
       </CardHeader>
     </Card>
   );
 }
 
-function FeatureCard({ guide }: { guide: FeatureGuide }) {
+function FeatureCard({ guide, onPlayVideo }: { guide: FeatureGuide; onPlayVideo?: (feature: string) => void }) {
   const Icon = guide.icon;
   const id = `feature-${guide.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  // Map feature guide title to a tutorial video feature slug
+  const featureSlugMap: Record<string, string> = {
+    'Polls': 'poll',
+    'Quiz': 'quiz',
+    'Word Cloud': 'wordcloud',
+    'Feedback': 'feedback',
+    'Q&A': 'qa',
+    'AI Studio': 'ai-studio',
+    'Analytics': 'analytics',
+  };
+  const featureSlug = featureSlugMap[guide.title];
+  const video = featureSlug ? getVideoByFeature(featureSlug) : undefined;
   return (
     <Card id={id} className="group shadow-xs scroll-mt-24">
       <CardHeader className="flex-row items-start gap-3 space-y-0 p-5">
@@ -459,6 +495,14 @@ function FeatureCard({ guide }: { guide: FeatureGuide }) {
             </Badge>
           ))}
         </div>
+        {video && (
+          <VideoPlayer
+            video={video}
+            variant="compact"
+            className="mt-3"
+            onPlay={() => onPlayVideo?.(featureSlug!)}
+          />
+        )}
       </CardContent>
     </Card>
   );
@@ -467,6 +511,8 @@ function FeatureCard({ guide }: { guide: FeatureGuide }) {
 export default function HelpCenterPage() {
   const [query, setQuery] = React.useState('');
   const [activeSection, setActiveSection] = React.useState<string>('getting-started');
+  const { flags } = useFeatureFlags();
+  const { activeVideo, openVideo, closeVideo } = useVideoModal();
 
   React.useEffect(() => {
     const observer = new IntersectionObserver(
@@ -488,28 +534,39 @@ export default function HelpCenterPage() {
     return () => observer.disconnect();
   }, [query]);
 
-  const visibleQuickGuides = gettingStarted.filter((guide) =>
-    matchesSearch(query, [guide.title, guide.description, ...guide.tags]),
-  );
+  const visibleQuickGuides = gettingStarted
+    .filter((guide) => flags['ai-studio'] || !guide.tags.includes('ai'))
+    .filter((guide) =>
+      matchesSearch(query, [guide.title, guide.description, ...guide.tags]),
+    );
 
-  const visibleFeatureGuides = featureGuides.filter((guide) =>
-    matchesSearch(query, [
-      guide.title,
-      guide.description,
-      ...guide.items,
-      ...guide.tags,
-    ]),
-  );
+  const visibleFeatureGuides = featureGuides
+    .filter((guide) => flags['ai-studio'] || guide.title !== 'AI Studio')
+    .filter((guide) =>
+      matchesSearch(query, [
+        guide.title,
+        guide.description,
+        ...guide.items,
+        ...guide.tags,
+      ]),
+    );
 
-  const visibleFaqs = faqs.filter((faq) =>
-    matchesSearch(query, [faq.question, faq.answer]),
-  );
+  const visibleFaqs = faqs
+    .filter((faq) => flags['ai-studio'] || !faq.question.includes('AI'))
+    .filter((faq) =>
+      matchesSearch(query, [faq.question, faq.answer]),
+    );
 
   const noResults =
     query.trim() &&
     visibleQuickGuides.length === 0 &&
     visibleFeatureGuides.length === 0 &&
     visibleFaqs.length === 0;
+
+  const handlePlayVideo = React.useCallback((feature: string) => {
+    const video = getVideoByFeature(feature);
+    if (video) openVideo(video);
+  }, [openVideo]);
 
   return (
     <div className="space-y-7">
@@ -560,7 +617,7 @@ export default function HelpCenterPage() {
               />
               <div className="grid gap-4 sm:grid-cols-2">
                 {visibleQuickGuides.map((guide) => (
-                  <QuickGuideCard key={guide.title} guide={guide} />
+                  <QuickGuideCard key={guide.title} guide={guide} onPlayVideo={handlePlayVideo} />
                 ))}
               </div>
             </section>
@@ -574,7 +631,7 @@ export default function HelpCenterPage() {
               />
               <div className="grid gap-4 md:grid-cols-2">
                 {visibleFeatureGuides.map((guide) => (
-                  <FeatureCard key={guide.title} guide={guide} />
+                  <FeatureCard key={guide.title} guide={guide} onPlayVideo={handlePlayVideo} />
                 ))}
               </div>
             </section>
@@ -697,7 +754,7 @@ export default function HelpCenterPage() {
               />
               <SurfacePanel className="p-0">
                 <ol className="divide-y divide-border">
-                  {updates.map(([title, description], index) => (
+                  {updates.filter(u => flags['ai-studio'] || u[0] !== 'AI Studio').map(([title, description], index) => (
                     <li key={title} className="flex gap-4 p-5">
                       <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand">
                         {index === 0 ? (
@@ -730,7 +787,7 @@ export default function HelpCenterPage() {
                   ['Pulse version', '0.1.0'],
                   ['UI version', 'Pulse SaaS redesign'],
                   ['Theme support', 'Light, Dark, System'],
-                  ['Powered by AI', 'AI Studio and insights'],
+                  ...(flags['ai-studio'] ? [['Powered by AI', 'AI Studio and insights']] : []),
                   ['Last updated', 'June 27, 2026'],
                 ].map(([label, value]) => (
                   <SurfacePanel key={label} tone="sunken" className="space-y-1 p-4">
@@ -756,6 +813,9 @@ export default function HelpCenterPage() {
           )}
         </div>
       </div>
+
+      {/* Video modal for tutorial playback */}
+      <VideoModal video={activeVideo} onClose={closeVideo} />
     </div>
   );
 }
