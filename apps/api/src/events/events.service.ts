@@ -11,6 +11,7 @@ import * as QRCode from 'qrcode';
 import { ConfigService } from '@nestjs/config';
 import { CreateEvent, UpdateEvent } from '@iep/types';
 import { EventEntity, EventDocument } from './event.schema';
+import { UserEntity, UserDocument } from '../users/user.schema';
 import { generateEventCode } from './utils/event-code.util';
 
 const MAX_CODE_RETRIES = 5;
@@ -22,11 +23,27 @@ export class EventsService {
   constructor(
     @InjectModel(EventEntity.name)
     private readonly eventModel: Model<EventDocument>,
+    @InjectModel(UserEntity.name)
+    private readonly userModel: Model<UserDocument>,
     private readonly configService: ConfigService,
   ) {}
 
   async create(hostId: string, dto: CreateEvent): Promise<EventDocument> {
     const eventCode = await this.generateUniqueCode();
+
+    // Copy the host's current organizationId at creation time.
+    // If the host has no organization, the event remains unassigned.
+    // Historical events are never retroactively re-tagged on reassignment.
+    let organizationId: import('mongoose').Types.ObjectId | undefined;
+    try {
+      const host = await this.userModel.findById(hostId).select('organizationId').lean().exec();
+      if (host?.organizationId) {
+        organizationId = host.organizationId as import('mongoose').Types.ObjectId;
+      }
+    } catch {
+      // Non-fatal: if user lookup fails, event is created without organization tag
+      this.logger.warn(`Could not look up organizationId for host ${hostId} during event creation`);
+    }
 
     const event = await this.eventModel.create({
       hostId: new Types.ObjectId(hostId),
@@ -42,6 +59,7 @@ export class EventsService {
       scheduledStart: dto.scheduledStart,
       scheduledEnd: dto.scheduledEnd,
       timezone: dto.timezone,
+      ...(organizationId ? { organizationId } : {}),
     });
 
     return event;

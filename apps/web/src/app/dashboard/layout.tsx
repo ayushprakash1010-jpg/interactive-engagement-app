@@ -38,6 +38,7 @@ import { useEvents } from '@/lib/use-events';
 import { useGlobalEventScheduler } from '@/lib/use-global-event-scheduler';
 import { openCommandPalette } from '@/lib/command-palette-store';
 import { CommandPalette } from '@/components/command-palette';
+import { FeatureFlagsProvider, useFeatureFlags } from '@/lib/use-feature-flags';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Events', icon: LayoutDashboard, exact: true },
@@ -60,7 +61,20 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <FeatureFlagsProvider>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </FeatureFlagsProvider>
+  );
+}
+
+function DashboardLayoutContent({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { user, logoutUrl } = useAuth();
+  const { flags } = useFeatureFlags();
   const pathname = usePathname();
   const { data: events } = useEvents();
   useGlobalEventScheduler();
@@ -76,6 +90,7 @@ export default function DashboardLayout({
   const isAIStudioPage = pathname === '/dashboard/ai';
   const isSettingsPage = pathname === '/dashboard/settings';
   const isHelpPage = pathname === '/dashboard/help';
+  const isTutorialsPage = pathname === '/dashboard/tutorials';
   const isOverviewPage = pathname === '/dashboard';
   const isEventsListPage = pathname === '/dashboard/events';
 
@@ -87,6 +102,7 @@ export default function DashboardLayout({
     isAIStudioPage ||
     isSettingsPage ||
     isHelpPage ||
+    isTutorialsPage ||
     eventDetailMatch ||
     analyticsMatch
   ) {
@@ -131,7 +147,12 @@ export default function DashboardLayout({
                     { label: 'Workspace', href: '/dashboard' },
                     { label: 'Help Center' },
                   ]
-                  : [{ label: 'Overview' }];
+                  : isTutorialsPage
+                    ? [
+                      { label: 'Workspace', href: '/dashboard' },
+                      { label: 'Tutorials' },
+                    ]
+                    : [{ label: 'Overview' }];
 
     const displayName = user?.nickname || user?.name?.split('@')[0] || 'User';
     const displayInitial = displayName?.[0]?.toUpperCase() || 'U';
@@ -153,12 +174,12 @@ export default function DashboardLayout({
             href: '/dashboard/events',
             icon: CalendarDays,
           },
-          {
+          ...(flags['ai-studio'] ? [{
             label: 'AI Studio',
             href: '/dashboard/ai',
             icon: Sparkles,
             badge: <AIBadge label="New" size="sm" />,
-          },
+          }] : []),
           {
             label: 'Analytics',
             href: eventId ? `/dashboard/events/${eventId}/analytics` : undefined,
@@ -185,6 +206,11 @@ export default function DashboardLayout({
             label: 'Help',
             href: '/dashboard/help',
             icon: HelpCircle,
+          },
+          {
+            label: 'Tutorials',
+            href: '/dashboard/tutorials',
+            icon: PlayCircle,
           },
         ]}
         topActions={
@@ -265,19 +291,21 @@ export default function DashboardLayout({
                 );
               })}
 
-              <Link
-                href="/dashboard/ai"
-                className={cn(
-                  'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  isActive('/dashboard/ai')
-                    ? 'bg-ai-subtle text-ai-subtle-text'
-                    : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
-                )}
-              >
-                <Sparkles className="h-4 w-4 text-ai" />
-                AI Studio
-                <AIBadge label="New" size="sm" />
-              </Link>
+              {flags['ai-studio'] && (
+                <Link
+                  href="/dashboard/ai"
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    isActive('/dashboard/ai')
+                      ? 'bg-ai-subtle text-ai-subtle-text'
+                      : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
+                  )}
+                >
+                  <Sparkles className="h-4 w-4 text-ai" />
+                  AI Studio
+                  <AIBadge label="New" size="sm" />
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -314,18 +342,20 @@ export default function DashboardLayout({
               </Link>
             );
           })}
-          <Link
-            href="/dashboard/ai"
-            className={cn(
-              'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-              isActive('/dashboard/ai')
-                ? 'bg-ai-subtle text-ai-subtle-text'
-                : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
-            )}
-          >
-            <Sparkles className="h-4 w-4 text-ai" />
-            AI Studio
-          </Link>
+          {flags['ai-studio'] && (
+            <Link
+              href="/dashboard/ai"
+              className={cn(
+                'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                isActive('/dashboard/ai')
+                  ? 'bg-ai-subtle text-ai-subtle-text'
+                  : 'text-ink-secondary hover:bg-surface-sunken hover:text-foreground',
+              )}
+            >
+              <Sparkles className="h-4 w-4 text-ai" />
+              AI Studio
+            </Link>
+          )}
         </nav>
       </header>
 

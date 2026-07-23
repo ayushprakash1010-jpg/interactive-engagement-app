@@ -1,6 +1,6 @@
 import { SetMetadata } from '@nestjs/common';
 
-export type AppRole = 'host' | 'admin';
+export type AppRole = 'host' | 'admin' | 'support';
 
 /** Metadata key under which required roles are stored on a handler/controller. */
 export const ROLES_KEY = 'iep:roles';

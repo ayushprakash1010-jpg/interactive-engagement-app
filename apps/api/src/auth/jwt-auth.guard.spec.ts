@@ -53,4 +53,15 @@ describe('JwtAuthGuard.handleRequest', () => {
       process.env.NODE_ENV = prev;
     }
   });
+
+  it('preserves specific UnauthorizedException even in production', () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const err = new UnauthorizedException('User account is suspended');
+      expect(() => guard.handleRequest(err, false, null)).toThrow('User account is suspended');
+    } finally {
+      process.env.NODE_ENV = prev;
+    }
+  });
 });

@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useFeatureFlags } from '@/lib/use-feature-flags';
 import {
   Bell,
   Briefcase,
@@ -332,6 +333,7 @@ function Field({
 export default function SettingsPage() {
   const { user, logoutUrl } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const { flags } = useFeatureFlags();
   const { data: events } = useEvents();
   const { notifications } = useNotifications();
   const { toast } = useToast();
@@ -709,9 +711,11 @@ export default function SettingsPage() {
                 <SettingRow label="Workspace Overview" description="Show the primary event management section.">
                   <Switch checked={stagedSettings.showWorkspaceOverview} onCheckedChange={(v) => updateSetting('showWorkspaceOverview', v)} />
                 </SettingRow>
-                <SettingRow label="AI Studio Section" description="Show AI generation metrics and shortcuts.">
-                  <Switch checked={stagedSettings.showAiSection} onCheckedChange={(v) => updateSetting('showAiSection', v)} />
-                </SettingRow>
+                {flags['ai-studio'] && (
+                  <SettingRow label="AI Studio Section" description="Show AI generation metrics and shortcuts.">
+                    <Switch checked={stagedSettings.showAiSection} onCheckedChange={(v) => updateSetting('showAiSection', v)} />
+                  </SettingRow>
+                )}
                 <SettingRow label="Analytics Cards" description="Display high-level analytics on the dashboard.">
                   <Switch checked={stagedSettings.showAnalyticsCards} onCheckedChange={(v) => updateSetting('showAnalyticsCards', v)} />
                 </SettingRow>
@@ -754,7 +758,8 @@ export default function SettingsPage() {
             </section>
 
             {/* AI PREFERENCES */}
-            <section id="ai" className="scroll-mt-24 space-y-4">
+            {flags['ai-studio'] && (
+              <section id="ai" className="scroll-mt-24 space-y-4">
               <SectionHeader
                 title="AI Preferences"
                 description="These local defaults preview future AI customization without changing generation endpoints."
@@ -829,7 +834,8 @@ export default function SettingsPage() {
                   </p>
                 </SurfacePanel>
               </SettingsCard>
-            </section>
+              </section>
+            )}
 
             {/* SECURITY */}
             <section id="security" className="scroll-mt-24 space-y-4">

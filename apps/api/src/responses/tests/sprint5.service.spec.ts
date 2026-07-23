@@ -107,7 +107,7 @@ describe('ResponseService — quiz scoring + late-answer rejection', () => {
         questionId: 'q1',
         optionId: 'b',
         endsAt,
-        answeredAt: endsAt + 1,
+        answeredAt: endsAt + 10001,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
 

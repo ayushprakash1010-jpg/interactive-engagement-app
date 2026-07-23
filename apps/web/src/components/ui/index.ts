@@ -44,3 +44,7 @@ export { StatusBadge, type StatusBadgeProps } from './status-badge';
 export { BackLink, type BackLinkProps } from './back-link';
 export { ActionGroup, type ActionGroupProps } from './action-group';
 export { SurfacePanel, type SurfacePanelProps } from './surface-panel';
+export { VideoPlayer, type VideoPlayerProps } from './video-player';
+export { VideoModal, useVideoModal, type VideoModalProps } from './video-modal';
+export { WelcomeVideoCard, type WelcomeVideoCardProps } from './welcome-video-card';
+export { VideoCallout, type VideoCalloutProps } from './video-callout';

@@ -10,6 +10,8 @@ import {
 } from '@/lib/theme';
 import { ZoomProvider } from '@/components/zoom/ZoomProvider';
 
+import { FeatureFlagsProvider } from '@/hooks/use-feature-flags';
+
 /**
  * Client-side providers wrapping the whole app:
  *  - UserProvider: exposes the Auth0 session to useUser()/useAuth().
@@ -19,10 +21,12 @@ export function Providers({
   children,
   initialTheme,
   initialResolvedTheme,
+  impersonationUser,
 }: {
   children: React.ReactNode;
   initialTheme: Theme;
   initialResolvedTheme: ResolvedTheme;
+  impersonationUser?: any;
 }) {
   // One QueryClient per browser session (stable across re-renders).
   const [queryClient] = React.useState(
@@ -43,11 +47,13 @@ export function Providers({
       initialTheme={initialTheme}
       initialResolvedTheme={initialResolvedTheme}
     >
-      <ZoomProvider>
-        <UserProvider>
-          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-        </UserProvider>
-      </ZoomProvider>
+      <FeatureFlagsProvider>
+        <ZoomProvider>
+          <UserProvider user={impersonationUser}>
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          </UserProvider>
+        </ZoomProvider>
+      </FeatureFlagsProvider>
     </ThemeProvider>
   );
 }

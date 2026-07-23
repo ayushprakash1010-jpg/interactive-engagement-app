@@ -61,6 +61,7 @@ describe('RealtimeGateway participant count', () => {
     findById: jest.fn(),
     closeLiveActivity: jest.fn(),
     setStatus: jest.fn(),
+    findLiveActivity: jest.fn(),
   };
 
   const responseService = {
@@ -130,7 +131,10 @@ describe('RealtimeGateway participant count', () => {
     const to = jest.fn();
     const broadcaster = { to, emit };
     to.mockReturnValue(broadcaster);
-    gateway.server = { to } as any;
+    
+    const fetchSockets = jest.fn().mockResolvedValue([]);
+    const inMock = jest.fn().mockReturnValue({ fetchSockets });
+    gateway.server = { to, in: inMock } as any;
   });
 
   const lastCount = () => {
@@ -316,5 +320,62 @@ describe('RealtimeGateway participant count', () => {
       ServerEvents.ERROR,
       expect.objectContaining({ message: expect.any(String) }),
     );
+  });
+});
+
+  // ── Admin Diagnostics ──────────────────────────────────────────────────────
+
+describe('RealtimeGateway Admin Diagnostics', () => {
+  let gateway: RealtimeGateway;
+
+  const activityService = {
+    findLiveActivity: jest.fn(),
+  };
+
+  beforeEach(() => {
+    gateway = new RealtimeGateway(
+      {} as any,
+      {} as any,
+      {} as any,
+      activityService as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+  });
+
+  it('queries database for live activity to determine activeActivityId', async () => {
+    const fetchSockets = jest.fn().mockResolvedValue(['socket1', 'socket2']);
+    gateway.server = {
+      in: jest.fn().mockReturnValue({ fetchSockets }),
+    } as any;
+
+    activityService.findLiveActivity.mockResolvedValueOnce({ _id: 'live-poll-123' });
+
+    const result = await gateway.getEventDiagnostics('evt123');
+
+    expect(gateway.server.in).toHaveBeenCalledWith('event:evt123');
+    expect(activityService.findLiveActivity).toHaveBeenCalledWith('evt123');
+    expect(result).toEqual({
+      connectedSockets: 2,
+      activeActivityId: 'live-poll-123',
+    });
+  });
+
+  it('returns null activeActivityId when no activity is live', async () => {
+    const fetchSockets = jest.fn().mockResolvedValue(['socket1']);
+    gateway.server = {
+      in: jest.fn().mockReturnValue({ fetchSockets }),
+    } as any;
+
+    activityService.findLiveActivity.mockResolvedValueOnce(null);
+
+    const result = await gateway.getEventDiagnostics('evt123');
+
+    expect(result).toEqual({
+      connectedSockets: 1,
+      activeActivityId: null,
+    });
   });
 });

@@ -1,6 +1,6 @@
 // apps/api/src/users/user.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 
 export type UserDocument = HydratedDocument<UserEntity>;
 
@@ -34,10 +34,10 @@ export class UserEntity {
 
   @Prop({
     required: true,
-    enum: ['host', 'admin'],
+    enum: ['host', 'admin', 'support'],
     default: 'host',
   })
-  role!: 'host' | 'admin';
+  role!: 'host' | 'admin' | 'support';
 
   @Prop({ default: 'free', trim: true })
   plan!: string;
@@ -47,6 +47,20 @@ export class UserEntity {
 
   @Prop({ type: [UserIntegrationSchema], default: [] })
   integrations!: UserIntegrationSubdoc[];
+
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'OrganizationEntity',
+    default: null,
+    index: true,
+  })
+  organizationId?: Types.ObjectId | null;
+
+  @Prop({ type: Date, default: null, index: true })
+  lastActiveAt?: Date | null;
+
+  @Prop({ default: false, index: true })
+  isSuspended!: boolean;
 }
 
 export const UserEntitySchema = SchemaFactory.createForClass(UserEntity);

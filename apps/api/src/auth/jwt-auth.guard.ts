@@ -9,7 +9,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Observable } from 'rxjs';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
+export class JwtAuthGuard extends AuthGuard(['jwt', 'impersonation']) {
   private readonly logger = new Logger(JwtAuthGuard.name);
   /**
    * Delegates to Passport's 'jwt' strategy (registered by JwtStrategy).
@@ -41,6 +41,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     info: Error | string | null,
   ): TUser {
     if (err || !user) {
+      if (err instanceof UnauthorizedException) {
+        // Log it if needed
+        this.logger.warn(`JWT validation failed: ${err.message}`);
+        throw err;
+      }
+
       const detail =
         info instanceof Error
           ? info.message

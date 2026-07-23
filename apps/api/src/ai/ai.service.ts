@@ -16,6 +16,7 @@ import { QuestionDocument, QuestionEntity } from '../questions/question.schema';
 import { UserDocument, UserEntity } from '../users/user.schema';
 import { EventDocument, EventEntity } from '../events/event.schema';
 import { EventsService } from '../events/events.service';
+import { AiOperationLogDocument, AiOperationLogEntity } from './ai-operation-log.schema';
 
 export interface LiveSummaryTheme {
   label: string;
@@ -55,6 +56,8 @@ export class AiService {
     private readonly eventModel: Model<EventDocument>,
     @InjectModel(UserEntity.name)
     private readonly userModel: Model<UserDocument>,
+    @InjectModel(AiOperationLogEntity.name)
+    private readonly aiOperationLogModel: Model<AiOperationLogDocument>,
   ) {
     const apiKey = this.configService.get('GEMINI_API_KEY', {
       infer: true,
@@ -101,7 +104,7 @@ export class AiService {
     contents: string,
     featureName: string,
     userId: string,
-    options?: { retries?: number },
+    options?: { retries?: number; organizationId?: string },
   ): Promise<T> {
     const text = await this.generateText(contents, featureName, userId, options);
     const cleaned = this.cleanJsonResponse(text);
@@ -123,22 +126,38 @@ export class AiService {
     contents: string,
     featureName: string,
     userId: string,
-    options?: { retries?: number },
+    options?: { retries?: number; organizationId?: string },
   ): Promise<string> {
     const retries = options?.retries ?? 1;
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= retries + 1; attempt++) {
+      const startTime = Date.now();
       try {
         const response = await this.ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
           contents,
         });
 
+        const latencyMs = Date.now() - startTime;
         const text = (response.text ?? '').trim();
+        
         if (!text) {
           throw new Error(`${featureName} returned an empty response.`);
         }
+
+        const usage = response.usageMetadata;
+        
+        this.logAiOperation({
+          userId,
+          organizationId: options?.organizationId,
+          featureName,
+          status: 'success',
+          latencyMs,
+          promptTokens: usage?.promptTokenCount,
+          completionTokens: usage?.candidatesTokenCount,
+          totalTokens: usage?.totalTokenCount,
+        });
 
         if (userId) {
           this.userModel.findByIdAndUpdate(userId, { $inc: { aiUsageCount: 1 } }).exec().catch(err => {
@@ -150,6 +169,16 @@ export class AiService {
       } catch (err) {
         lastError = err;
         const message = this.getErrorMessage(err);
+        const latencyMs = Date.now() - startTime;
+
+        this.logAiOperation({
+          userId,
+          organizationId: options?.organizationId,
+          featureName,
+          status: 'failure',
+          errorMessage: message,
+          latencyMs,
+        });
 
         if (attempt <= retries && this.isTemporaryAiFailure(message)) {
           const delayMs = attempt * 1200;
@@ -180,7 +209,37 @@ export class AiService {
     throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
   }
 
-  async generateQaReply(question: string, userId: string) {
+  private logAiOperation(data: {
+    userId: string;
+    organizationId?: string;
+    featureName: string;
+    status: 'success' | 'failure' | 'throttled';
+    errorMessage?: string;
+    latencyMs?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  }) {
+    this.aiOperationLogModel.create({
+      ...data,
+      provider: 'google-genai',
+      model: 'gemini-3.5-flash',
+    }).catch(err => {
+      this.logger.error(`Failed to log AI operation: ${data.featureName}`, err);
+    });
+  }
+
+  logThrottledOperation(userId: string, organizationId: string | undefined, featureName: string) {
+    this.logAiOperation({
+      userId,
+      organizationId,
+      featureName,
+      status: 'throttled',
+    });
+  }
+
+  async generateQaReply(question: string, user: { id: string; organizationId?: string }) {
+    const userId = user.id;
     if (!question?.trim()) {
       throw new InternalServerErrorException('Failed to generate Q&A reply. Please try again.');
     }
@@ -195,7 +254,8 @@ export class AiService {
     return { answer };
   }
 
-  async generatePoll(topic: string, userId: string) {
+  async generatePoll(topic: string, user: { id: string; organizationId?: string }) {
+    const userId = user.id;
     return this.generateJson(
       `
 Generate ONE professional poll.
@@ -218,7 +278,8 @@ Topic: ${topic}
     );
   }
 
-  async generateQuiz(topic: string, userId: string, count = 1) {
+  async generateQuiz(topic: string, user: { id: string; organizationId?: string }, count = 1) {
+    const userId = user.id;
     return this.generateJson(
       `
 Generate ${count} professional multiple choice quiz questions.
@@ -249,7 +310,8 @@ Topic: ${topic}
     );
   }
 
-  async generateSurvey(topic: string, userId: string) {
+  async generateSurvey(topic: string, user: { id: string; organizationId?: string }) {
+    const userId = user.id;
     return this.generateJson(
       `
 Generate ONE professional survey consisting of 2-5 questions.
@@ -286,7 +348,8 @@ Topic: ${topic}
     );
   }
 
-  async generateFeedback(topic: string, userId: string) {
+  async generateFeedback(topic: string, user: { id: string; organizationId?: string }) {
+    const userId = user.id;
     return this.generateJson(
       `
 Generate ONE professional feedback question.
@@ -307,7 +370,8 @@ Topic: ${topic}
     );
   }
 
-  async generateWordCloud(topic: string, userId: string) {
+  async generateWordCloud(topic: string, user: { id: string; organizationId?: string }) {
+    const userId = user.id;
     return this.generateJson(
       `
 Generate 20 relevant keywords for a word cloud.
@@ -332,7 +396,8 @@ Topic: ${topic}
     );
   }
 
-  async generateAnalyticsReport(data: string, userId: string) {
+  async generateAnalyticsReport(data: string, user: { id: string; organizationId?: string }) {
+    const userId = user.id;
     return this.generateJson(
       `
 You are an event analytics expert for an interactive audience engagement platform.
@@ -410,7 +475,8 @@ ${data}
   }
 
 
-  async generateSession(prompt: string, userId: string) {
+  async generateSession(prompt: string, user: { id: string; organizationId?: string }) {
+    const userId = user.id;
     return this.generateJson(
       `
 You are an AI event planner for an interactive audience engagement platform.
@@ -547,13 +613,13 @@ CRITICAL RULES — violation will break the application:
 - All title, description, and text fields must be non-empty strings.
 `,
       'generate session',
-      userId,
-      { retries: 2 },
+      user.id,
+      { retries: 2, organizationId: user.organizationId },
     );
   }
 
-
-  async summarizeLiveAnswers(eventId: string, userId: string): Promise<SummarizeLiveAnswersResult> {
+  async summarizeLiveAnswers(eventId: string, user: { id: string; organizationId?: string }): Promise<SummarizeLiveAnswersResult> {
+    const userId = user.id;
     if (!Types.ObjectId.isValid(eventId)) {
       throw new NotFoundException(`Event ${eventId} not found`);
     }
@@ -720,7 +786,8 @@ Return this exact shape:
     }
   }
 
-  async modifyDraft(activity: any, instruction: string, userId: string) {
+  async modifyDraft(activity: any, instruction: string, user: { id: string; organizationId?: string }) {
+    const userId = user.id;
     const activityType = activity.type;
     return this.generateJson(
       `

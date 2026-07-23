@@ -10,6 +10,9 @@ import { UserEntity, UserEntitySchema } from '../users/user.schema';
 import { EventsModule } from '../events/events.module';
 import { AuthModule } from '../auth/auth.module';
 
+import { AiOperationLogEntity, AiOperationLogSchema } from './ai-operation-log.schema';
+import { RealtimeModule } from '../realtime/realtime.module';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -18,9 +21,11 @@ import { AuthModule } from '../auth/auth.module';
       { name: QuestionEntity.name, schema: QuestionEntitySchema },
       { name: EventEntity.name, schema: EventEntitySchema },
       { name: UserEntity.name, schema: UserEntitySchema },
+      { name: AiOperationLogEntity.name, schema: AiOperationLogSchema },
     ]),
     EventsModule,
     AuthModule,
+    RealtimeModule,
   ],
   controllers: [AiController],
   providers: [AiService],

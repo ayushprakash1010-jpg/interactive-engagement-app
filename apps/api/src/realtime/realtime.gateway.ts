@@ -179,6 +179,32 @@ export class RealtimeGateway
     this.logger.debug(`Client connected: ${client.id}`);
   }
 
+  // ── Admin Diagnostics ──────────────────────────────────────────────────────
+
+  async getEventDiagnostics(eventId: string): Promise<{ connectedSockets: number; activeActivityId: string | null }> {
+    const room = rooms.event(eventId);
+    const sockets = await this.server.in(room).fetchSockets();
+    
+    const liveActivity = await this.activityService.findLiveActivity(eventId);
+
+    return {
+      connectedSockets: sockets.length,
+      activeActivityId: liveActivity ? (liveActivity._id as any).toString() : null,
+    };
+  }
+
+  async forceEndEventBroadcast(eventId: string): Promise<void> {
+    const room = rooms.event(eventId);
+    this.server.to(room).emit(ServerEvents.SESSION_ENDED, {
+      message: 'The event has been forcibly ended by the administrator.',
+    });
+    const sockets = await this.server.in(room).fetchSockets();
+    for (const socket of sockets) {
+      socket.disconnect(true);
+    }
+    this.logger.log(`Admin forced end on event ${eventId}. Disconnected ${sockets.length} sockets.`);
+  }
+
   async handleDisconnect(client: Socket): Promise<void> {
     this.logger.debug(`Client disconnected: ${client.id}`);
 
