@@ -18,8 +18,8 @@ export const envSchema = z.object({
   AUTH0_ISSUER_BASE_URL: z.string().url().optional(),
   AUTH0_AUDIENCE: z.string().optional(),
 
-  // Google Gemini AI
-  GEMINI_API_KEY: z.string().min(1),
+  // Google Gemini AI — strongly recommended; AI features gracefully degrade when absent.
+  GEMINI_API_KEY: z.string().default(''),
   // Rate limiting — wired in Sprint 7.
   RATE_LIMIT_WINDOW: z.coerce.number().int().positive().default(60),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),

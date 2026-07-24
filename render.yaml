@@ -33,6 +33,16 @@ services:
         sync: false
       - key: WEB_ORIGIN
         sync: false
+      # REQUIRED: Google Gemini AI key — env validation will crash the API at boot
+      # if this is missing. Set it in the Render dashboard Environment tab.
+      - key: GEMINI_API_KEY
+        sync: false
+      # Admin portal CORS origin (e.g. https://admin.questliv.com)
+      - key: ADMIN_PORTAL_URL
+        sync: false
+      # Frontend URL used for OAuth redirect construction
+      - key: FRONTEND_URL
+        sync: false
 
   - type: keyvalue
     name: iep-redis
