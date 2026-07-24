@@ -31,7 +31,7 @@ export function FeatureFlagsProvider({ children }: FeatureFlagsProviderProps) {
     // Only attempt to load flags if we have an active Host session (has token)
     const loadFlags = async () => {
       try {
-        const res = await fetch('/api/proxy/api/feature-flags/evaluate');
+        const res = await fetch('/api/proxy/feature-flags/evaluate');
         if (res.ok) {
           const data = await res.json();
           setFlags(data);
