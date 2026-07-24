@@ -1,0 +1,36 @@
+name: Keep Render API Awake
+
+# Pings the Render free-tier API every 10 minutes so the instance does not
+# spin down. GitHub Actions IPs are NOT blocked by Cloudflare bot-fight mode
+# (unlike cron-job.org datacenter IPs), so the request always reaches Render.
+on:
+  schedule:
+    # GitHub Actions minimum resolution is ~1 min; 10-min interval is reliable.
+    - cron: '*/10 * * * *'
+  # Allow manual trigger from the GitHub Actions tab for testing.
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    name: Ping API health endpoint
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Ping /health
+        run: |
+          echo "Pinging Render API..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            -H "User-Agent: GitHub-Actions-Keepalive/1.0" \
+            -H "Accept: application/json" \
+            https://iep-api-mdr7.onrender.com/health)
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 500 ]; then
+            echo "✅ API is alive (status $STATUS)"
+          else
+            echo "⚠️  Unexpected status $STATUS — Render may be cold-starting"
+          fi
+        # Never fail the workflow — a timeout just means Render is waking up.
+        # The important thing is the TCP connection was made, which wakes it.
+        continue-on-error: true

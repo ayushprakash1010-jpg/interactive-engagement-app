@@ -46,9 +46,8 @@ export class SupportService {
 
     if (query.search) {
       const raw = query.search.trim();
-      const mongoose = require('mongoose');
-      if (mongoose.Types.ObjectId.isValid(raw)) {
-        filter._id = new mongoose.Types.ObjectId(raw);
+      if (Types.ObjectId.isValid(raw)) {
+        filter._id = new Types.ObjectId(raw);
       } else {
         filter.$or = [
           { customerEmail: { $regex: raw, $options: 'i' } },
