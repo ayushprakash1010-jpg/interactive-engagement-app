@@ -430,7 +430,9 @@ export class CopilotService {
               references.push({ resourceType: 'User', resourceId: user.profile.id, label: user.profile.name || user.profile.email, adminPath: `/users/${user.profile.id}` });
               return { result: safeStringify(user), toolsUsed, references };
             }
-          } catch {}
+          } catch (e) {
+            // ignore if ID is not valid or user not found
+          }
 
           const list = await this.adminService.getUsers({ search: identifier, limit: 1 });
           if (list.data.length === 0) return { result: `No user found matching "${identifier}".`, toolsUsed, references };
@@ -564,7 +566,9 @@ export class CopilotService {
           try {
             const u = await this.adminService.getUserById(userId);
             userLabel = `${u.profile.name} (${u.profile.email})`;
-          } catch {}
+          } catch (e) {
+            // ignore
+          }
           const actionId = `action_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
           const pendingAction: PendingAction = {
             actionId,
@@ -586,7 +590,9 @@ export class CopilotService {
           try {
             const u = await this.adminService.getUserById(userId);
             userLabel = `${u.profile.name} (${u.profile.email})`;
-          } catch {}
+          } catch (e) {
+            // ignore
+          }
           const actionId = `action_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
           const pendingAction: PendingAction = {
             actionId,
@@ -608,7 +614,9 @@ export class CopilotService {
           try {
             const e = await this.adminService.getEventById(eventId);
             eventLabel = `"${e.name}" (code: ${e.eventCode})`;
-          } catch {}
+          } catch (e) {
+            // ignore
+          }
           const actionId = `action_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
           const pendingAction: PendingAction = {
             actionId,
