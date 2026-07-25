@@ -35,16 +35,16 @@ export function UsageMeter({ label, used, limit, icon, className }: UsageMeterPr
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {icon && (
-            <span className="text-slate-400">{icon}</span>
+            <span className="text-ink-muted">{icon}</span>
           )}
-          <span className="text-sm font-medium text-slate-300">{label}</span>
+          <span className="text-sm font-medium text-ink-primary">{label}</span>
         </div>
-        <span className="text-xs text-slate-400 tabular-nums">
+        <span className="text-xs text-ink-muted tabular-nums">
           {isUnlimited ? (
             <span className="text-emerald-400 font-medium">Unlimited</span>
           ) : (
             <>
-              <span className={percent >= 90 ? 'text-red-400 font-semibold' : 'text-white'}>
+              <span className={percent >= 90 ? 'text-red-400 font-semibold' : 'text-ink-primary'}>
                 {used.toLocaleString()}
               </span>
               {' / '}
@@ -55,7 +55,7 @@ export function UsageMeter({ label, used, limit, icon, className }: UsageMeterPr
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+      <div className="h-2 rounded-full bg-surface-raised overflow-hidden">
         {isUnlimited ? (
           <div className="h-full w-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 opacity-40" />
         ) : (

@@ -19,7 +19,7 @@ import { EntitlementService } from './entitlement.service';
 export class BillingController {
   constructor(
     private readonly entitlementService: EntitlementService,
-  ) {}
+  ) { }
 
   /**
    * GET /billing/entitlements

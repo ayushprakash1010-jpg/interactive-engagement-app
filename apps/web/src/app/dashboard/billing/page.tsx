@@ -47,7 +47,7 @@ const PLANS = [
   {
     key: 'basic',
     name: 'Basic',
-    price: { monthly: 17, annual: 14 },
+    price: { monthly: 499, annual: 399 },
     tagline: 'For regular sessions',
     icon: Zap,
     gradient: 'from-blue-500 to-cyan-500',
@@ -66,7 +66,7 @@ const PLANS = [
   {
     key: 'pro',
     name: 'Pro',
-    price: { monthly: 35, annual: 28 },
+    price: { monthly: 999, annual: 799 },
     tagline: 'For professional hosts',
     icon: Crown,
     gradient: 'from-violet-500 to-purple-600',
@@ -123,12 +123,12 @@ export default function BillingPage() {
   const currentPlan = entitlements?.plan ?? 'free';
 
   return (
-    <div className="min-h-screen bg-[#080810] text-white">
+    <div className="w-full text-ink-primary">
       {/* Back nav */}
       <div className="px-6 pt-6">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-ink-muted hover:text-ink-primary transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard
@@ -139,29 +139,29 @@ export default function BillingPage() {
 
         {/* ── Header ────────────────────────────────────────────────────────── */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-medium">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-brand text-xs font-medium">
             <Sparkles className="w-3.5 h-3.5" />
             Plans & Billing
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
             Choose your{' '}
-            <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
               plan
             </span>
           </h1>
-          <p className="text-slate-400 text-lg max-w-xl mx-auto">
+          <p className="text-ink-muted text-lg max-w-xl mx-auto">
             Scale your interactive sessions. Upgrade any time, cancel any time.
           </p>
 
           {/* Billing toggle */}
-          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10 mt-4">
+          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-surface-card border border-border mt-4">
             <button
               onClick={() => setBilling('annual')}
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
                 billing === 'annual'
                   ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/30'
-                  : 'text-slate-400 hover:text-white',
+                  : 'text-ink-muted hover:text-ink-primary',
               )}
             >
               Annual
@@ -172,8 +172,8 @@ export default function BillingPage() {
               className={cn(
                 'px-4 py-2 rounded-lg text-sm font-medium transition-all',
                 billing === 'monthly'
-                  ? 'bg-white/10 text-white'
-                  : 'text-slate-400 hover:text-white',
+                  ? 'bg-surface-raised text-ink-primary'
+                  : 'text-ink-muted hover:text-ink-primary',
               )}
             >
               Monthly
@@ -183,12 +183,12 @@ export default function BillingPage() {
 
         {/* ── Current Usage (shown when on free plan) ────────────────────── */}
         {!isLoading && entitlements && currentPlan === 'free' && (
-          <div className="bg-surface-sunken border border-white/5 rounded-2xl p-6 md:p-8 mb-12">
+          <div className="bg-surface-sunken border border-border rounded-2xl p-6 md:p-8 mb-12">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-brand/10 text-brand rounded-lg">
                 <BarChart3 className="w-5 h-5" />
               </div>
-              <h2 className="text-sm font-semibold text-white">Your Free Plan Usage</h2>
+              <h2 className="text-sm font-semibold text-ink-primary">Your Free Plan Usage</h2>
             </div>
             <div className="grid sm:grid-cols-2 gap-8">
               <UsageMeter
@@ -218,8 +218,8 @@ export default function BillingPage() {
                 className={cn(
                   'relative rounded-2xl border p-6 flex flex-col gap-5 transition-all duration-300',
                   isCurrent
-                    ? 'border-violet-500/50 bg-violet-500/5 ring-1 ring-violet-500/30'
-                    : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]',
+                    ? 'border-brand/50 bg-brand/5 ring-1 ring-brand/30'
+                    : 'border-border bg-surface-sunken hover:border-border hover:bg-surface-card',
                   plan.key === 'pro' && !isCurrent && 'border-violet-500/30',
                 )}
               >
@@ -235,7 +235,7 @@ export default function BillingPage() {
                 {/* Current plan badge */}
                 {isCurrent && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-white/10 border border-white/20 text-white">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-surface-raised border border-border text-ink-primary">
                       Current Plan
                     </span>
                   </div>
@@ -248,38 +248,38 @@ export default function BillingPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                    <p className="text-xs text-slate-400">{plan.tagline}</p>
+                    <h3 className="text-lg font-bold text-ink-primary">{plan.name}</h3>
+                    <p className="text-xs text-ink-muted">{plan.tagline}</p>
                   </div>
 
                   <div className="flex items-baseline gap-1">
                     {price === null ? (
-                      <span className="text-2xl font-bold text-white">Custom</span>
+                      <span className="text-2xl font-bold text-ink-primary">Custom</span>
                     ) : price === 0 ? (
-                      <span className="text-2xl font-bold text-white">Free</span>
+                      <span className="text-2xl font-bold text-ink-primary">Free</span>
                     ) : (
                       <>
-                        <span className="text-2xl font-bold text-white">${price}</span>
-                        <span className="text-xs text-slate-400">/mo</span>
+                        <span className="text-2xl font-bold text-ink-primary">₹{price}</span>
+                        <span className="text-xs text-ink-muted">/mo</span>
                       </>
                     )}
                   </div>
                 </div>
 
                 {/* Key limits */}
-                <div className="space-y-2.5 border-t border-white/5 pt-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-300">
-                    <Users className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                <div className="space-y-2.5 border-t border-border pt-4">
+                  <div className="flex items-center gap-2 text-xs text-ink-secondary">
+                    <Users className="w-3.5 h-3.5 text-ink-muted shrink-0" />
                     {plan.features.participants} participants
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-300">
-                    <Sparkles className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <div className="flex items-center gap-2 text-xs text-ink-secondary">
+                    <Sparkles className="w-3.5 h-3.5 text-ink-muted shrink-0" />
                     {plan.features.ai} AI generations
                   </div>
                 </div>
 
                 {/* Features */}
-                <div className="space-y-2 border-t border-white/5 pt-4 flex-1">
+                <div className="space-y-2 border-t border-border pt-4 flex-1">
                   {FEATURE_ROWS.slice(2).map(({ key, label }) => {
                     const val = plan.features[key as keyof typeof plan.features];
                     const enabled = val === true;
@@ -288,9 +288,9 @@ export default function BillingPage() {
                         {enabled ? (
                           <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                         ) : (
-                          <X className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                          <X className="w-3.5 h-3.5 text-ink-muted shrink-0" />
                         )}
-                        <span className={enabled ? 'text-slate-300' : 'text-slate-600'}>{label}</span>
+                        <span className={enabled ? 'text-ink-secondary' : 'text-ink-muted'}>{label}</span>
                       </div>
                     );
                   })}
@@ -299,7 +299,7 @@ export default function BillingPage() {
                 {/* CTA */}
                 <div>
                   {isCurrent ? (
-                    <div className="w-full py-2.5 rounded-xl border border-white/10 text-center text-sm text-slate-400 font-medium">
+                    <div className="w-full py-2.5 rounded-xl border border-border text-center text-sm text-ink-muted font-medium">
                       Current Plan
                     </div>
                   ) : plan.key === 'enterprise' ? (
@@ -335,23 +335,23 @@ export default function BillingPage() {
 
         {/* ── Full Feature Comparison Table ────────────────────────────────── */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-white">Full comparison</h2>
-          <div className="rounded-2xl border border-white/10 overflow-hidden">
+          <h2 className="text-xl font-bold text-ink-primary">Full comparison</h2>
+          <div className="rounded-2xl border border-border overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/10 bg-white/[0.02]">
-                  <th className="text-left p-4 text-slate-400 font-medium w-40">Feature</th>
+                <tr className="border-b border-border bg-surface-raised">
+                  <th className="text-left p-4 text-ink-muted font-medium w-40">Feature</th>
                   {PLANS.map((p) => (
                     <th
                       key={p.key}
                       className={cn(
                         'p-4 text-center font-semibold',
-                        currentPlan === p.key ? 'text-violet-300' : 'text-white',
+                        currentPlan === p.key ? 'text-brand' : 'text-ink-primary',
                       )}
                     >
                       {p.name}
                       {currentPlan === p.key && (
-                        <span className="ml-1 text-xs text-violet-400">✓</span>
+                        <span className="ml-1 text-xs text-brand">✓</span>
                       )}
                     </th>
                   ))}
@@ -362,13 +362,13 @@ export default function BillingPage() {
                   <tr
                     key={key}
                     className={cn(
-                      'border-b border-white/5 transition-colors hover:bg-white/[0.02]',
-                      i % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.01]',
+                      'border-b border-border transition-colors hover:bg-surface-raised',
+                      i % 2 === 0 ? 'bg-transparent' : 'bg-surface-sunken',
                     )}
                   >
-                    <td className="p-4 text-slate-300">
+                    <td className="p-4 text-ink-secondary">
                       <div className="flex items-center gap-2">
-                        <RowIcon className="w-3.5 h-3.5 text-slate-500" />
+                        <RowIcon className="w-3.5 h-3.5 text-ink-muted" />
                         {label}
                       </div>
                     </td>
@@ -382,14 +382,14 @@ export default function BillingPage() {
                           {isStr ? (
                             <span className={cn(
                               'text-xs font-medium',
-                              val === 'Unlimited' ? 'text-emerald-400' : 'text-slate-300',
+                              val === 'Unlimited' ? 'text-emerald-400' : 'text-ink-secondary',
                             )}>
                               {val}
                             </span>
                           ) : enabled ? (
                             <Check className="w-4 h-4 text-emerald-400 mx-auto" />
                           ) : (
-                            <X className="w-4 h-4 text-slate-700 mx-auto" />
+                            <X className="w-4 h-4 text-ink-muted mx-auto" />
                           )}
                         </td>
                       );
@@ -402,8 +402,8 @@ export default function BillingPage() {
         </div>
 
         {/* ── FAQ / Footer note ────────────────────────────────────────────── */}
-        <p className="text-center text-xs text-slate-600 pb-8">
-          All prices in USD. Annual plans billed annually. You can upgrade or downgrade at any time.
+        <p className="text-center text-xs text-ink-muted pb-8">
+          All prices in INR. Annual plans billed annually. You can upgrade or downgrade at any time.
           Enterprise pricing varies by team size and requirements.
         </p>
       </div>
