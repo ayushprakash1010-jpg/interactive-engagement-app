@@ -28,7 +28,7 @@ type ProviderConfig = {
 const PROVIDERS: Record<string, ProviderConfig> = {
   zoom: {
     id: 'zoom',
-    title: 'Slido for Zoom',
+    title: 'Pulse for Zoom',
     description: 'Run polls and Q&A directly inside your Zoom meetings without participants ever leaving the window.',
     icon: ZoomIcon,
     steps: [
@@ -41,7 +41,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
   teams: {
     id: 'teams',
-    title: 'Slido for Microsoft Teams',
+    title: 'Pulse for Microsoft Teams',
     description: 'Embed live polls and Q&A as a seamless meeting side panel in Microsoft Teams.',
     icon: TeamsIcon,
     steps: [
@@ -54,7 +54,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
   'google-meet': {
     id: 'google-meet',
-    title: 'Slido for Google Meet',
+    title: 'Pulse for Google Meet',
     description: 'Run polls and Q&A using the native Google Meet Add-on sidebar.',
     icon: GoogleMeetIcon,
     steps: [
@@ -67,7 +67,7 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
   powerpoint: {
     id: 'powerpoint',
-    title: 'Slido for PowerPoint',
+    title: 'Pulse for PowerPoint',
     description: 'Embed live polls and Q&A as a task pane inside Microsoft PowerPoint presentations.',
     icon: PowerPointIcon,
     steps: [
@@ -80,8 +80,9 @@ const PROVIDERS: Record<string, ProviderConfig> = {
   },
   'google-slides': {
     id: 'google-slides',
-    title: 'Slido for Google Slides',
+    title: 'Pulse for Google Slides',
     description: 'Embed live polls and Q&A as a custom sidebar inside Google Slides presentations via Apps Script.',
+
     icon: GoogleSlidesIcon,
     steps: [
       { title: 'Get the Code', description: 'Click below to view the Apps Script source code.' },
