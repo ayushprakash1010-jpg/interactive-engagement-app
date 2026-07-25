@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards, HttpCode, HttpStatus, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -7,6 +7,7 @@ import { PreventImpersonation, AllowImpersonationMutation } from '../auth/preven
 import type { AuthenticatedUser } from '../auth/jwt.strategy';
 import { AdminService } from './admin.service';
 import type { GetUsersQuery, GetEventsQuery } from './admin.service';
+import { isValidPlanTier } from '../billing/plan-config';
 
 /**
  * Admin-only oversight surface (Sprint 7 RBAC). Every route requires a valid
@@ -231,5 +232,28 @@ export class AdminController {
   async getAiOperationsTelemetry() {
     return this.adminService.getAiOperationsTelemetry();
   }
+
+  // ── Plan Management ──────────────────────────────────────────────────────
+
+  /**
+   * PATCH /admin/organizations/:id/plan
+   * Manually assigns a plan tier to an organization.
+   * Writes an audit log entry.
+   */
+  @Patch('organizations/:id/plan')
+  @Roles('admin')
+  @PreventImpersonation()
+  @HttpCode(HttpStatus.OK)
+  async updateOrgPlan(
+    @CurrentUser() admin: AuthenticatedUser,
+    @Param('id') orgId: string,
+    @Body('plan') plan: string,
+  ) {
+    if (!isValidPlanTier(plan)) {
+      throw new BadRequestException(`Invalid plan tier: '${plan}'. Must be one of: free, basic, pro, enterprise`);
+    }
+    return this.adminService.updateOrgPlan(admin, orgId, plan);
+  }
 }
+
 

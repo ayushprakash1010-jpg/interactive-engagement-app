@@ -18,7 +18,10 @@ import {
   Presentation,
   Video,
   MessageSquare,
-  BrainCircuit
+  BrainCircuit,
+  CreditCard,
+  Zap,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardShell } from '@/components/layout';
@@ -39,6 +42,7 @@ import { useGlobalEventScheduler } from '@/lib/use-global-event-scheduler';
 import { openCommandPalette } from '@/lib/command-palette-store';
 import { CommandPalette } from '@/components/command-palette';
 import { FeatureFlagsProvider, useFeatureFlags } from '@/lib/use-feature-flags';
+import { PlanProvider, usePlan } from '@/lib/use-plan';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Events', icon: LayoutDashboard, exact: true },
@@ -63,7 +67,9 @@ export default function DashboardLayout({
 }) {
   return (
     <FeatureFlagsProvider>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      <PlanProvider>
+        <DashboardLayoutContent>{children}</DashboardLayoutContent>
+      </PlanProvider>
     </FeatureFlagsProvider>
   );
 }
@@ -75,9 +81,13 @@ function DashboardLayoutContent({
 }) {
   const { user, logoutUrl } = useAuth();
   const { flags } = useFeatureFlags();
+  const { participantUsagePercent, entitlements } = usePlan();
   const pathname = usePathname();
   const { data: events } = useEvents();
   useGlobalEventScheduler();
+
+  const isFreeUser = !entitlements || entitlements.plan === 'free';
+  const showUsageWarning = isFreeUser && participantUsagePercent !== null && participantUsagePercent >= 80;
 
   const draftEvent = events?.find((e) => e.status === 'draft');
 
@@ -203,6 +213,11 @@ function DashboardLayoutContent({
             icon: Settings,
           },
           {
+            label: 'Billing',
+            href: '/dashboard/billing',
+            icon: CreditCard,
+          },
+          {
             label: 'Help',
             href: '/dashboard/help',
             icon: HelpCircle,
@@ -235,6 +250,19 @@ function DashboardLayoutContent({
         }
         sidebarFooter={
           <div className="space-y-1">
+            {/* Usage warning banner for free users at 80%+ */}
+            {showUsageWarning && (
+              <Link
+                href="/dashboard/billing"
+                className="flex items-start gap-2 rounded-lg mx-1 mb-2 px-3 py-2.5 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/15 transition-colors"
+              >
+                <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-amber-300">Nearing participant limit</p>
+                  <p className="text-xs text-amber-400/70">{participantUsagePercent}% used · Upgrade for unlimited</p>
+                </div>
+              </Link>
+            )}
             <Link
               href="/dashboard/account"
               className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-sunken"

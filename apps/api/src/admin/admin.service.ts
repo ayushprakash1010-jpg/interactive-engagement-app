@@ -1171,4 +1171,46 @@ export class AdminService {
       })),
     };
   }
+
+  // ── Plan Management ─────────────────────────────────────────────────────────
+
+  /**
+   * Assigns a plan tier to an organization.
+   * Writes an audit log entry so plan changes are fully traceable.
+   */
+  async updateOrgPlan(
+    admin: AuthenticatedUser,
+    orgId: string,
+    plan: string,
+  ): Promise<{ id: string; name: string; plan: string }> {
+    if (!Types.ObjectId.isValid(orgId)) {
+      throw new NotFoundException(`Organization ${orgId} not found`);
+    }
+
+    const org = await this.organizationModel.findById(orgId).exec();
+    if (!org) {
+      throw new NotFoundException(`Organization ${orgId} not found`);
+    }
+
+    const previousPlan = org.plan;
+    org.plan = plan;
+    await org.save();
+
+    await this.auditLogModel.create({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      actionType: 'ORG_PLAN_UPDATED',
+      targetResourceType: 'Organization',
+      targetResourceId: orgId,
+      metadata: { previousPlan, newPlan: plan, orgName: org.name },
+    });
+
+    this.logger.log(`Admin ${admin.email} changed org ${org.name} plan: ${previousPlan} → ${plan}`);
+
+    return {
+      id: (org._id as Types.ObjectId).toString(),
+      name: org.name,
+      plan: org.plan,
+    };
+  }
 }

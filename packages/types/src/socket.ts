@@ -52,5 +52,7 @@ export const ServerEvents = {
   SESSION_SNAPSHOT: 'session:snapshot',
   REACTION_RECEIVE: 'reaction:receive',
   ERROR: 'iep:error',
+  /** Emitted to the host room when the org's monthly participant cap is reached */
+  PLAN_LIMIT_REACHED: 'plan:limit_reached',
 } as const;
 export type ServerEvent = (typeof ServerEvents)[keyof typeof ServerEvents];
