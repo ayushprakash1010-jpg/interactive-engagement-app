@@ -16,38 +16,25 @@ import { apiFetch } from '@/lib/events-api';
 
 export type PlanTier = 'free' | 'basic' | 'pro' | 'enterprise';
 
+export interface EntitlementFeature {
+  enabled: boolean;
+  requiredPlan?: PlanTier;
+}
+
 export interface Entitlements {
   plan: PlanTier;
   planDisplayName: string;
-  qaModeration: boolean;
-  customBranding: boolean;
-  advancedAnalytics: boolean;
-  dataExport: boolean;
-  prioritySupport: boolean;
-}
-
-export interface UsageData {
-  month: string;
-  plan: PlanTier;
-  planDisplayName: string;
-  usage: {
-    participantsUsed: number;
-    aiRequests: number;
-    exports: number;
-  };
-  limits: {
-    participantsPerMonth: number | null;
-    aiRequestsPerMonth: number | null;
-  };
+  participants: { limit: number | null; used: number; percent: number };
+  ai: { limit: number | null; used: number; percent: number };
+  features: Record<string, EntitlementFeature>;
 }
 
 export interface PlanContext {
   entitlements: Entitlements | null;
-  usage: UsageData | null;
   isLoading: boolean;
   error: Error | null;
   /** Convenience: check if the current org can use a feature */
-  canUse: (feature: keyof Omit<Entitlements, 'plan' | 'planDisplayName'>) => boolean;
+  canUse: (feature: string) => boolean;
   /** Convenience: percentage of monthly participant limit used (0–100). null if unlimited. */
   participantUsagePercent: number | null;
   /** Convenience: percentage of monthly AI limit used (0–100). null if unlimited. */
@@ -59,7 +46,6 @@ export interface PlanContext {
 
 const PlanContext = React.createContext<PlanContext>({
   entitlements: null,
-  usage: null,
   isLoading: true,
   error: null,
   canUse: () => false,
@@ -72,7 +58,6 @@ const PlanContext = React.createContext<PlanContext>({
 
 export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [entitlements, setEntitlements] = React.useState<Entitlements | null>(null);
-  const [usage, setUsage] = React.useState<UsageData | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<Error | null>(null);
   const [fetchKey, setFetchKey] = React.useState(0);
@@ -83,13 +68,9 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 
     async function load() {
       try {
-        const [ent, usg] = await Promise.all([
-          apiFetch<Entitlements>('billing/entitlements'),
-          apiFetch<UsageData>('billing/usage'),
-        ]);
+        const ent = await apiFetch<Entitlements>('billing/entitlements');
         if (!mounted) return;
         setEntitlements(ent);
-        setUsage(usg);
         setError(null);
       } catch (err) {
         if (!mounted) return;
@@ -104,26 +85,20 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   }, [fetchKey]);
 
   const canUse = React.useCallback(
-    (feature: keyof Omit<Entitlements, 'plan' | 'planDisplayName'>): boolean => {
-      if (!entitlements) return false;
-      return entitlements[feature];
+    (feature: string): boolean => {
+      if (!entitlements || !entitlements.features) return false;
+      return entitlements.features[feature]?.enabled ?? false;
     },
     [entitlements],
   );
 
   const participantUsagePercent = React.useMemo(() => {
-    if (!usage) return null;
-    const limit = usage.limits.participantsPerMonth;
-    if (limit === null) return null;
-    return Math.min(100, Math.round((usage.usage.participantsUsed / limit) * 100));
-  }, [usage]);
+    return entitlements?.participants.percent ?? null;
+  }, [entitlements]);
 
   const aiUsagePercent = React.useMemo(() => {
-    if (!usage) return null;
-    const limit = usage.limits.aiRequestsPerMonth;
-    if (limit === null) return null;
-    return Math.min(100, Math.round((usage.usage.aiRequests / limit) * 100));
-  }, [usage]);
+    return entitlements?.ai.percent ?? null;
+  }, [entitlements]);
 
   const refetch = React.useCallback(() => setFetchKey((k) => k + 1), []);
 
@@ -131,7 +106,6 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     <PlanContext.Provider
       value={{
         entitlements,
-        usage,
         isLoading,
         error,
         canUse,

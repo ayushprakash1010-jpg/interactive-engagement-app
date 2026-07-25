@@ -9,7 +9,7 @@
  *   - Shows an "Upgrade" badge + CTA
  *
  * Usage:
- *   <UpgradeGate feature="qaModeration" requiredPlan="pro">
+ *   <UpgradeGate feature="qaModeration">
  *     <ModerationToggle />
  *   </UpgradeGate>
  */
@@ -35,9 +35,7 @@ const PLAN_COLORS: Record<string, string> = {
 
 interface UpgradeGateProps {
   /** The feature key to check against the org's entitlements */
-  feature: keyof Omit<Entitlements, 'plan' | 'planDisplayName'>;
-  /** The minimum plan that enables this feature (for the CTA label) */
-  requiredPlan: 'basic' | 'pro' | 'enterprise';
+  feature: string;
   /** Children rendered normally when the feature is allowed */
   children: React.ReactNode;
   /** Optional custom CTA label */
@@ -48,12 +46,11 @@ interface UpgradeGateProps {
 
 export function UpgradeGate({
   feature,
-  requiredPlan,
   children,
   ctaLabel,
   className,
 }: UpgradeGateProps) {
-  const { canUse, isLoading } = usePlan();
+  const { canUse, entitlements, isLoading } = usePlan();
 
   // While loading, render children normally (avoid flash of gate)
   if (isLoading) return <>{children}</>;
@@ -62,6 +59,9 @@ export function UpgradeGate({
 
   // User has access — render children as-is
   if (hasAccess) return <>{children}</>;
+
+  const featureData = entitlements?.features?.[feature];
+  const requiredPlan = featureData?.requiredPlan ?? 'pro';
 
   const label = PLAN_LABELS[requiredPlan] ?? requiredPlan;
   const gradient = PLAN_COLORS[requiredPlan] ?? PLAN_COLORS.pro;

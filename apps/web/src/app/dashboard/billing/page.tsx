@@ -117,7 +117,7 @@ const FEATURE_ROWS = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const { entitlements, usage, isLoading } = usePlan();
+  const { entitlements, isLoading } = usePlan();
   const [billing, setBilling] = React.useState<'annual' | 'monthly'>('annual');
 
   const currentPlan = entitlements?.plan ?? 'free';
@@ -182,29 +182,24 @@ export default function BillingPage() {
         </div>
 
         {/* ── Current Usage (shown when on free plan) ────────────────────── */}
-        {!isLoading && usage && currentPlan === 'free' && (
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 space-y-5">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-amber-400" />
+        {!isLoading && entitlements && currentPlan === 'free' && (
+          <div className="bg-surface-sunken border border-white/5 rounded-2xl p-6 md:p-8 mb-12">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-brand/10 text-brand rounded-lg">
+                <BarChart3 className="w-5 h-5" />
               </div>
-              <div>
-                <h2 className="text-sm font-semibold text-white">Your Free Plan Usage — {usage.month}</h2>
-                <p className="text-xs text-slate-400">Upgrade to remove all limits</p>
-              </div>
+              <h2 className="text-sm font-semibold text-white">Your Free Plan Usage</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid sm:grid-cols-2 gap-8">
               <UsageMeter
                 label="Participants this month"
-                used={usage.usage.participantsUsed}
-                limit={usage.limits.participantsPerMonth}
-                icon={<Users className="w-4 h-4" />}
+                used={entitlements.participants.used}
+                limit={entitlements.participants.limit}
               />
               <UsageMeter
-                label="AI generations this month"
-                used={usage.usage.aiRequests}
-                limit={usage.limits.aiRequestsPerMonth}
-                icon={<Sparkles className="w-4 h-4" />}
+                label="AI requests this month"
+                used={entitlements.ai.used}
+                limit={entitlements.ai.limit}
               />
             </div>
           </div>

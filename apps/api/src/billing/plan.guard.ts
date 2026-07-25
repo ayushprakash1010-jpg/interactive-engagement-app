@@ -21,7 +21,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { EntitlementService } from './entitlement.service';
-import type { PlanFeatures } from './plan-config';
+import { FeatureKey, PLAN_CONFIGS } from './plan-config';
 
 /** Metadata key used to attach the required feature to a route handler */
 export const ENTITLEMENT_KEY = 'requiredEntitlement';
@@ -31,18 +31,18 @@ export const ENTITLEMENT_KEY = 'requiredEntitlement';
  * Apply AFTER @UseGuards(JwtAuthGuard, PlanGuard).
  *
  * @example
- * @RequiresEntitlement('qaModeration')
+ * @RequiresEntitlement(FeatureKey.QA_MODERATION)
  */
-export const RequiresEntitlement = (feature: keyof PlanFeatures) =>
+export const RequiresEntitlement = (feature: FeatureKey) =>
   SetMetadata(ENTITLEMENT_KEY, feature);
 
 /** Maps each feature to the minimum plan that enables it (for the error response) */
-const FEATURE_TO_MIN_PLAN: Record<keyof PlanFeatures, string> = {
-  qaModeration: 'pro',
-  customBranding: 'pro',
-  advancedAnalytics: 'pro',
-  dataExport: 'basic',
-  prioritySupport: 'enterprise',
+const FEATURE_TO_MIN_PLAN: Record<FeatureKey, string> = {
+  [FeatureKey.QA_MODERATION]: 'pro',
+  [FeatureKey.CUSTOM_BRANDING]: 'pro',
+  [FeatureKey.ADVANCED_ANALYTICS]: 'pro',
+  [FeatureKey.DATA_EXPORT]: 'basic',
+  [FeatureKey.PRIORITY_SUPPORT]: 'enterprise',
 };
 
 @Injectable()
@@ -53,7 +53,7 @@ export class PlanGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const feature = this.reflector.getAllAndOverride<keyof PlanFeatures | undefined>(
+    const feature = this.reflector.getAllAndOverride<FeatureKey | undefined>(
       ENTITLEMENT_KEY,
       [context.getHandler(), context.getClass()],
     );

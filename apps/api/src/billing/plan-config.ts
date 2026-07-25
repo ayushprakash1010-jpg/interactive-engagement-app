@@ -5,100 +5,103 @@
  *
  * DESIGN NOTE: This is intentionally a static record for MVP.
  * When a DB-driven plan engine is needed (Phase 8+), replace
- * `PLAN_CONFIGS` with a DB fetch in PlanService.getPlanConfig()
+ * `PLAN_CONFIGS` with a DB fetch in PlanDefinitionService.getPlanConfig()
  * — all callers go through that service, so this file is the
  * only thing that changes.
  */
 
 export type PlanTier = 'free' | 'basic' | 'pro' | 'enterprise';
 
+/** Feature registry for compile-time safety */
+export enum FeatureKey {
+  QA_MODERATION = 'qaModeration',
+  CUSTOM_BRANDING = 'customBranding',
+  ADVANCED_ANALYTICS = 'advancedAnalytics',
+  DATA_EXPORT = 'dataExport',
+  PRIORITY_SUPPORT = 'prioritySupport',
+}
+
 /** Hard quota limits. null = unlimited. */
 export interface PlanLimits {
-  participantsPerMonth: number | null;
-  aiRequestsPerMonth: number | null;
+  readonly participantsPerMonth: number | null;
+  readonly aiRequestsPerMonth: number | null;
 }
 
-/** Boolean feature entitlements. */
-export interface PlanFeatures {
-  qaModeration: boolean;
-  customBranding: boolean;
-  advancedAnalytics: boolean;
-  dataExport: boolean;
-  prioritySupport: boolean;
-}
+/** Boolean feature entitlements mapped by FeatureKey. */
+export type PlanFeatures = Readonly<Record<FeatureKey, boolean>>;
 
 export interface PlanConfig {
-  tier: PlanTier;
-  displayName: string;
-  limits: PlanLimits;
-  features: PlanFeatures;
+  readonly tier: PlanTier;
+  readonly displayName: string;
+  readonly limits: PlanLimits;
+  readonly features: PlanFeatures;
 }
 
-export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
-  free: {
+export const PLAN_CONFIGS: Readonly<Record<PlanTier, PlanConfig>> = Object.freeze({
+  free: Object.freeze({
     tier: 'free',
     displayName: 'Free',
-    limits: {
+    limits: Object.freeze({
       participantsPerMonth: 50,
       aiRequestsPerMonth: 10,
-    },
-    features: {
-      qaModeration: false,
-      customBranding: false,
-      advancedAnalytics: false,
-      dataExport: false,
-      prioritySupport: false,
-    },
-  },
+    }),
+    features: Object.freeze({
+      [FeatureKey.QA_MODERATION]: false,
+      [FeatureKey.CUSTOM_BRANDING]: false,
+      [FeatureKey.ADVANCED_ANALYTICS]: false,
+      [FeatureKey.DATA_EXPORT]: false,
+      [FeatureKey.PRIORITY_SUPPORT]: false,
+    }),
+  }),
 
-  basic: {
+  basic: Object.freeze({
     tier: 'basic',
     displayName: 'Basic',
-    limits: {
+    limits: Object.freeze({
       participantsPerMonth: null, // unlimited
       aiRequestsPerMonth: null,   // unlimited
-    },
-    features: {
-      qaModeration: false,
-      customBranding: false,
-      advancedAnalytics: false,
-      dataExport: true,
-      prioritySupport: false,
-    },
-  },
+    }),
+    features: Object.freeze({
+      [FeatureKey.QA_MODERATION]: false,
+      [FeatureKey.CUSTOM_BRANDING]: false,
+      [FeatureKey.ADVANCED_ANALYTICS]: false,
+      [FeatureKey.DATA_EXPORT]: true,
+      [FeatureKey.PRIORITY_SUPPORT]: false,
+    }),
+  }),
 
-  pro: {
+  pro: Object.freeze({
     tier: 'pro',
     displayName: 'Pro',
-    limits: {
+    limits: Object.freeze({
       participantsPerMonth: null,
       aiRequestsPerMonth: null,
-    },
-    features: {
-      qaModeration: true,
-      customBranding: true,
-      advancedAnalytics: true,
-      dataExport: true,
-      prioritySupport: false,
-    },
-  },
+    }),
+    features: Object.freeze({
+      [FeatureKey.QA_MODERATION]: true,
+      [FeatureKey.CUSTOM_BRANDING]: true,
+      [FeatureKey.ADVANCED_ANALYTICS]: true,
+      [FeatureKey.DATA_EXPORT]: true,
+      [FeatureKey.PRIORITY_SUPPORT]: false,
+    }),
+  }),
 
-  enterprise: {
+  enterprise: Object.freeze({
     tier: 'enterprise',
     displayName: 'Enterprise',
-    limits: {
+    limits: Object.freeze({
       participantsPerMonth: null,
       aiRequestsPerMonth: null,
-    },
-    features: {
-      qaModeration: true,
-      customBranding: true,
-      advancedAnalytics: true,
-      dataExport: true,
-      prioritySupport: true,
-    },
-  },
-};
+    }),
+    features: Object.freeze({
+      [FeatureKey.QA_MODERATION]: true,
+      [FeatureKey.CUSTOM_BRANDING]: true,
+      [FeatureKey.ADVANCED_ANALYTICS]: true,
+      [FeatureKey.DATA_EXPORT]: true,
+      [FeatureKey.PRIORITY_SUPPORT]: true,
+    }),
+  }),
+});
 
 /** Helper: is the given string a valid plan tier? */
 export function isValidPlanTier(value: string): value is PlanTier {

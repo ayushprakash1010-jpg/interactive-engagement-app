@@ -11,7 +11,8 @@ import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UsageEntity, UsageDocument } from './usage.schema';
-import { PlanService } from './plan.service';
+import { SubscriptionService } from './subscription.service';
+import { PlanDefinitionService } from './plan-definition.service';
 
 /** YYYY-MM in UTC */
 function currentMonth(): string {
@@ -35,7 +36,8 @@ export class UsageService {
   constructor(
     @InjectModel(UsageEntity.name)
     private readonly usageModel: Model<UsageDocument>,
-    private readonly planService: PlanService,
+    private readonly subscriptionService: SubscriptionService,
+    private readonly planDefinitionService: PlanDefinitionService,
   ) {}
 
   // ── Internal helpers ────────────────────────────────────────────────────────
@@ -85,7 +87,8 @@ export class UsageService {
   }> {
     // Users with no org (solo hosts) are treated as free-plan
     const orgId = organizationId ?? null;
-    const config = await this.planService.getPlanConfigForOrg(orgId);
+    const planTier = await this.subscriptionService.getCurrentPlan(orgId);
+    const config = this.planDefinitionService.getPlanConfig(planTier);
     const limit = config.limits.participantsPerMonth;
 
     if (limit === null) {
@@ -129,7 +132,8 @@ export class UsageService {
    */
   async checkAndIncrementAiUsage(organizationId: string | null | undefined): Promise<void> {
     const orgId = organizationId ?? null;
-    const config = await this.planService.getPlanConfigForOrg(orgId);
+    const planTier = await this.subscriptionService.getCurrentPlan(orgId);
+    const config = this.planDefinitionService.getPlanConfig(planTier);
     const limit = config.limits.aiRequestsPerMonth;
 
     if (limit === null) {
@@ -175,7 +179,8 @@ export class UsageService {
    */
   async checkAndIncrementExport(organizationId: string | null | undefined): Promise<void> {
     const orgId = organizationId ?? null;
-    const config = await this.planService.getPlanConfigForOrg(orgId);
+    const planTier = await this.subscriptionService.getCurrentPlan(orgId);
+    const config = this.planDefinitionService.getPlanConfig(planTier);
 
     if (!config.features.dataExport) {
       throw new ForbiddenException({

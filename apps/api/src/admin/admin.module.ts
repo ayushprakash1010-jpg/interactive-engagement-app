@@ -11,6 +11,7 @@ import { EventsModule } from '../events/events.module';
 import { AdminAuditLogEntity, AdminAuditLogEntitySchema } from './audit-log.schema';
 import { OrganizationEntity, OrganizationEntitySchema } from '../organizations/organization.schema';
 import { AiOperationLogEntity, AiOperationLogSchema } from '../ai/ai-operation-log.schema';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AiOperationLogEntity, AiOperationLogSchema } from '../ai/ai-operation-l
     ]),
     RealtimeModule,
     EventsModule,
+    BillingModule,
   ],
   controllers: [AdminPublicController, AdminController],
   providers: [AdminService],
