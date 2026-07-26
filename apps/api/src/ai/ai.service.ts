@@ -488,7 +488,7 @@ ${prompt}
 
 Return ONLY valid JSON. Do not use markdown. Do not use code fences.
 
-The JSON must follow this exact structure (the "activities" array contains 2-4 items mixing the types below):
+The JSON must follow this exact structure (the "activities" array contains 2-5 items mixing the types below):
 
 {
   "event": {
@@ -546,6 +546,19 @@ The JSON must follow this exact structure (the "activities" array contains 2-4 i
             "correctOptionId": "q2-option-3",
             "points": 100,
             "timeLimitSec": 20
+          },
+          {
+            "id": "question-3",
+            "text": "string (max 120 chars)",
+            "options": [
+              { "id": "q3-option-1", "label": "string" },
+              { "id": "q3-option-2", "label": "string" },
+              { "id": "q3-option-3", "label": "string" },
+              { "id": "q3-option-4", "label": "string" }
+            ],
+            "correctOptionId": "q3-option-1",
+            "points": 100,
+            "timeLimitSec": 20
           }
         ],
         "speedBonusEnabled": false
@@ -601,14 +614,14 @@ The JSON must follow this exact structure (the "activities" array contains 2-4 i
 }
 
 CRITICAL RULES — violation will break the application:
-- Generate between 2 and 4 activities total.
+- Generate between 2 and 5 activities total. If the user requests a specific number of activities, honour it (clamped to 5 maximum).
 - Allowed activity types: poll, quiz, wordcloud, feedback, survey. No other types.
 - Include at least one poll, quiz, or survey.
 - POLL: must have exactly 4 options; each option "id" must be a unique non-empty string.
-- QUIZ: each question MUST have a unique "id" field (e.g. "question-1"). Each option in a question MUST have a unique "id" scoped to that question (e.g. "q1-option-1", "q1-option-2"). The "correctOptionId" value MUST exactly match one of the option "id" strings listed in that same question — do NOT use an integer index. "points" and "timeLimitSec" must be whole integers (no decimals).
+- QUIZ: each question MUST have a unique "id" field (e.g. "question-1", "question-2"). Each option in a question MUST have a unique "id" scoped to that question (e.g. "q1-option-1", "q1-option-2"). The "correctOptionId" value MUST exactly match one of the option "id" strings listed in that same question — do NOT use an integer index. "points" and "timeLimitSec" must be whole integers (no decimals). Generate as many quiz questions as the user requests; if no count is specified default to 3; maximum 5 questions per quiz.
 - WORDCLOUD: must include "prompt" (non-empty string) and "maxWordsPerParticipant" (whole integer between 1 and 20).
-- FEEDBACK: must include "prompt" (non-empty string) and "fields" array with at least 1 item. Each field "type" must be exactly "rating" or "text".
-- SURVEY: must include "questions" array with at least 1 item. Each question must have a unique "id". "pollType" can be "single", "multiple", "rating", or "open". If type is "single" or "multiple", it MUST have an "options" array. Each option MUST have a unique "id".
+- FEEDBACK: Use ONLY for a single open-ended reaction prompt — e.g. "How did you find this session?". It must include "prompt" (non-empty string) and a "fields" array with at least 1 item of type "rating" or "text". Do NOT use feedback as a replacement for a multi-question survey.
+- SURVEY: Use for structured multi-question data collection — e.g. registration forms, profiling, post-event evaluations with several distinct questions. Must include "questions" array with at least 2 items. Each question must have a unique "id". "pollType" can be "single", "multiple", "rating", or "open". If type is "single" or "multiple", it MUST have an "options" array. Each option MUST have a unique "id". If the user asks for a "survey", generate a survey — not a feedback.
 - All "id" fields must be non-empty strings.
 - All title, description, and text fields must be non-empty strings.
 `,
