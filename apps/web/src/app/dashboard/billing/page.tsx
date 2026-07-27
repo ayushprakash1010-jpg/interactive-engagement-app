@@ -126,7 +126,7 @@ export default function BillingPage() {
   const handleUpgrade = React.useCallback(async (planKey: string) => {
     setUpgrading(planKey);
     try {
-      const res = await fetch('/api/billing/upgrade-mock', {
+      const res = await fetch('/api/proxy/billing/upgrade-mock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ plan: planKey }),
