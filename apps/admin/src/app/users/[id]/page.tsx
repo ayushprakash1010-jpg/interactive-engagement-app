@@ -17,11 +17,16 @@ import {
   FileText,
   Search,
   ExternalLink,
+  ChevronDown,
+  Check,
+  Star,
+  Crown,
+  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { AdminApiError, fetchAdminUser, suspendUser, reactivateUser } from '@/lib/admin-api';
+import { AdminApiError, fetchAdminUser, suspendUser, reactivateUser, updateAdminOrgPlan } from '@/lib/admin-api';
 import type { AdminUserDetail, AdminRecentEvent } from '@/lib/admin-api';
 import { ImpersonateButton } from './impersonate-button';
 import { InvestigateButton } from '@/components/admin/investigate-button';
@@ -231,6 +236,40 @@ export default function UserDetailPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [notFound, setNotFound] = React.useState(false);
+  
+  const [isUpdatingPlan, setIsUpdatingPlan] = React.useState(false);
+  const [isPlanDropdownOpen, setIsPlanDropdownOpen] = React.useState(false);
+
+  const planConfigs = [
+    { id: 'free', name: 'Free', icon: Star, color: 'text-ink-secondary', bg: 'bg-surface-sunken' },
+    { id: 'basic', name: 'Basic', icon: Zap, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { id: 'pro', name: 'Pro', icon: Crown, color: 'text-brand', bg: 'bg-brand/10' },
+    { id: 'enterprise', name: 'Enterprise', icon: Building2, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+  ];
+
+  const currentPlanConfig = user ? (planConfigs.find(p => p.id === user.profile.plan) || planConfigs[0]!) : planConfigs[0]!;
+
+  const handlePlanChange = async (newPlan: string) => {
+    setIsPlanDropdownOpen(false);
+    if (!user?.profile.organizationId) {
+      alert("This user does not belong to any organization. Plan upgrades must be applied to an organization.");
+      return;
+    }
+    if (newPlan === user.profile.plan) return;
+    if (!confirm(`Are you sure you want to change this user's organization plan to ${newPlan}?`)) return;
+    
+    setIsUpdatingPlan(true);
+    try {
+      await updateAdminOrgPlan(user.profile.organizationId, newPlan);
+      // Reload user to get fresh data
+      const freshUser = await fetchAdminUser(id as string);
+      setUser(freshUser);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update plan');
+    } finally {
+      setIsUpdatingPlan(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!id) return;
@@ -342,7 +381,66 @@ export default function UserDetailPage() {
                 <dl className="space-y-3 text-sm divide-y divide-border">
                   <ProfileRow label="Email" value={user.profile.email} />
                   <ProfileRow label="Role" value={roleBadge(user.profile.role)} />
-                  <ProfileRow label="Plan" value={<span className="capitalize">{user.profile.plan}</span>} />
+                  <ProfileRow 
+                    label="Plan" 
+                    value={
+                      user.profile.organizationId ? (
+                        <div className="relative">
+                          <button
+                            onClick={() => setIsPlanDropdownOpen(!isPlanDropdownOpen)}
+                            disabled={isUpdatingPlan}
+                            className={cn(
+                              "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide border border-border shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50 -ml-3",
+                              currentPlanConfig.bg,
+                              currentPlanConfig.color
+                            )}
+                          >
+                            <currentPlanConfig.icon className="h-3.5 w-3.5" />
+                            {user.profile.plan} Plan
+                            {isUpdatingPlan ? (
+                              <Loader2 className="h-3 w-3 animate-spin ml-1 text-foreground" />
+                            ) : (
+                              <ChevronDown className="h-3.5 w-3.5 ml-0.5 text-foreground/50" />
+                            )}
+                          </button>
+
+                          {isPlanDropdownOpen && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-40" 
+                                onClick={() => setIsPlanDropdownOpen(false)}
+                              />
+                              <div className="absolute left-0 top-full mt-2 w-48 rounded-xl border bg-surface-card p-1 shadow-xl z-50 animate-in fade-in zoom-in-95">
+                                <div className="px-2 py-1.5 text-2xs font-semibold text-ink-muted uppercase tracking-wider mb-1">
+                                  Upgrade Organization
+                                </div>
+                                {planConfigs.map((plan) => (
+                                  <button
+                                    key={plan.id}
+                                    onClick={() => handlePlanChange(plan.id)}
+                                    className={cn(
+                                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-surface-sunken",
+                                      user.profile.plan === plan.id ? "bg-surface-sunken font-medium text-foreground" : "text-ink-secondary"
+                                    )}
+                                  >
+                                    <div className={cn("flex h-8 w-8 items-center justify-center rounded-full", plan.bg, plan.color)}>
+                                      <plan.icon className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                      <span className="capitalize">{plan.name}</span>
+                                    </div>
+                                    {user.profile.plan === plan.id && <Check className="h-4 w-4 text-brand" />}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="capitalize text-ink-secondary">{user.profile.plan} (No Organization)</span>
+                      )
+                    } 
+                  />
                   <ProfileRow
                     label="Organization"
                     value={
