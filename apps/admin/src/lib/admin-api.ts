@@ -464,7 +464,7 @@ export async function fetchAdminOrganizations(params: { page?: number; limit?: n
 }
 
 export async function fetchAdminOrganizationById(id: string): Promise<AdminOrganizationDetail> {
-  return adminFetch<AdminOrganizationDetail>(`admin/organizations/${encodeURIComponent(id)}`);
+  return adminFetch<AdminOrganizationDetail>(`admin/organizations/${encodeURIComponent(id)}?t=${Date.now()}`);
 }
 
 export async function createAdminOrganization(data: { name: string; plan?: string }): Promise<AdminOrganizationSummary> {

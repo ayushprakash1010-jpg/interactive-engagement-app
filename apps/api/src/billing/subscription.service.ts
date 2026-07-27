@@ -25,9 +25,10 @@ export class SubscriptionService {
    */
   async getCurrentPlan(organizationId: string | null | undefined): Promise<PlanTier> {
     if (!organizationId || !Types.ObjectId.isValid(organizationId)) return 'free';
+    const orgIdObj = new Types.ObjectId(organizationId);
 
     const sub = await this.subscriptionModel
-      .findOne({ organizationId, status: 'active' })
+      .findOne({ organizationId: orgIdObj, status: 'active' })
       .select('plan')
       .lean()
       .exec();
