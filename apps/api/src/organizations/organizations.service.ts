@@ -25,7 +25,13 @@ export class OrganizationsService {
       throw new BadRequestException('Organization name is required');
     }
 
-    // 1. Create the organization
+    // 1. Safety Check: Ensure the user doesn't already have an organization
+    const existingUser = await this.userModel.findOne({ auth0Sub: user.auth0Sub });
+    if (existingUser?.organizationId) {
+      throw new BadRequestException('You already belong to a workspace');
+    }
+
+    // 2. Create the organization
     const org = await this.organizationModel.create({
       name: dto.name.trim(),
       plan: 'free',
@@ -35,14 +41,14 @@ export class OrganizationsService {
 
     const orgId = org._id.toString();
 
-    // 2. Assign default plan via Billing subsystem
+    // 3. Assign default plan via Billing subsystem
     await this.subscriptionService.assignPlanToOrg(
       orgId,
       'free',
       `Onboarding creation by user ${user.auth0Sub}`
     );
 
-    // 3. Update the user to belong to this new organization
+    // 4. Update the user to belong to this new organization
     await this.userModel.findOneAndUpdate(
       { auth0Sub: user.auth0Sub },
       {
@@ -53,7 +59,7 @@ export class OrganizationsService {
       }
     );
 
-    // 4. Invalidate entitlement cache just in case
+    // 5. Invalidate entitlement cache just in case
     this.entitlementService.invalidateCache(orgId);
 
     this.logger.log(`User ${user.auth0Sub} created organization ${orgId} (${org.name})`);
