@@ -156,7 +156,7 @@ export default function OrganizationDetailPage() {
     { id: 'enterprise', name: 'Enterprise', icon: Building2, color: 'text-orange-500', bg: 'bg-orange-500/10' },
   ];
 
-  const currentPlanConfig = planConfigs.find(p => p.id === org?.plan) || planConfigs[0];
+  const currentPlanConfig = planConfigs.find(p => p.id === org?.plan) || planConfigs[0]!;
 
   if (loading) {
     return (
