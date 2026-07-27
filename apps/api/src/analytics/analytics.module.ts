@@ -19,6 +19,7 @@ import { UsersModule } from '../users/users.module';
 import { AuthModule } from '../auth/auth.module';
 import { RedisModule } from '../realtime/redis.module';
 import { WorkspaceOverviewController } from './workspace-overview.controller';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { WorkspaceOverviewController } from './workspace-overview.controller';
     UsersModule,
     AuthModule,
     RedisModule,
+    BillingModule,
   ],
   controllers: [AnalyticsController, WorkspaceOverviewController],
   providers: [AnalyticsService, AnalyticsExportService],

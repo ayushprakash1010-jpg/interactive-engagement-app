@@ -117,10 +117,33 @@ const FEATURE_ROWS = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const { entitlements, isLoading } = usePlan();
+  const { entitlements, isLoading, refetch } = usePlan();
   const [billing, setBilling] = React.useState<'annual' | 'monthly'>('annual');
+  const [upgrading, setUpgrading] = React.useState<string | null>(null);
 
   const currentPlan = entitlements?.plan ?? 'free';
+
+  const handleUpgrade = React.useCallback(async (planKey: string) => {
+    setUpgrading(planKey);
+    try {
+      const res = await fetch('/api/billing/upgrade-mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planKey }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.message ?? 'Upgrade failed. Please try again.');
+      }
+      // Refresh plan context so the UI reflects the new plan immediately
+      refetch();
+    } catch (e) {
+      // Surface error to user without alert()
+      console.error('[Billing] Upgrade failed:', e);
+    } finally {
+      setUpgrading(null);
+    }
+  }, [refetch]);
 
   return (
     <div className="w-full text-ink-primary">
@@ -317,14 +340,12 @@ export default function BillingPage() {
                       className={cn(
                         'w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all',
                         `bg-gradient-to-r ${plan.gradient} hover:opacity-90 hover:scale-[1.01]`,
-                        'shadow-lg',
+                        'shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100',
                       )}
-                      onClick={() => {
-                        // TODO: Stripe checkout integration
-                        alert(`Stripe checkout for ${plan.name} coming soon!`);
-                      }}
+                      disabled={upgrading !== null}
+                      onClick={() => handleUpgrade(plan.key)}
                     >
-                      Upgrade to {plan.name}
+                      {upgrading === plan.key ? 'Upgrading…' : `Upgrade to ${plan.name}`}
                     </button>
                   )}
                 </div>

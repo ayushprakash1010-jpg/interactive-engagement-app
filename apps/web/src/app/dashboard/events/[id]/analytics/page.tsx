@@ -63,6 +63,7 @@ import { apiFetch } from "@/lib/events-api";
 import { notify } from "@/lib/notification-store";
 import { WordCloud } from "@/components/wordcloud/wordcloud-cloud";
 import { getVideoByFeature } from "@/lib/tutorial-videos";
+import { UpgradeGate } from "@/components/ui/upgrade-gate";
 
 const CHART_COLORS = [
   "var(--data-1)",
@@ -900,48 +901,50 @@ Q&A: ${qaSummary}
               <Sparkles className="h-4 w-4" />
               {aiReport ? "Regenerate AI Report" : "✨ Generate AI Report"}
             </Button>
-            <div
-              className="relative"
-              onBlur={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setIsExportMenuOpen(false);
-                }
-              }}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                className="gap-2"
-                disabled={downloading !== null}
+            <UpgradeGate feature="dataExport">
+              <div
+                className="relative"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setIsExportMenuOpen(false);
+                  }
+                }}
               >
-                <Download className="h-4 w-4" />
-                {downloading ? "Exporting..." : "Export"}
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-              {isExportMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-36 rounded-md border bg-surface-card p-1 shadow-lg z-50 animate-in fade-in slide-in-from-top-1">
-                  <button
-                    onClick={() => {
-                      handleDownload("csv");
-                      setIsExportMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                  >
-                    CSV format
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleDownload("pdf");
-                      setIsExportMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                  >
-                    PDF document
-                  </button>
-                </div>
-              )}
-            </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                  className="gap-2"
+                  disabled={downloading !== null}
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading ? "Exporting..." : "Export"}
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+                {isExportMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-36 rounded-md border bg-surface-card p-1 shadow-lg z-50 animate-in fade-in slide-in-from-top-1">
+                    <button
+                      onClick={() => {
+                        handleDownload("csv");
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      CSV format
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDownload("pdf");
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      PDF document
+                    </button>
+                  </div>
+                )}
+              </div>
+            </UpgradeGate>
           </ActionGroup>
         }
       />
