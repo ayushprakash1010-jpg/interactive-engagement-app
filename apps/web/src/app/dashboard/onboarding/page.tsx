@@ -39,7 +39,16 @@ export default function OnboardingPage() {
       // We MUST bounce through the login route to get a fresh ID token with the new organizationId.
       window.location.assign('/api/auth/login?returnTo=/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Failed to create workspace');
+      const errorMessage = err.message || 'Failed to create workspace';
+      
+      // If the backend says they already have a workspace, it means their frontend 
+      // cookie is just stale. Rescue them by forcing a token refresh!
+      if (errorMessage.includes('already belong')) {
+        window.location.assign('/api/auth/login?returnTo=/dashboard');
+        return;
+      }
+      
+      setError(errorMessage);
       setLoading(false);
     }
   };
