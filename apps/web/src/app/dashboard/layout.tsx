@@ -94,10 +94,10 @@ function DashboardLayoutContent({
     
     // If the user profile is loaded and they don't have an organization,
     // and they aren't an admin, force them to onboard.
-    if (user && !user.organizationId && user.role !== 'admin' && user.role !== 'support') {
+    if (user && entitlements?.isUnassigned && user.role !== 'admin' && user.role !== 'support') {
       router.push('/dashboard/onboarding');
     }
-  }, [user, pathname, router]);
+  }, [user, entitlements, pathname, router]);
 
   const isFreeUser = !entitlements || entitlements.plan === 'free';
   const showUsageWarning = isFreeUser && participantUsagePercent !== null && participantUsagePercent >= 80;

@@ -27,6 +27,7 @@ export interface Entitlements {
   participants: { limit: number | null; used: number; percent: number };
   ai: { limit: number | null; used: number; percent: number };
   features: Record<string, EntitlementFeature>;
+  isUnassigned: boolean;
 }
 
 export interface PlanContext {

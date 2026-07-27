@@ -22,6 +22,7 @@ export interface RichEntitlements {
   participants: { limit: number | null; used: number; percent: number };
   ai: { limit: number | null; used: number; percent: number };
   features: Record<FeatureKey, { enabled: boolean; requiredPlan?: PlanTier }>;
+  isUnassigned: boolean;
 }
 
 @Injectable()
@@ -90,6 +91,7 @@ export class EntitlementService {
       participants: { limit: participantsLimit, used: participantsUsed, percent: participantsPercent },
       ai: { limit: aiLimit, used: aiUsed, percent: aiPercent },
       features: featuresResponse,
+      isUnassigned: !organizationId,
     };
   }
 

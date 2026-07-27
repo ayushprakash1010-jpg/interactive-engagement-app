@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/use-auth';
+import { usePlan } from '@/lib/use-plan';
 import { organizationsApi } from '@/lib/organizations-api';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -12,16 +13,17 @@ import { Loader2 } from 'lucide-react';
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { entitlements } = usePlan();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // If the user somehow gets here but already has an organization, redirect away
   React.useEffect(() => {
-    if (user?.organizationId) {
+    if (entitlements && !entitlements.isUnassigned) {
       router.push('/dashboard');
     }
-  }, [user, router]);
+  }, [entitlements, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
