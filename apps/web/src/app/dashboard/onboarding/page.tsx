@@ -35,9 +35,9 @@ export default function OnboardingPage() {
     
     try {
       await organizationsApi.create(name);
-      // Hard redirect to dashboard forces Auth0 to give us a fresh session
-      // (or we can bounce through login to force token refresh if needed)
-      window.location.assign('/dashboard');
+      // The backend updated the database, but our Auth0 session cookie is stale.
+      // We MUST bounce through the login route to get a fresh ID token with the new organizationId.
+      window.location.assign('/api/auth/login?returnTo=/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to create workspace');
       setLoading(false);
