@@ -162,7 +162,7 @@ ${kbContext ? `\n--- KNOWLEDGE BASE CONTEXT ---\n${kbContext}\n--- END KNOWLEDGE
 export class CopilotService {
   private readonly ai: GoogleGenAI;
   private readonly logger = new Logger(CopilotService.name);
-  private readonly MODEL = 'gemini-2.5-flash';
+  private readonly MODEL = 'gemini-3.5-flash-lite';
 
   constructor(
     private readonly configService: ConfigService<Env, true>,
