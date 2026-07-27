@@ -299,6 +299,11 @@ function DashboardLayoutContent({
     );
   }
 
+  // Distraction-free layout for onboarding
+  if (pathname === '/dashboard/onboarding') {
+    return <>{children}</>;
+  }
+
   // Fallback layout (for any remaining sub-routes not caught above)
   const displayNameFallback = user?.nickname || user?.name?.split('@')[0] || 'User';
 

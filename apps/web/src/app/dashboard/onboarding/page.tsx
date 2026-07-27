@@ -45,18 +45,18 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md shadow-lg border-0">
+    <div className="flex min-h-screen items-center justify-center bg-surface-canvas p-4">
+      <Card className="w-full max-w-md shadow-xl bg-surface-card border-border">
         <CardHeader className="space-y-2 text-center pb-6">
-          <CardTitle className="text-2xl font-bold tracking-tight">Welcome to Pulse!</CardTitle>
-          <CardDescription className="text-gray-500 text-sm">
+          <CardTitle className="text-3xl font-bold tracking-tight text-ink">Welcome to Pulse</CardTitle>
+          <CardDescription className="text-ink-muted text-base">
             Let's set up your personal workspace to get started.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="workspace-name" className="text-sm font-medium text-gray-700">
+              <label htmlFor="workspace-name" className="text-sm font-semibold text-ink-secondary">
                 Workspace Name
               </label>
               <Input
@@ -68,13 +68,14 @@ export default function OnboardingPage() {
                 className="w-full"
                 autoFocus
               />
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {error && <p className="text-sm font-medium text-destructive">{error}</p>}
             </div>
           </CardContent>
           <CardFooter>
             <Button 
               type="submit" 
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2"
+              className="w-full font-semibold"
+              size="lg"
               disabled={loading || !name.trim()}
             >
               {loading ? (
