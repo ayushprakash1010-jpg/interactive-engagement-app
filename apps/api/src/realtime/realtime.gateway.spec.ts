@@ -98,6 +98,10 @@ describe('RealtimeGateway participant count', () => {
     })),
   };
 
+  const usageService = {
+    recordParticipant: jest.fn(async () => undefined),
+  };
+
   const event = {
     _id: 'evt1',
     eventCode: 'ABC123',
@@ -125,6 +129,7 @@ describe('RealtimeGateway participant count', () => {
       questionsService as any,
       analyticsService as any,
       rateLimitService as any,
+      usageService as any,
     );
 
     emit = jest.fn();
@@ -338,6 +343,7 @@ describe('RealtimeGateway Admin Diagnostics', () => {
       {} as any,
       {} as any,
       activityService as any,
+      {} as any,
       {} as any,
       {} as any,
       {} as any,

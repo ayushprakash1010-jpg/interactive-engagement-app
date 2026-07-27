@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 import {
   CalendarDays,
   CircleUserRound,
@@ -83,8 +84,20 @@ function DashboardLayoutContent({
   const { flags } = useFeatureFlags();
   const { participantUsagePercent, entitlements } = usePlan();
   const pathname = usePathname();
+  const router = useRouter();
   const { data: events } = useEvents();
   useGlobalEventScheduler();
+
+  useEffect(() => {
+    // If we're already on the onboarding page, do nothing.
+    if (pathname === '/dashboard/onboarding') return;
+    
+    // If the user profile is loaded and they don't have an organization,
+    // and they aren't an admin, force them to onboard.
+    if (user && !user.organizationId && user.role !== 'admin' && user.role !== 'support') {
+      router.push('/dashboard/onboarding');
+    }
+  }, [user, pathname, router]);
 
   const isFreeUser = !entitlements || entitlements.plan === 'free';
   const showUsageWarning = isFreeUser && participantUsagePercent !== null && participantUsagePercent >= 80;
