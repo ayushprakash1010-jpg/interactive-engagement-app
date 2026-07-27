@@ -63,7 +63,7 @@ import { apiFetch } from "@/lib/events-api";
 import { notify } from "@/lib/notification-store";
 import { WordCloud } from "@/components/wordcloud/wordcloud-cloud";
 import { getVideoByFeature } from "@/lib/tutorial-videos";
-import { UpgradeGate } from "@/components/ui/upgrade-gate";
+import { usePlan } from "@/lib/use-plan";
 
 const CHART_COLORS = [
   "var(--data-1)",
@@ -689,6 +689,9 @@ export default function AnalyticsPage() {
   const [isExportMenuOpen, setIsExportMenuOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
+  const { canUse } = usePlan();
+  const canExport = canUse('dataExport');
+
   const handleCopyReport = React.useCallback(() => {
     if (!aiReport) return;
     const text = [
@@ -901,7 +904,7 @@ Q&A: ${qaSummary}
               <Sparkles className="h-4 w-4" />
               {aiReport ? "Regenerate AI Report" : "✨ Generate AI Report"}
             </Button>
-            <UpgradeGate feature="dataExport">
+            {canExport ? (
               <div
                 className="relative"
                 onBlur={(e) => {
@@ -944,7 +947,15 @@ Q&A: ${qaSummary}
                   </div>
                 )}
               </div>
-            </UpgradeGate>
+            ) : (
+              <a href="/dashboard/billing" title="Upgrade to Basic to unlock data export">
+                <Button variant="outline" size="sm" className="gap-2 opacity-70 cursor-pointer">
+                  <Download className="h-4 w-4" />
+                  Export
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="11" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </Button>
+              </a>
+            )}
           </ActionGroup>
         }
       />
