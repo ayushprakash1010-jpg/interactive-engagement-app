@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { AdminApiError, fetchAdminOrganizationById, fetchAdminUsers, assignAdminUserToOrg, unassignAdminUserFromOrg } from '@/lib/admin-api';
+import { AdminApiError, fetchAdminOrganizationById, fetchAdminUsers, assignAdminUserToOrg, unassignAdminUserFromOrg, updateAdminOrgPlan } from '@/lib/admin-api';
 import type { AdminOrganizationDetail, AdminUserSummary } from '@/lib/admin-api';
 
 function formatDate(iso: string) {
@@ -124,6 +124,21 @@ export default function OrganizationDetailPage() {
     }
   };
 
+  const [isUpdatingPlan, setIsUpdatingPlan] = React.useState(false);
+  const handlePlanChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPlan = e.target.value;
+    if (!confirm(`Are you sure you want to change this organization's plan to ${newPlan}?`)) return;
+    setIsUpdatingPlan(true);
+    try {
+      await updateAdminOrgPlan(orgId, newPlan);
+      await loadOrg();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update plan');
+    } finally {
+      setIsUpdatingPlan(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface-canvas">
@@ -165,7 +180,23 @@ export default function OrganizationDetailPage() {
                 <p className="text-xs font-semibold uppercase tracking-wider text-brand">
                   Organization Profile
                 </p>
-                <Badge variant="neutral" size="sm" className="capitalize">{org.plan} Plan</Badge>
+                <div className="relative">
+                  <select
+                    value={org.plan}
+                    onChange={handlePlanChange}
+                    disabled={isUpdatingPlan}
+                    className={cn(
+                      "appearance-none bg-surface-sunken border border-border rounded-md px-2 py-0.5 text-xs font-medium uppercase capitalize outline-none focus:ring-2 focus:ring-brand disabled:opacity-50",
+                      org.plan === 'pro' ? 'text-brand' : 'text-foreground'
+                    )}
+                  >
+                    <option value="free">Free Plan</option>
+                    <option value="basic">Basic Plan</option>
+                    <option value="pro">Pro Plan</option>
+                    <option value="enterprise">Enterprise Plan</option>
+                  </select>
+                  {isUpdatingPlan && <Loader2 className="absolute -right-5 top-1 h-3 w-3 animate-spin text-brand" />}
+                </div>
               </div>
               <h1 className="font-display text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <Building className="h-6 w-6 text-brand" /> {org.name}

@@ -486,6 +486,13 @@ export async function unassignAdminUserFromOrg(orgId: string, userId: string): P
   });
 }
 
+export async function updateAdminOrgPlan(orgId: string, plan: string): Promise<void> {
+  return adminFetch<void>(`admin/organizations/${encodeURIComponent(orgId)}/plan`, {
+    method: 'PATCH',
+    body: JSON.stringify({ plan }),
+  });
+}
+
 // ── FEATURE FLAGS ─────────────────────────────────────────────────────────────
 
 export interface FeatureFlag {
