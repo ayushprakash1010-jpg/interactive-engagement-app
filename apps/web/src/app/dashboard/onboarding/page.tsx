@@ -61,7 +61,7 @@ export default function OnboardingPage() {
         <CardHeader className="space-y-2 text-center pb-6">
           <CardTitle className="text-3xl font-bold tracking-tight text-ink">Welcome to Pulse</CardTitle>
           <CardDescription className="text-ink-muted text-base">
-            Let's set up your personal workspace to get started.
+            Let&apos;s set up your personal workspace to get started.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

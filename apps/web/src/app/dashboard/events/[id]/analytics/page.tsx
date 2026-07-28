@@ -430,7 +430,7 @@ function SurveySection({
       if (q.questionId) map.set(q.questionId, q);
     }
     return map;
-  }, [survey.questions]);
+  }, [survey]);
 
   const formatDuration = (sec?: number) => {
     if (!sec) return "—";
