@@ -1,19 +1,23 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-export default function ZoomSuccessPage() {
+function SuccessContent() {
+  const searchParams = useSearchParams();
+  const deeplink = searchParams.get('deeplink') || 'zoommtg://zoom.us/client/latest/launch?action=app';
+
   useEffect(() => {
     // Zoom requires that web authorization flows redirect the user back into the Zoom Desktop Client
     // using a deep link so the app opens natively in Zoom.
     
     // We try to trigger the deep link automatically after a short delay
     const timer = setTimeout(() => {
-      window.location.href = 'zoomus://zoom.us/client/latest/launch?action=app';
+      window.location.href = deeplink;
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [deeplink]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-surface to-surface-sunken p-6 text-center">
@@ -39,12 +43,20 @@ export default function ZoomSuccessPage() {
         </p>
         
         <a 
-          href="zoomus://zoom.us/client/latest/launch?action=app"
+          href={deeplink}
           className="rounded-xl bg-brand px-8 py-4 text-base font-semibold text-brand-text shadow-md transition-all hover:bg-brand-hover hover:shadow-lg active:scale-95"
         >
           Open Zoom Client
         </a>
       </div>
     </div>
+  );
+}
+
+export default function ZoomSuccessPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p>Loading...</p></div>}>
+      <SuccessContent />
+    </Suspense>
   );
 }

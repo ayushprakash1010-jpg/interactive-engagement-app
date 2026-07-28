@@ -17,7 +17,7 @@ export class ZoomService {
     @InjectModel(EventEntity.name) private readonly eventModel: Model<EventDocument>
   ) { }
 
-  async handleCallback(code: string, auth0Sub: string): Promise<{ deeplink?: string }> {
+  async handleCallback(code: string, auth0Sub: string): Promise<string> {
     const clientId = this.configService.get<string>('ZOOM_CLIENT_ID');
     const clientSecret = this.configService.get<string>('ZOOM_CLIENT_SECRET');
     const redirectUri = this.configService.get<string>('ZOOM_REDIRECT_URI');
@@ -66,40 +66,44 @@ export class ZoomService {
     const profileData = (await profileResponse.json()) as { id: string };
     const zoomUserId = profileData.id;
 
-    // 3. Generate Official App Deeplink to redirect back to Zoom Client
-    let deeplink: string | undefined;
-    try {
-      const deepLinkResponse = await fetch('https://api.zoom.us/v2/zoomapp/deeplink', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ action: 'start' })
-      });
-      if (deepLinkResponse.ok) {
-        const data = (await deepLinkResponse.json()) as { deeplink: string };
-        deeplink = data.deeplink;
-      } else {
-        this.logger.warn(`Failed to generate deeplink: ${await deepLinkResponse.text()}`);
+    const generateDeeplink = async () => {
+      let dl = 'zoommtg://zoom.us/client/latest/launch?action=app';
+      try {
+        const dlRes = await fetch('https://api.zoom.us/v2/zoomapp/deeplink', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: 'go' })
+        });
+        if (dlRes.ok) {
+          const dlData = await dlRes.json() as { deeplink: string };
+          if (dlData.deeplink) dl = dlData.deeplink;
+        }
+      } catch (e) {
+        this.logger.warn('Failed to generate deeplink', e);
       }
-    } catch (e) {
-      this.logger.error('Failed to generate Zoom App deeplink', e);
-    }
+      return dl;
+    };
 
-    // 4. Save to user profile (if auth0Sub was provided)
+    // 3. Save to user profile (if auth0Sub was provided)
     if (!auth0Sub) {
       this.logger.log(`Zoom connected for Zoom ID ${zoomUserId} (Web Marketplace Install - no auth0Sub)`);
-      return { deeplink };
+      return await generateDeeplink();
     }
 
     const user = await this.usersService.findByAuth0Sub(auth0Sub);
     if (!user) {
       this.logger.warn(`User ${auth0Sub} not found during Zoom OAuth callback, but Zoom was successfully authorized.`);
-      return { deeplink };
+      return await generateDeeplink();
     }
 
-    // Parse the token to get the auid
+    // Find and update the integration, or add it if it doesn't exist.
+    // MongoDB array update using aggregation pipeline or simple pull/push.
+    // We'll just pull any existing zoom integration and push the new one.
+
+    // Parse the token to get the auid (App-specific User ID), which is what the Zoom Client SDK returns
     let auid = zoomUserId;
     try {
       const parts = accessToken.split('.');
@@ -119,15 +123,17 @@ export class ZoomService {
       $push: {
         integrations: {
           provider: 'zoom',
-          externalId: auid,
-          zoomUserId: zoomUserId,
+          externalId: auid, // Save the auid so it matches what the frontend gets!
+          zoomUserId: zoomUserId, // Save the numeric ID so contextToEvent can match it
           refreshToken: refreshToken,
         },
       },
     });
 
     this.logger.log(`Zoom connected for user ${auth0Sub} with Zoom ID ${zoomUserId}`);
-    return { deeplink };
+
+    // 4. Generate deeplink
+    return await generateDeeplink();
   }
 
   async getOrCreateEventForMeeting(meetingId: string, zoomUserId?: string): Promise<EventDocument> {
