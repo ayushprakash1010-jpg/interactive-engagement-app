@@ -34,11 +34,21 @@ export async function GET(request: Request) {
       redirect: 'manual', // Don't auto-follow redirects from backend
     });
 
-    // The NestJS backend returns 302 on success (redirecting to /zoom/success).
+    // The NestJS backend returns 302 on success (redirecting to /zoom/success?deeplink=...).
     // Any 2xx or 3xx means success.
-    if (backendRes.ok || (backendRes.status >= 300 && backendRes.status < 400)) {
-      // Success — send user to their dashboard settings page to see Zoom is now connected
-      return NextResponse.redirect(new URL('/dashboard/settings?zoom_connected=true', url.origin));
+    if (backendRes.status >= 300 && backendRes.status < 400) {
+      const location = backendRes.headers.get('location');
+      if (location) {
+        // Parse the location to get just the path and query string, 
+        // to ensure we always redirect to the correct frontend origin.
+        const locationUrl = new URL(location, 'http://dummy.com');
+        return NextResponse.redirect(new URL(`${locationUrl.pathname}${locationUrl.search}`, url.origin));
+      }
+    }
+    
+    if (backendRes.ok) {
+      // Fallback if backend returned 200 without redirect
+      return NextResponse.redirect(new URL('/zoom/success', url.origin));
     }
 
     const errorText = await backendRes.text();
