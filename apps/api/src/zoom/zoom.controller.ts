@@ -35,11 +35,11 @@ export class ZoomController {
     }
 
     // Exchange code for token and save it to the user profile (if state is present)
-    await this.zoomService.handleCallback(code, state);
+    const deeplink = await this.zoomService.handleCallback(code, state);
 
     // Zoom Apps requirement: Redirect to a success page that deep-links back to the Zoom Client
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/zoom/success`);
+    res.redirect(`${frontendUrl}/zoom/success?deeplink=${encodeURIComponent(deeplink)}`);
   }
 
   @Get('context-to-event')
