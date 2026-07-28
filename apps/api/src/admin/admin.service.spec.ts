@@ -11,6 +11,8 @@ import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { EventsService } from '../events/events.service';
 import { AiOperationLogEntity } from '../ai/ai-operation-log.schema';
 import { Types } from 'mongoose';
+import { SubscriptionService } from '../billing/subscription.service';
+import { EntitlementService } from '../billing/entitlement.service';
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -49,6 +51,8 @@ describe('AdminService', () => {
         { provide: RealtimeGateway, useValue: realtimeGateway },
         { provide: EventsService, useValue: { endEvent: jest.fn().mockResolvedValue({}) } },
         { provide: JwtService, useValue: { sign: jest.fn().mockReturnValue('signed-token') } },
+        { provide: SubscriptionService, useValue: { getCurrentPlan: jest.fn().mockResolvedValue('free'), assignPlanToOrg: jest.fn().mockResolvedValue({}) } },
+        { provide: EntitlementService, useValue: { invalidateCache: jest.fn() } },
       ],
     }).compile();
 

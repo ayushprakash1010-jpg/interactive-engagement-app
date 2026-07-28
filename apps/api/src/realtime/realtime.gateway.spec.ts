@@ -55,6 +55,7 @@ describe('RealtimeGateway participant count', () => {
   const participants = {
     upsertParticipant: jest.fn(async () => undefined),
     markDisconnected: jest.fn(async () => undefined),
+    findParticipant: jest.fn(async () => null),
   };
 
   const activityService = {
@@ -100,6 +101,8 @@ describe('RealtimeGateway participant count', () => {
 
   const usageService = {
     recordParticipant: jest.fn(async () => undefined),
+    checkParticipantLimit: jest.fn(async () => ({ allowed: true })),
+    incrementParticipants: jest.fn(async () => undefined),
   };
 
   const event = {
@@ -119,6 +122,7 @@ describe('RealtimeGateway participant count', () => {
     questionsService.findApprovedByEvent.mockResolvedValue([]);
     questionsService.findByEvent.mockResolvedValue([]);
     questionsService.reply.mockResolvedValue(null);
+    usageService.checkParticipantLimit.mockResolvedValue({ allowed: true });
 
     gateway = new RealtimeGateway(
       events as any,
