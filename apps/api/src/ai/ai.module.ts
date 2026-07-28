@@ -12,6 +12,7 @@ import { AuthModule } from '../auth/auth.module';
 
 import { AiOperationLogEntity, AiOperationLogSchema } from './ai-operation-log.schema';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
     EventsModule,
     AuthModule,
     RealtimeModule,
+    BillingModule,
   ],
   controllers: [AiController],
   providers: [AiService],

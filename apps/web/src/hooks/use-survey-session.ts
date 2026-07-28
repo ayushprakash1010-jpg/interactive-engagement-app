@@ -58,21 +58,7 @@ export function useSurveySession(eventId: string, activityId: string, participan
   }, [session?.status]);
 
   // Handle network resilience and offline state
-  useEffect(() => {
-    const handleOnline = () => {
-      setSaveStatus(saveQueue.current.size > 0 ? 'saving' : 'saved');
-      processQueue();
-    };
-    const handleOffline = () => setSaveStatus('offline');
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   const saveMutation = useMutation({
     mutationFn: async (payload: SaveAnswerPayload) => {

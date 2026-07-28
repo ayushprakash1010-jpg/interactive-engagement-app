@@ -6,6 +6,7 @@ import { ActivityModule } from '../activities/activity.module';
 import { ResponseModule } from '../responses/response.module';
 import { QuestionsModule } from '../questions/questions.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { BillingModule } from '../billing/billing.module';
 
 import { RealtimeGateway } from './realtime.gateway';
 import { RateLimitService } from './rate-limit.service';
@@ -18,6 +19,7 @@ import { RateLimitService } from './rate-limit.service';
     ResponseModule,
     QuestionsModule,
     AnalyticsModule,
+    BillingModule,
   ],
   providers: [RealtimeGateway, RateLimitService],
   exports: [RealtimeGateway, RateLimitService],

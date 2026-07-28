@@ -102,25 +102,44 @@ const STATS = [
 const PLANS = [
   {
     name: 'Free',
-    price: '$0',
+    price: '₹0',
     cadence: 'forever',
     blurb: 'For trying it out and small sessions.',
-    features: ['Up to 50 participants', 'Polls & Q&A', '1 active event', 'Basic analytics'],
+    features: [
+      'Up to 50 participants / mo',
+      '10 AI requests / mo',
+      'Basic analytics',
+      'Standard polling'
+    ],
     cta: 'Start here',
     href: SIGNUP_HREF,
     highlighted: false,
   },
   {
+    name: 'Basic',
+    price: '₹499',
+    cadence: 'per host / month',
+    blurb: 'For individuals and small groups.',
+    features: [
+      'Unlimited participants',
+      'Unlimited AI requests',
+      'Basic analytics',
+      'Data exports (CSV/PDF)'
+    ],
+    cta: 'Start free trial',
+    href: SIGNUP_HREF,
+    highlighted: false,
+  },
+  {
     name: 'Pro',
-    price: '$29',
+    price: '₹999',
     cadence: 'per host / month',
     blurb: 'For regular hosts and growing teams.',
     features: [
-      'Up to 5,000 participants',
-      'All activity types',
-      'Quizzes & leaderboards',
-      'AI Studio & answer summaries',
-      'CSV & PDF reports',
+      'Everything in Basic',
+      'Q&A moderation',
+      'Custom branding',
+      'Advanced analytics',
     ],
     cta: 'Start free trial',
     href: SIGNUP_HREF,
@@ -132,10 +151,10 @@ const PLANS = [
     cadence: 'custom',
     blurb: 'For organizations with SSO and scale needs.',
     features: [
-      'Unlimited participants',
+      'Everything in Pro',
+      'Priority support',
       'SSO / SAML',
       'Org-level analytics',
-      'Priority support',
       'SLA & onboarding',
     ],
     cta: 'Contact sales',
@@ -539,15 +558,15 @@ export default function LandingPage() {
             <StaggerContainer
               staggerMs={100}
               baseDelay={100}
-              className="mt-14 grid gap-5 lg:grid-cols-3 lg:items-stretch"
+              className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:items-stretch"
             >
               {PLANS.map((plan) => (
                 <Card
                   key={plan.name}
                   className={
                     plan.highlighted
-                      ? 'relative rounded-lg border-2 border-brand bg-surface-card shadow-xl'
-                      : 'relative rounded-lg border-border bg-surface-card shadow-xs'
+                      ? 'relative rounded-lg border-2 border-brand bg-surface-card shadow-xl h-full flex flex-col'
+                      : 'relative rounded-lg border-border bg-surface-card shadow-xs h-full flex flex-col'
                   }
                 >
                   {plan.highlighted && (

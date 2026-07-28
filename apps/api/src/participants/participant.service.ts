@@ -81,6 +81,20 @@ export class ParticipantService {
     }
   }
 
+  /**
+   * Returns the existing participant document for a given (eventId, anonId),
+   * or null if this is a first-time join.
+   * Used by the gateway to decide whether to count against the monthly quota.
+   */
+  async findParticipant(
+    eventId: string,
+    anonId: string,
+  ): Promise<ParticipantDocument | null> {
+    return this.participantModel
+      .findOne({ eventId: new Types.ObjectId(eventId), anonId })
+      .exec();
+  }
+
   // ── Count connected ───────────────────────────────────────────────────────
 
   /**

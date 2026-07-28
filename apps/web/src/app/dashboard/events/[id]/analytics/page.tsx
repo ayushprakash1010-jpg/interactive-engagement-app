@@ -63,6 +63,7 @@ import { apiFetch } from "@/lib/events-api";
 import { notify } from "@/lib/notification-store";
 import { WordCloud } from "@/components/wordcloud/wordcloud-cloud";
 import { getVideoByFeature } from "@/lib/tutorial-videos";
+import { usePlan } from "@/lib/use-plan";
 
 const CHART_COLORS = [
   "var(--data-1)",
@@ -429,7 +430,7 @@ function SurveySection({
       if (q.questionId) map.set(q.questionId, q);
     }
     return map;
-  }, [survey.questions]);
+  }, [survey]);
 
   const formatDuration = (sec?: number) => {
     if (!sec) return "—";
@@ -688,6 +689,9 @@ export default function AnalyticsPage() {
   const [isExportMenuOpen, setIsExportMenuOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
+  const { canUse } = usePlan();
+  const canExport = canUse('dataExport');
+
   const handleCopyReport = React.useCallback(() => {
     if (!aiReport) return;
     const text = [
@@ -900,48 +904,58 @@ Q&A: ${qaSummary}
               <Sparkles className="h-4 w-4" />
               {aiReport ? "Regenerate AI Report" : "✨ Generate AI Report"}
             </Button>
-            <div
-              className="relative"
-              onBlur={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                  setIsExportMenuOpen(false);
-                }
-              }}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                className="gap-2"
-                disabled={downloading !== null}
+            {canExport ? (
+              <div
+                className="relative"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setIsExportMenuOpen(false);
+                  }
+                }}
               >
-                <Download className="h-4 w-4" />
-                {downloading ? "Exporting..." : "Export"}
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-              {isExportMenuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-36 rounded-md border bg-surface-card p-1 shadow-lg z-50 animate-in fade-in slide-in-from-top-1">
-                  <button
-                    onClick={() => {
-                      handleDownload("csv");
-                      setIsExportMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                  >
-                    CSV format
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleDownload("pdf");
-                      setIsExportMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
-                  >
-                    PDF document
-                  </button>
-                </div>
-              )}
-            </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                  className="gap-2"
+                  disabled={downloading !== null}
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading ? "Exporting..." : "Export"}
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+                {isExportMenuOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 w-36 rounded-md border bg-surface-card p-1 shadow-lg z-50 animate-in fade-in slide-in-from-top-1">
+                    <button
+                      onClick={() => {
+                        handleDownload("csv");
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      CSV format
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleDownload("pdf");
+                        setIsExportMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                    >
+                      PDF document
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <a href="/dashboard/billing" title="Upgrade to Basic to unlock data export">
+                <Button variant="outline" size="sm" className="gap-2 opacity-70 cursor-pointer">
+                  <Download className="h-4 w-4" />
+                  Export
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="11" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </Button>
+              </a>
+            )}
           </ActionGroup>
         }
       />

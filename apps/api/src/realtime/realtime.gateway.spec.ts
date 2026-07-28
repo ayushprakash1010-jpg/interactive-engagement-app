@@ -55,6 +55,7 @@ describe('RealtimeGateway participant count', () => {
   const participants = {
     upsertParticipant: jest.fn(async () => undefined),
     markDisconnected: jest.fn(async () => undefined),
+    findParticipant: jest.fn(async () => null),
   };
 
   const activityService = {
@@ -98,6 +99,12 @@ describe('RealtimeGateway participant count', () => {
     })),
   };
 
+  const usageService = {
+    recordParticipant: jest.fn(async () => undefined),
+    checkParticipantLimit: jest.fn(async () => ({ allowed: true })),
+    incrementParticipants: jest.fn(async () => undefined),
+  };
+
   const event = {
     _id: 'evt1',
     eventCode: 'ABC123',
@@ -115,6 +122,7 @@ describe('RealtimeGateway participant count', () => {
     questionsService.findApprovedByEvent.mockResolvedValue([]);
     questionsService.findByEvent.mockResolvedValue([]);
     questionsService.reply.mockResolvedValue(null);
+    usageService.checkParticipantLimit.mockResolvedValue({ allowed: true });
 
     gateway = new RealtimeGateway(
       events as any,
@@ -125,6 +133,7 @@ describe('RealtimeGateway participant count', () => {
       questionsService as any,
       analyticsService as any,
       rateLimitService as any,
+      usageService as any,
     );
 
     emit = jest.fn();
@@ -338,6 +347,7 @@ describe('RealtimeGateway Admin Diagnostics', () => {
       {} as any,
       {} as any,
       activityService as any,
+      {} as any,
       {} as any,
       {} as any,
       {} as any,

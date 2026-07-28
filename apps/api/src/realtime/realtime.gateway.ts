@@ -39,6 +39,7 @@ import type { PollTally } from '../activities/utils/tally.util';
 import { ResponseService } from '../responses/response.service';
 import { QuestionsService } from '../questions/questions.service';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { UsageService } from '../billing/usage.service';
 import {
   QuizConfig,
   getQuizQuestion,
@@ -101,6 +102,7 @@ export class RealtimeGateway
     private readonly questionsService: QuestionsService,
     private readonly analyticsService: AnalyticsService,
     private readonly rateLimitService: RateLimitService,
+    private readonly usageService: UsageService,
   ) { }
 
   @WebSocketServer()
@@ -255,8 +257,37 @@ export class RealtimeGateway
     }
 
     const eventId = event._id.toString();
+    const orgId = event.organizationId?.toString() ?? null;
+
+    // ── Plan: participant limit check ─────────────────────────────────────────
+    // Check BEFORE upserting to prevent over-limit joins.
+    // We only count NEW participants (anonId not yet seen for this event).
+    const existingParticipant = await this.participantService.findParticipant(eventId, anonId);
+    if (!existingParticipant) {
+      // This is a first-time join — check monthly quota
+      const limitCheck = await this.usageService.checkParticipantLimit(orgId);
+      if (!limitCheck.allowed) {
+        client.emit(ServerEvents.ERROR, {
+          code: 'PARTICIPANT_LIMIT_REACHED',
+          message: 'This session has reached its monthly participant limit. The host needs to upgrade their plan.',
+        });
+        // Notify the host room
+        this.server.to(rooms.host(eventId)).emit(ServerEvents.PLAN_LIMIT_REACHED, {
+          used: limitCheck.used,
+          limit: limitCheck.limit,
+          message: 'Monthly participant limit reached. Upgrade to Basic or higher for unlimited participants.',
+        });
+        return;
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     await this.participantService.upsertParticipant(eventId, anonId, displayName);
+
+    // Increment usage for new participants only
+    if (!existingParticipant) {
+      await this.usageService.incrementParticipants(orgId);
+    }
 
     this.socketState.set(client.id, { role: 'participant', eventId, anonId });
     await client.join(rooms.event(eventId));

@@ -464,7 +464,7 @@ export async function fetchAdminOrganizations(params: { page?: number; limit?: n
 }
 
 export async function fetchAdminOrganizationById(id: string): Promise<AdminOrganizationDetail> {
-  return adminFetch<AdminOrganizationDetail>(`admin/organizations/${encodeURIComponent(id)}`);
+  return adminFetch<AdminOrganizationDetail>(`admin/organizations/${encodeURIComponent(id)}?t=${Date.now()}`);
 }
 
 export async function createAdminOrganization(data: { name: string; plan?: string }): Promise<AdminOrganizationSummary> {
@@ -483,6 +483,13 @@ export async function assignAdminUserToOrg(orgId: string, userId: string): Promi
 export async function unassignAdminUserFromOrg(orgId: string, userId: string): Promise<void> {
   return adminFetch<void>(`admin/organizations/${encodeURIComponent(orgId)}/users/${encodeURIComponent(userId)}`, {
     method: 'DELETE',
+  });
+}
+
+export async function updateAdminOrgPlan(orgId: string, plan: string): Promise<void> {
+  return adminFetch<void>(`admin/organizations/${encodeURIComponent(orgId)}/plan`, {
+    method: 'PATCH',
+    body: JSON.stringify({ plan }),
   });
 }
 

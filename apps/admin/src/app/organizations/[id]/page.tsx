@@ -12,11 +12,17 @@ import {
   Loader2,
   CalendarDays,
   Settings,
-  Radio
+  Radio,
+  ChevronDown,
+  Check,
+  Star,
+  Zap,
+  Crown,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { AdminApiError, fetchAdminOrganizationById, fetchAdminUsers, assignAdminUserToOrg, unassignAdminUserFromOrg } from '@/lib/admin-api';
+import { AdminApiError, fetchAdminOrganizationById, fetchAdminUsers, assignAdminUserToOrg, unassignAdminUserFromOrg, updateAdminOrgPlan } from '@/lib/admin-api';
 import type { AdminOrganizationDetail, AdminUserSummary } from '@/lib/admin-api';
 
 function formatDate(iso: string) {
@@ -124,6 +130,34 @@ export default function OrganizationDetailPage() {
     }
   };
 
+  const [isUpdatingPlan, setIsUpdatingPlan] = React.useState(false);
+  const [isPlanDropdownOpen, setIsPlanDropdownOpen] = React.useState(false);
+
+  const handlePlanChange = async (newPlan: string) => {
+    setIsPlanDropdownOpen(false);
+    if (newPlan === org?.plan) return;
+    if (!confirm(`Are you sure you want to change this organization's plan to ${newPlan}?`)) return;
+    
+    setIsUpdatingPlan(true);
+    try {
+      await updateAdminOrgPlan(orgId, newPlan);
+      await loadOrg();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update plan');
+    } finally {
+      setIsUpdatingPlan(false);
+    }
+  };
+
+  const planConfigs = [
+    { id: 'free', name: 'Free', icon: Star, color: 'text-ink-secondary', bg: 'bg-surface-sunken' },
+    { id: 'basic', name: 'Basic', icon: Zap, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+    { id: 'pro', name: 'Pro', icon: Crown, color: 'text-brand', bg: 'bg-brand/10' },
+    { id: 'enterprise', name: 'Enterprise', icon: Building2, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+  ];
+
+  const currentPlanConfig = planConfigs.find(p => p.id === org?.plan) || planConfigs[0]!;
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-surface-canvas">
@@ -165,7 +199,54 @@ export default function OrganizationDetailPage() {
                 <p className="text-xs font-semibold uppercase tracking-wider text-brand">
                   Organization Profile
                 </p>
-                <Badge variant="neutral" size="sm" className="capitalize">{org.plan} Plan</Badge>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsPlanDropdownOpen(!isPlanDropdownOpen)}
+                    disabled={isUpdatingPlan}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide border border-border shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50",
+                      currentPlanConfig.bg,
+                      currentPlanConfig.color
+                    )}
+                  >
+                    <currentPlanConfig.icon className="h-3.5 w-3.5" />
+                    {org.plan} Plan
+                    {isUpdatingPlan ? (
+                      <Loader2 className="h-3 w-3 animate-spin ml-1 text-foreground" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 ml-0.5 text-foreground/50" />
+                    )}
+                  </button>
+
+                  {isPlanDropdownOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setIsPlanDropdownOpen(false)}
+                      />
+                      <div className="absolute left-0 top-full mt-2 w-48 rounded-xl border bg-surface-card p-1 shadow-xl z-50 animate-in fade-in zoom-in-95">
+                        {planConfigs.map((plan) => (
+                          <button
+                            key={plan.id}
+                            onClick={() => handlePlanChange(plan.id)}
+                            className={cn(
+                              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-surface-sunken",
+                              org.plan === plan.id ? "bg-surface-sunken font-medium text-foreground" : "text-ink-secondary"
+                            )}
+                          >
+                            <div className={cn("flex h-8 w-8 items-center justify-center rounded-full", plan.bg, plan.color)}>
+                              <plan.icon className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <span className="capitalize">{plan.name}</span>
+                            </div>
+                            {org.plan === plan.id && <Check className="h-4 w-4 text-brand" />}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               <h1 className="font-display text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
                 <Building className="h-6 w-6 text-brand" /> {org.name}

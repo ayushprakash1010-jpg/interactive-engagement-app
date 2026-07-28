@@ -30,6 +30,8 @@ import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { SupportModule } from './support/support.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { CopilotModule } from './admin/copilot/copilot.module';
+import { BillingModule } from './billing/billing.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 
 import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.interceptor';
 
@@ -119,6 +121,8 @@ import { PreventImpersonationInterceptor } from './auth/prevent-impersonation.in
     SupportModule,
     KnowledgeModule,
     CopilotModule,
+    BillingModule,
+    OrganizationsModule,
   ],
   providers: [
     {

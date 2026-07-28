@@ -10,6 +10,9 @@ import { EventsService } from '../events/events.service';
 import type { AuthenticatedUser } from '../auth/jwt.strategy';
 import { randomUUID } from 'node:crypto';
 import { JwtService } from '@nestjs/jwt';
+import { SubscriptionService } from '../billing/subscription.service';
+import { EntitlementService } from '../billing/entitlement.service';
+import type { PlanTier } from '../billing/plan-config';
 
 // ---------------------------------------------------------------------------
 // Response DTOs — explicit allowlist, never raw Mongoose documents
@@ -252,6 +255,8 @@ export class AdminService {
     private readonly realtimeGateway: RealtimeGateway,
     private readonly coreEventsService: EventsService,
     private readonly jwtService: JwtService,
+    private readonly subscriptionService: SubscriptionService,
+    private readonly entitlementService: EntitlementService,
   ) {}
 
   // ── Users List ─────────────────────────────────────────────────────────────
@@ -775,7 +780,7 @@ export class AdminService {
       return {
         id: orgId.toHexString(),
         name: o.name,
-        plan: o.plan,
+        plan: await this.subscriptionService.getCurrentPlan(orgId.toHexString()),
         totalUsers,
         totalEvents,
         createdAt: (o as any).createdAt?.toISOString?.() ?? '',
@@ -813,7 +818,7 @@ export class AdminService {
     return {
       id: orgId.toHexString(),
       name: org.name,
-      plan: org.plan,
+      plan: await this.subscriptionService.getCurrentPlan(orgId.toHexString()),
       totalUsers,
       totalEvents,
       activeEvents,
@@ -831,13 +836,24 @@ export class AdminService {
       throw new BadRequestException('Organization name is required');
     }
 
+    const planToAssign = data.plan?.trim() || 'free';
+    
     const created = await this.organizationModel.create({
       name: data.name.trim(),
-      plan: data.plan?.trim() || 'free',
+      plan: planToAssign,
       settings: {}
     });
 
     const orgId = created._id as Types.ObjectId;
+
+    // Create the associated subscription
+    await this.subscriptionService.assignPlanToOrg(
+      orgId.toHexString(), 
+      planToAssign as any, 
+      'Initial plan assigned on creation'
+    );
+
+
 
     await this.auditLogModel.create({
       adminId: admin.id,
@@ -845,13 +861,13 @@ export class AdminService {
       actionType: 'ORGANIZATION_CREATED',
       targetResourceType: 'Organization',
       targetResourceId: orgId.toHexString(),
-      metadata: { name: created.name, plan: created.plan },
+      metadata: { name: created.name, plan: planToAssign },
     });
 
     return {
       id: orgId.toHexString(),
       name: created.name,
-      plan: created.plan,
+      plan: await this.subscriptionService.getCurrentPlan(orgId.toHexString()),
       totalUsers: 0,
       totalEvents: 0,
       createdAt: (created as any).createdAt?.toISOString?.() ?? new Date().toISOString(),
@@ -1169,6 +1185,55 @@ export class AdminService {
         avgLatencyMs: f.avgLatencyMs || 0,
         totalTokens: f.totalTokens || 0,
       })),
+    };
+  }
+
+  // ── Plan Management ─────────────────────────────────────────────────────────
+
+  /**
+   * Assigns a plan tier to an organization.
+   * Writes an audit log entry so plan changes are fully traceable.
+   */
+  async updateOrgPlan(
+    admin: AuthenticatedUser,
+    orgId: string,
+    plan: PlanTier,
+  ): Promise<{ id: string; name: string; plan: string }> {
+    if (!Types.ObjectId.isValid(orgId)) {
+      throw new NotFoundException(`Organization ${orgId} not found`);
+    }
+
+    const org = await this.organizationModel.findById(orgId).exec();
+    if (!org) {
+      throw new NotFoundException(`Organization ${orgId} not found`);
+    }
+
+    const previousPlan = await this.subscriptionService.getCurrentPlan(orgId);
+    
+    // Assign using the dedicated billing service
+    await this.subscriptionService.assignPlanToOrg(orgId, plan, 'Admin override via Dashboard');
+    
+    // Invalidate the cache for immediate effect
+    this.entitlementService.invalidateCache(orgId);
+
+    // Reload the organization to reflect changes
+    const updatedOrg = await this.organizationModel.findById(orgId).exec();
+
+    await this.auditLogModel.create({
+      adminId: admin.id,
+      adminEmail: admin.email,
+      actionType: 'ORG_PLAN_UPDATED',
+      targetResourceType: 'Organization',
+      targetResourceId: orgId,
+      metadata: { previousPlan, newPlan: plan, orgName: org.name },
+    });
+
+    this.logger.log(`Admin ${admin.email} changed org ${org!.name} plan: ${previousPlan} → ${plan}`);
+
+    return {
+      id: (updatedOrg!._id as Types.ObjectId).toString(),
+      name: updatedOrg!.name,
+      plan: await this.subscriptionService.getCurrentPlan(orgId),
     };
   }
 }
