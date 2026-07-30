@@ -81,12 +81,9 @@ const nextConfig = {
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
     ];
     return [
-      { source: '/meet/:path*', headers: iframeHeaders },
-      { source: '/zoom/:path*', headers: iframeHeaders },
-      { source: '/teams/:path*', headers: iframeHeaders },
-      { source: '/powerpoint/:path*', headers: iframeHeaders },
-      { source: '/event/:path*', headers: iframeHeaders },
-      { source: '/google-slides/:path*', headers: iframeHeaders },
+      // Apply OWASP security headers to ALL routes so that Zoom's
+      // Home URL validation (which checks the root `/`) passes.
+      { source: '/(.*)', headers: iframeHeaders },
     ];
   },
 };
