@@ -26,8 +26,8 @@ const createOption = (label = "") => ({
 });
 
 const createQuestion = (): QuizQuestion => {
-  const optionA = createOption("Option A");
-  const optionB = createOption("Option B");
+  const optionA = createOption("");
+  const optionB = createOption("");
 
   return {
     id: uid(),
@@ -601,7 +601,7 @@ export function QuizBuilder({
                         />
                         <Input
                           value={option.label}
-                          placeholder={`Option ${optionIndex + 1}`}
+                          placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
                           onChange={(e) =>
                             updateOption(question.id, option.id, e.target.value)
                           }

@@ -41,7 +41,7 @@ export function WordCloudBuilder({
     initialConfig?.maxWordsPerParticipant ?? DEFAULT_WORDS,
   );
   const [timeLimitSec, setTimeLimitSec] = useState<number | "">(
-    initialConfig?.timeLimitSec ?? "",
+    initialConfig?.timeLimitSec ?? 30,
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
