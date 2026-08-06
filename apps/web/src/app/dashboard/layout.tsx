@@ -268,13 +268,14 @@ function DashboardLayoutContent({
             </div>
           </div>
         }
-        sidebarFooter={
+        sidebarFooter={({ onNavigate }) => (
           <div className="space-y-1">
             {/* Usage warning banner for free users at 80%+ */}
             {showUsageWarning && (
               <Link
                 href="/dashboard/billing"
                 className="flex items-start gap-2 rounded-lg mx-1 mb-2 px-3 py-2.5 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/15 transition-colors"
+                onClick={onNavigate}
               >
                 <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
                 <div>
@@ -286,6 +287,7 @@ function DashboardLayoutContent({
             <Link
               href="/dashboard/account"
               className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-sunken"
+              onClick={onNavigate}
             >
               <CircleUserRound className="h-5 w-5 shrink-0 text-ink-muted" />
               <span className="truncate">Account</span>
@@ -293,12 +295,13 @@ function DashboardLayoutContent({
             <a
               href={logoutUrl}
               className="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold text-foreground transition-colors hover:bg-surface-sunken hover:text-destructive group"
+              onClick={onNavigate}
             >
               <LogOut className="h-5 w-5 shrink-0 text-ink-muted group-hover:text-destructive" />
               <span className="truncate">Sign out</span>
             </a>
           </div>
-        }
+        )}
       >
         {children}
         <CommandPalette />

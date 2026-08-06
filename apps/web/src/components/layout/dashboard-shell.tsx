@@ -44,7 +44,7 @@ export interface DashboardShellProps {
   helpHref?: string;
   topNav?: React.ReactNode;
   topActions?: React.ReactNode;
-  sidebarFooter?: React.ReactNode;
+  sidebarFooter?: React.ReactNode | ((props: { collapsed: boolean; mobile?: boolean; onNavigate?: () => void }) => React.ReactNode);
   search?: {
     value?: string;
     onChange?: React.ChangeEventHandler<HTMLInputElement>;
@@ -233,7 +233,7 @@ function DashboardSidebar({
   navItems: DashboardNavItem[];
   collapsed: boolean;
   onToggleCollapsed?: () => void;
-  footer?: React.ReactNode;
+  footer?: React.ReactNode | ((props: { collapsed: boolean; mobile?: boolean; onNavigate?: () => void }) => React.ReactNode);
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
@@ -293,7 +293,7 @@ function DashboardSidebar({
             collapsed && !mobile && 'px-3',
           )}
         >
-          {footer}
+          {typeof footer === 'function' ? footer({ collapsed: collapsed && !mobile, mobile, onNavigate }) : footer}
         </div>
       )}
     </aside>
