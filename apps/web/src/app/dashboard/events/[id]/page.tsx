@@ -129,6 +129,7 @@ function isSurveyConfig(config: Activity['config']): config is SurveyConfig {
 const defaultFeedbackConfig: FeedbackConfig = {
   prompt: '',
   fields: [],
+  timeLimitSec: 30,
 };
 
 const ACTIVITY_TYPE_META = {
@@ -216,7 +217,12 @@ export default function EventDetailPage() {
   }, [id, queryClient]);
 
   const activities: Activity[] = React.useMemo(() => {
-    return Array.isArray(activitiesData) ? activitiesData : [];
+    const raw = Array.isArray(activitiesData) ? activitiesData : [];
+    return [...raw].sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
   }, [activitiesData]);
 
   const [activeTab, setActiveTab] = React.useState<Tab>('overview');
@@ -511,7 +517,12 @@ export default function EventDetailPage() {
     return (
       <div
         key={activity._id}
-        className="group overflow-hidden rounded-lg border border-border bg-surface-card shadow-xs transition duration-base ease-standard hover:border-brand/40 hover:shadow-md"
+        className={cn(
+          "group overflow-hidden rounded-lg border transition-all duration-300 ease-out",
+          activity.status === 'live'
+            ? "border-brand ring-1 ring-brand shadow-[0_0_25px_rgba(139,92,246,0.2)] bg-surface-card"
+            : "border-border bg-surface-card shadow-xs hover:border-brand/40 hover:shadow-md"
+        )}
       >
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-surface-raised px-4 py-3">
           <div className="flex min-w-0 items-start gap-3">

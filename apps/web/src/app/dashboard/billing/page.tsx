@@ -147,18 +147,7 @@ export default function BillingPage() {
 
   return (
     <div className="w-full text-ink-primary">
-      {/* Back nav */}
-      <div className="px-6 pt-6">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 text-sm text-ink-muted hover:text-ink-primary transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Dashboard
-        </Link>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-14">
+      <div className="max-w-6xl mx-auto px-6 pt-4 pb-10 space-y-14">
 
         {/* ── Header ────────────────────────────────────────────────────────── */}
         <div className="text-center space-y-4">

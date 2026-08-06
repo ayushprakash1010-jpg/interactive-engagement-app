@@ -35,7 +35,7 @@ const createQuestion = (): SurveyQuestion => {
     id: uid(),
     type: "single",
     text: "",
-    options: [createOption("Option A"), createOption("Option B")],
+    options: [createOption(""), createOption("")],
     required: true,
   };
 };
@@ -511,7 +511,7 @@ export function SurveyBuilder({
                         const newType = e.target.value as SurveyQuestion["type"];
                         const patch: Partial<SurveyQuestion> = { type: newType };
                         if ((newType === "single" || newType === "multiple") && (!question.options || question.options.length === 0)) {
-                          patch.options = [createOption("Option A"), createOption("Option B")];
+                          patch.options = [createOption(""), createOption("")];
                         }
                         if (newType === "rating" && !question.ratingScale) {
                           patch.ratingScale = 5;
@@ -565,7 +565,7 @@ export function SurveyBuilder({
                           </span>
                           <Input
                             value={option.label}
-                            placeholder={`Option ${optionIndex + 1}`}
+                            placeholder={`Option ${String.fromCharCode(65 + optionIndex)}`}
                             onChange={(e) =>
                               updateOption(question.id, option.id, e.target.value)
                             }

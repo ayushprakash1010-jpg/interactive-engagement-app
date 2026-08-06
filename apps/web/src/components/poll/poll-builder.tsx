@@ -24,8 +24,8 @@ const POLL_TYPE_LABELS: Record<string, string> = {
 };
 
 const DEFAULT_OPTIONS = [
-  { id: uid(), label: "Option A" },
-  { id: uid(), label: "Option B" },
+  { id: uid(), label: "" },
+  { id: uid(), label: "" },
 ];
 
 interface Props {
@@ -59,7 +59,7 @@ export function PollBuilder({
     initialConfig?.ratingScale ?? 5,
   );
   const [timeLimitSec, setTimeLimitSec] = useState<number>(
-    initialConfig?.timeLimitSec ?? 0,
+    initialConfig?.timeLimitSec ?? 30,
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -295,7 +295,7 @@ export function PollBuilder({
                 </span>
                 <Input
                   value={opt.label}
-                  placeholder={`Option ${index + 1}`}
+                  placeholder={`Option ${String.fromCharCode(65 + index)}`}
                   onChange={(e) => updateOption(opt.id, e.target.value)}
                   className="flex-1"
                 />

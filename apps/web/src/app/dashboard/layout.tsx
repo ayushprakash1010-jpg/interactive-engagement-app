@@ -116,6 +116,7 @@ function DashboardLayoutContent({
   const isTutorialsPage = pathname === '/dashboard/tutorials';
   const isOverviewPage = pathname === '/dashboard';
   const isEventsListPage = pathname === '/dashboard/events';
+  const isBillingPage = pathname === '/dashboard/billing';
 
   // Pages that use the DashboardShell sidebar layout
   if (
@@ -124,6 +125,7 @@ function DashboardLayoutContent({
     isAccountPage ||
     isAIStudioPage ||
     isSettingsPage ||
+    isBillingPage ||
     isHelpPage ||
     isTutorialsPage ||
     eventDetailMatch ||
@@ -165,9 +167,14 @@ function DashboardLayoutContent({
                   { label: 'Workspace', href: '/dashboard' },
                   { label: 'Settings' },
                 ]
-                : isHelpPage
+                : isBillingPage
                   ? [
                     { label: 'Workspace', href: '/dashboard' },
+                    { label: 'Billing' },
+                  ]
+                  : isHelpPage
+                    ? [
+                      { label: 'Workspace', href: '/dashboard' },
                     { label: 'Help Center' },
                   ]
                   : isTutorialsPage
