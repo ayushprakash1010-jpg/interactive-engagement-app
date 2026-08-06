@@ -74,6 +74,6 @@ describe('FeatureFlagsService', () => {
     await service.onModuleInit(); // Should not throw
 
     const result = service.evaluateAllForUser('org-123');
-    expect(result).toEqual({}); // Empty cache means fallback to default `false` on frontend
+    expect(result).toEqual({ 'ai-studio': true }); // Empty cache means fallback to defaults on frontend
   });
 });
