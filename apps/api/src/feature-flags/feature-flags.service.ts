@@ -45,6 +45,11 @@ export class FeatureFlagsService implements OnModuleInit {
   // In-memory cache for ultra-fast, zero-DB evaluation
   private flagsCache = new Map<string, FeatureFlagDocument>();
 
+  // Default values for core features if they are not defined in the database
+  private readonly defaultFlags: Record<string, boolean> = {
+    'ai-studio': true,
+  };
+
   constructor(
     @InjectModel(FeatureFlagEntity.name)
     private readonly featureFlagModel: Model<FeatureFlagDocument>,
@@ -80,7 +85,8 @@ export class FeatureFlagsService implements OnModuleInit {
    * Returns a simple map of { 'flag-key': true/false }
    */
   evaluateAllForUser(organizationId?: string | null): Record<string, boolean> {
-    const result: Record<string, boolean> = {};
+    // Start with defaults
+    const result: Record<string, boolean> = { ...this.defaultFlags };
 
     for (const [key, flag] of this.flagsCache.entries()) {
       if (organizationId && flag.organizationOverrides?.has(organizationId)) {
