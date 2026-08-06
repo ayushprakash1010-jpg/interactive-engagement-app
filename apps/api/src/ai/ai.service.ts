@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { GoogleGenAI } from '@google/genai';
+import { GeminiProvider } from './gemini.provider';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.validation';
 import { ActivityDocument, ActivityEntity } from '../activities/activity.schema';
@@ -40,12 +40,12 @@ export type SummarizeLiveAnswersResult =
 
 @Injectable()
 export class AiService {
-  private readonly ai: GoogleGenAI;
   private readonly logger = new Logger(AiService.name);
 
   constructor(
     private readonly configService: ConfigService<Env, true>,
     private readonly eventsService: EventsService,
+    private readonly geminiProvider: GeminiProvider,
     @InjectModel(ActivityEntity.name)
     private readonly activityModel: Model<ActivityDocument>,
     @InjectModel(ResponseEntity.name)
@@ -58,15 +58,7 @@ export class AiService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(AiOperationLogEntity.name)
     private readonly aiOperationLogModel: Model<AiOperationLogDocument>,
-  ) {
-    const apiKey = this.configService.get('GEMINI_API_KEY', {
-      infer: true,
-    });
-
-    this.ai = new GoogleGenAI({
-      apiKey,
-    });
-  }
+  ) {}
 
   private cleanJsonResponse(text: string): string {
     return text
@@ -80,31 +72,13 @@ export class AiService {
     return String(err);
   }
 
-  private isTemporaryAiFailure(message: string): boolean {
-    const normalized = message.toLowerCase();
 
-    return (
-      normalized.includes('503') ||
-      normalized.includes('unavailable') ||
-      normalized.includes('high demand') ||
-      normalized.includes('temporarily busy') ||
-      normalized.includes('resource_exhausted') ||
-      normalized.includes('quota') ||
-      normalized.includes('rate limit') ||
-      normalized.includes('rate_limit') ||
-      normalized.includes('429')
-    );
-  }
-
-  private async sleep(ms: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, ms));
-  }
 
   private async generateJson<T>(
     contents: string,
     featureName: string,
     userId: string,
-    options?: { retries?: number; organizationId?: string },
+    options?: { priority?: number; organizationId?: string },
   ): Promise<T> {
     const text = await this.generateText(contents, featureName, userId, options);
     const cleaned = this.cleanJsonResponse(text);
@@ -126,87 +100,69 @@ export class AiService {
     contents: string,
     featureName: string,
     userId: string,
-    options?: { retries?: number; organizationId?: string },
+    options?: { priority?: number; organizationId?: string },
   ): Promise<string> {
-    const retries = options?.retries ?? 1;
+    const priority = options?.priority ?? 1;
     let lastError: unknown;
 
-    for (let attempt = 1; attempt <= retries + 1; attempt++) {
-      const startTime = Date.now();
-      try {
-        const response = await this.ai.models.generateContent({
-          model: 'gemini-3.5-flash-lite',
-          contents,
-        });
+    const startTime = Date.now();
+    try {
+      const response = await this.geminiProvider.generateContent({
+        model: 'gemini-3.5-flash-lite',
+        contents,
+      }, priority);
 
-        const latencyMs = Date.now() - startTime;
-        const text = (response.text ?? '').trim();
-        
-        if (!text) {
-          throw new Error(`${featureName} returned an empty response.`);
-        }
-
-        const usage = response.usageMetadata;
-        
-        this.logAiOperation({
-          userId,
-          organizationId: options?.organizationId,
-          featureName,
-          status: 'success',
-          latencyMs,
-          promptTokens: usage?.promptTokenCount,
-          completionTokens: usage?.candidatesTokenCount,
-          totalTokens: usage?.totalTokenCount,
-        });
-
-        if (userId) {
-          this.userModel.findByIdAndUpdate(userId, { $inc: { aiUsageCount: 1 } }).exec().catch(err => {
-            this.logger.error(`Failed to increment aiUsageCount for user ${userId}`, err);
-          });
-        }
-
-        return text;
-      } catch (err) {
-        lastError = err;
-        const message = this.getErrorMessage(err);
-        const latencyMs = Date.now() - startTime;
-
-        this.logAiOperation({
-          userId,
-          organizationId: options?.organizationId,
-          featureName,
-          status: 'failure',
-          errorMessage: message,
-          latencyMs,
-        });
-
-        if (attempt <= retries && this.isTemporaryAiFailure(message)) {
-          const delayMs = attempt * 1200;
-          this.logger.warn(
-            `${featureName} temporary AI failure on attempt ${attempt}/${retries + 1}: ${message}. Retrying in ${delayMs}ms.`,
-          );
-          await this.sleep(delayMs);
-          continue;
-        }
-
-        if (this.isTemporaryAiFailure(message)) {
-          this.logger.warn(`${featureName} temporary AI failure: ${message}`);
-          throw new ServiceUnavailableException(
-            'The AI service is temporarily busy. Please wait a moment and try again.',
-          );
-        }
-
-        this.logger.error(`${featureName} failed: ${message}`, err as Error);
-        throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+      const latencyMs = Date.now() - startTime;
+      const text = (response.text ?? '').trim();
+      
+      if (!text) {
+        throw new Error(`${featureName} returned an empty response.`);
       }
-    }
 
-    const fallbackMessage = this.getErrorMessage(lastError);
-    this.logger.error(
-      `${featureName} failed after retries: ${fallbackMessage}`,
-      lastError as Error,
-    );
-    throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+      const usage = response.usageMetadata;
+      
+      this.logAiOperation({
+        userId,
+        organizationId: options?.organizationId,
+        featureName,
+        status: 'success',
+        latencyMs,
+        promptTokens: usage?.promptTokenCount,
+        completionTokens: usage?.candidatesTokenCount,
+        totalTokens: usage?.totalTokenCount,
+      });
+
+      if (userId) {
+        this.userModel.findByIdAndUpdate(userId, { $inc: { aiUsageCount: 1 } }).exec().catch(err => {
+          this.logger.error(`Failed to increment aiUsageCount for user ${userId}`, err);
+        });
+      }
+
+      return text;
+    } catch (err) {
+      const message = this.getErrorMessage(err);
+      const latencyMs = Date.now() - startTime;
+
+      this.logAiOperation({
+        userId,
+        organizationId: options?.organizationId,
+        featureName,
+        status: 'failure',
+        errorMessage: message,
+        latencyMs,
+      });
+
+      this.logger.error(`${featureName} failed: ${message}`, err as Error);
+      
+      const normalized = message.toLowerCase();
+      if (normalized.includes('503') || normalized.includes('quota') || normalized.includes('rate limit') || normalized.includes('429')) {
+        throw new ServiceUnavailableException(
+          'The AI service is temporarily busy. Please wait a moment and try again.',
+        );
+      }
+      
+      throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+    }
   }
 
   private logAiOperation(data: {
@@ -248,7 +204,7 @@ export class AiService {
       `Write a professional, concise, and helpful reply to the following Q&A question from an audience member.\n\nQuestion: "${question}"`,
       'generate Q&A reply',
       userId,
-      { retries: 1 },
+      { priority: 1 },
     );
 
     return { answer };
@@ -470,7 +426,7 @@ ${data}
 `,
       'generate analytics report',
       userId,
-      { retries: 1 },
+      { priority: 5 },
     );
   }
 
@@ -627,7 +583,7 @@ CRITICAL RULES — violation will break the application:
 `,
       'generate session',
       user.id,
-      { retries: 2, organizationId: user.organizationId },
+      { priority: 1, organizationId: user.organizationId },
     );
   }
 
@@ -776,7 +732,7 @@ Return this exact shape:
         summary: string;
         themes: LiveSummaryTheme[];
       }>(geminiPrompt, `summarize live answers for event ${eventId}`, userId, {
-        retries: 2,
+        priority: 5,
       });
 
       return {
@@ -822,7 +778,7 @@ Rules:
 `,
       'modify draft',
       userId,
-      { retries: 1 }
+      { priority: 1 },
     );
   }
 }

@@ -9,7 +9,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { GoogleGenAI, type Content } from '@google/genai';
+import { type Content } from '@google/genai';
+import { GeminiProvider } from '../../ai/gemini.provider';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.validation';
 import { AdminService } from '../admin.service';
@@ -160,7 +161,6 @@ ${kbContext ? `\n--- KNOWLEDGE BASE CONTEXT ---\n${kbContext}\n--- END KNOWLEDGE
 
 @Injectable()
 export class CopilotService {
-  private readonly ai: GoogleGenAI;
   private readonly logger = new Logger(CopilotService.name);
   private readonly MODEL = 'gemini-3.5-flash-lite';
 
@@ -169,6 +169,7 @@ export class CopilotService {
     private readonly adminService: AdminService,
     private readonly supportService: SupportService,
     private readonly knowledgeService: KnowledgeService,
+    private readonly geminiProvider: GeminiProvider,
     @InjectModel(CopilotConversationEntity.name)
     private readonly conversationModel: Model<CopilotConversationDocument>,
     @InjectModel(AiOperationLogEntity.name)
@@ -177,9 +178,7 @@ export class CopilotService {
     private readonly articleModel: Model<KnowledgeArticleDocument>,
     @InjectModel(AdminAuditLogEntity.name)
     private readonly auditLogModel: Model<AdminAuditLogDocument>,
-  ) {
-    this.ai = new GoogleGenAI({ apiKey: this.configService.get('GEMINI_API_KEY', { infer: true }) });
-  }
+  ) {}
 
   // ---------------------------------------------------------------------------
   // Sprint 6: Conversation management
@@ -766,7 +765,7 @@ export class CopilotService {
       while (iterationCount < MAX_TOOL_ITERATIONS) {
         iterationCount++;
 
-        const response = await this.ai.models.generateContent({
+        const response = await this.geminiProvider.generateContent({
           model: this.MODEL,
           contents: currentContents,
           config: {
@@ -775,7 +774,7 @@ export class CopilotService {
             temperature: 0.3,
             maxOutputTokens: 2048,
           },
-        });
+        }, 1);
 
         const candidate = response.candidates?.[0];
         if (!candidate) throw new Error('Empty response from Gemini');
