@@ -72,25 +72,7 @@ export class AiService {
     return String(err);
   }
 
-  private isTemporaryAiFailure(message: string): boolean {
-    const normalized = message.toLowerCase();
 
-    return (
-      normalized.includes('503') ||
-      normalized.includes('unavailable') ||
-      normalized.includes('high demand') ||
-      normalized.includes('temporarily busy') ||
-      normalized.includes('resource_exhausted') ||
-      normalized.includes('quota') ||
-      normalized.includes('rate limit') ||
-      normalized.includes('rate_limit') ||
-      normalized.includes('429')
-    );
-  }
-
-  private async sleep(ms: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, ms));
-  }
 
   private async generateJson<T>(
     contents: string,
@@ -123,82 +105,64 @@ export class AiService {
     const retries = options?.retries ?? 1;
     let lastError: unknown;
 
-    for (let attempt = 1; attempt <= retries + 1; attempt++) {
-      const startTime = Date.now();
-      try {
-        const response = await this.geminiProvider.generateContent({
-          model: 'gemini-3.5-flash-lite',
-          contents,
-        });
+    const startTime = Date.now();
+    try {
+      const response = await this.geminiProvider.generateContent({
+        model: 'gemini-3.5-flash-lite',
+        contents,
+      });
 
-        const latencyMs = Date.now() - startTime;
-        const text = (response.text ?? '').trim();
-        
-        if (!text) {
-          throw new Error(`${featureName} returned an empty response.`);
-        }
-
-        const usage = response.usageMetadata;
-        
-        this.logAiOperation({
-          userId,
-          organizationId: options?.organizationId,
-          featureName,
-          status: 'success',
-          latencyMs,
-          promptTokens: usage?.promptTokenCount,
-          completionTokens: usage?.candidatesTokenCount,
-          totalTokens: usage?.totalTokenCount,
-        });
-
-        if (userId) {
-          this.userModel.findByIdAndUpdate(userId, { $inc: { aiUsageCount: 1 } }).exec().catch(err => {
-            this.logger.error(`Failed to increment aiUsageCount for user ${userId}`, err);
-          });
-        }
-
-        return text;
-      } catch (err) {
-        lastError = err;
-        const message = this.getErrorMessage(err);
-        const latencyMs = Date.now() - startTime;
-
-        this.logAiOperation({
-          userId,
-          organizationId: options?.organizationId,
-          featureName,
-          status: 'failure',
-          errorMessage: message,
-          latencyMs,
-        });
-
-        if (attempt <= retries && this.isTemporaryAiFailure(message)) {
-          const delayMs = attempt * 1200;
-          this.logger.warn(
-            `${featureName} temporary AI failure on attempt ${attempt}/${retries + 1}: ${message}. Retrying in ${delayMs}ms.`,
-          );
-          await this.sleep(delayMs);
-          continue;
-        }
-
-        if (this.isTemporaryAiFailure(message)) {
-          this.logger.warn(`${featureName} temporary AI failure: ${message}`);
-          throw new ServiceUnavailableException(
-            'The AI service is temporarily busy. Please wait a moment and try again.',
-          );
-        }
-
-        this.logger.error(`${featureName} failed: ${message}`, err as Error);
-        throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+      const latencyMs = Date.now() - startTime;
+      const text = (response.text ?? '').trim();
+      
+      if (!text) {
+        throw new Error(`${featureName} returned an empty response.`);
       }
-    }
 
-    const fallbackMessage = this.getErrorMessage(lastError);
-    this.logger.error(
-      `${featureName} failed after retries: ${fallbackMessage}`,
-      lastError as Error,
-    );
-    throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+      const usage = response.usageMetadata;
+      
+      this.logAiOperation({
+        userId,
+        organizationId: options?.organizationId,
+        featureName,
+        status: 'success',
+        latencyMs,
+        promptTokens: usage?.promptTokenCount,
+        completionTokens: usage?.candidatesTokenCount,
+        totalTokens: usage?.totalTokenCount,
+      });
+
+      if (userId) {
+        this.userModel.findByIdAndUpdate(userId, { $inc: { aiUsageCount: 1 } }).exec().catch(err => {
+          this.logger.error(`Failed to increment aiUsageCount for user ${userId}`, err);
+        });
+      }
+
+      return text;
+    } catch (err) {
+      const message = this.getErrorMessage(err);
+      const latencyMs = Date.now() - startTime;
+
+      this.logAiOperation({
+        userId,
+        organizationId: options?.organizationId,
+        featureName,
+        status: 'failure',
+        errorMessage: message,
+        latencyMs,
+      });
+
+      this.logger.error(`${featureName} failed: ${message}`, err as Error);
+      
+      const normalized = message.toLowerCase();
+      if (normalized.includes('503') || normalized.includes('quota') || normalized.includes('rate limit') || normalized.includes('429')) {
+        throw new ServiceUnavailableException(
+          'The AI service is temporarily busy. Please wait a moment and try again.',
+        );
+      }
+      
+      throw new InternalServerErrorException(`Failed to ${featureName}. Please try again.`);
+    }
   }
 
   private logAiOperation(data: {
