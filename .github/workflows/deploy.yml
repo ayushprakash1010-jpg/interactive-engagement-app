@@ -48,19 +48,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  deploy-api:
-    name: Deploy API (Fly.io)
-    needs: verify
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'staging' }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Deploy
-        working-directory: apps/api
-        run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
 
   deploy-web:
     name: Deploy Web (Vercel)
