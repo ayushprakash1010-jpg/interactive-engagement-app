@@ -5,6 +5,7 @@ import {
   MongooseHealthIndicator,
 } from '@nestjs/terminus';
 import { RedisHealthIndicator } from './redis.health';
+import { GeminiProvider } from '../ai/gemini.provider';
 
 @Controller()
 export class HealthController {
@@ -12,6 +13,7 @@ export class HealthController {
     private readonly health: HealthCheckService,
     private readonly mongoose: MongooseHealthIndicator,
     private readonly redis: RedisHealthIndicator,
+    private readonly gemini: GeminiProvider,
   ) {}
 
   /**
@@ -49,5 +51,21 @@ export class HealthController {
       () => this.mongoose.pingCheck('mongodb'),
       () => this.redis.pingCheck('redis'),
     ]);
+  }
+
+  /**
+   * AI Queue metrics endpoint
+   * Exposes current queue lengths, wait times, and reservoir status.
+   */
+  @Get('ai')
+  async getAiMetrics() {
+    const limiter = this.gemini.limiter;
+    const reservoir = await limiter.currentReservoir();
+    return {
+      queueLength: limiter.queued(),
+      running: limiter.running(),
+      reservoir: reservoir,
+      status: limiter.empty() ? 'empty' : 'processing',
+    };
   }
 }

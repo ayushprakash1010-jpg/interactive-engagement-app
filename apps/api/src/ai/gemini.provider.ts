@@ -12,16 +12,36 @@ export class GeminiProvider {
 
   constructor(private readonly configService: ConfigService<Env, true>) {
     const apiKey = this.configService.get('GEMINI_API_KEY', { infer: true });
+    const rpm = this.configService.get('GEMINI_RATE_LIMIT_RPM', { infer: true });
+    const maxRetries = this.configService.get('GEMINI_MAX_RETRIES', { infer: true });
+    
     this.ai = new GoogleGenAI({ apiKey });
 
-    // Rate Limit Queue: 14 requests per minute
+    // Calculate a smooth pacing minTime to prevent API bursts
+    const pacingMinTime = Math.floor(60000 / rpm);
+
+    // Rate Limit Queue
     this.limiter = new Bottleneck({
-      reservoir: 14,
-      reservoirRefreshAmount: 14,
+      reservoir: rpm,
+      reservoirRefreshAmount: rpm,
       reservoirRefreshInterval: 60 * 1000,
       
       // Ensure we don't bombard the API instantly even within the limit
-      minTime: 200, 
+      minTime: pacingMinTime, 
+      maxConcurrent: 1, // Enterprise apps often use 1 concurrency to pace perfectly
+    });
+
+    // Logging listeners
+    this.limiter.on('received', (jobInfo) => {
+      this.logger.debug(`[AI Queue] Job received. Current queue length: ${this.limiter.queued()}`);
+    });
+    
+    this.limiter.on('executing', (jobInfo) => {
+      this.logger.debug(`[AI Queue] Job executing. Retries so far: ${jobInfo.retryCount}. Queue length: ${this.limiter.queued()}`);
+    });
+
+    this.limiter.on('dropped', (jobInfo) => {
+      this.logger.warn(`[AI Queue] Job dropped from queue!`);
     });
 
     this.limiter.on('failed', async (error, jobInfo) => {
@@ -40,9 +60,12 @@ export class GeminiProvider {
         normalized.includes('rate_limit')
       ) {
         const attempt = jobInfo.retryCount + 1;
-        if (attempt <= 3) {
-          const delay = Math.pow(2, attempt) * 1000;
-          this.logger.warn(`API Rate Limit Hit (${errorMessage}). Applying backoff and retrying in ${delay}ms... (Attempt ${attempt}/3)`);
+        if (attempt <= maxRetries) {
+          // Exponential backoff with Jitter (to prevent retry storms)
+          const jitterMs = Math.floor(Math.random() * 1000);
+          const delay = (Math.pow(2, attempt) * 1000) + jitterMs;
+          
+          this.logger.warn(`API Rate Limit Hit (${errorMessage}). Applying backoff and retrying in ${delay}ms... (Attempt ${attempt}/${maxRetries})`);
           return delay; // Returning a number tells Bottleneck to wait X ms and retry
         }
       }
@@ -50,7 +73,7 @@ export class GeminiProvider {
     });
   }
 
-  async generateContent(params: GenerateContentParameters): Promise<GenerateContentResponse> {
-    return this.limiter.schedule(() => this.ai.models.generateContent(params));
+  async generateContent(params: GenerateContentParameters, priority: number = 5): Promise<GenerateContentResponse> {
+    return this.limiter.schedule({ priority }, () => this.ai.models.generateContent(params));
   }
 }

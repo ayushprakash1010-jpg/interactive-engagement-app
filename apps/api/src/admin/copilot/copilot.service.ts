@@ -774,7 +774,7 @@ export class CopilotService {
             temperature: 0.3,
             maxOutputTokens: 2048,
           },
-        });
+        }, 1);
 
         const candidate = response.candidates?.[0];
         if (!candidate) throw new Error('Empty response from Gemini');

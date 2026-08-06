@@ -78,7 +78,7 @@ export class AiService {
     contents: string,
     featureName: string,
     userId: string,
-    options?: { retries?: number; organizationId?: string },
+    options?: { priority?: number; organizationId?: string },
   ): Promise<T> {
     const text = await this.generateText(contents, featureName, userId, options);
     const cleaned = this.cleanJsonResponse(text);
@@ -100,9 +100,9 @@ export class AiService {
     contents: string,
     featureName: string,
     userId: string,
-    options?: { retries?: number; organizationId?: string },
+    options?: { priority?: number; organizationId?: string },
   ): Promise<string> {
-    const retries = options?.retries ?? 1;
+    const priority = options?.priority ?? 1;
     let lastError: unknown;
 
     const startTime = Date.now();
@@ -110,7 +110,7 @@ export class AiService {
       const response = await this.geminiProvider.generateContent({
         model: 'gemini-3.5-flash-lite',
         contents,
-      });
+      }, priority);
 
       const latencyMs = Date.now() - startTime;
       const text = (response.text ?? '').trim();
@@ -204,7 +204,7 @@ export class AiService {
       `Write a professional, concise, and helpful reply to the following Q&A question from an audience member.\n\nQuestion: "${question}"`,
       'generate Q&A reply',
       userId,
-      { retries: 1 },
+      { priority: 1 },
     );
 
     return { answer };
@@ -426,7 +426,7 @@ ${data}
 `,
       'generate analytics report',
       userId,
-      { retries: 1 },
+      { priority: 5 },
     );
   }
 
@@ -583,7 +583,7 @@ CRITICAL RULES — violation will break the application:
 `,
       'generate session',
       user.id,
-      { retries: 2, organizationId: user.organizationId },
+      { priority: 1, organizationId: user.organizationId },
     );
   }
 
@@ -732,7 +732,7 @@ Return this exact shape:
         summary: string;
         themes: LiveSummaryTheme[];
       }>(geminiPrompt, `summarize live answers for event ${eventId}`, userId, {
-        retries: 2,
+        priority: 5,
       });
 
       return {
@@ -778,7 +778,7 @@ Rules:
 `,
       'modify draft',
       userId,
-      { retries: 1 }
+      { priority: 1 },
     );
   }
 }
