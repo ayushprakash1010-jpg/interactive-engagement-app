@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { GoogleGenAI } from '@google/genai';
+import { GeminiProvider } from './gemini.provider';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.validation';
 import { ActivityDocument, ActivityEntity } from '../activities/activity.schema';
@@ -40,12 +40,12 @@ export type SummarizeLiveAnswersResult =
 
 @Injectable()
 export class AiService {
-  private readonly ai: GoogleGenAI;
   private readonly logger = new Logger(AiService.name);
 
   constructor(
     private readonly configService: ConfigService<Env, true>,
     private readonly eventsService: EventsService,
+    private readonly geminiProvider: GeminiProvider,
     @InjectModel(ActivityEntity.name)
     private readonly activityModel: Model<ActivityDocument>,
     @InjectModel(ResponseEntity.name)
@@ -58,15 +58,7 @@ export class AiService {
     private readonly userModel: Model<UserDocument>,
     @InjectModel(AiOperationLogEntity.name)
     private readonly aiOperationLogModel: Model<AiOperationLogDocument>,
-  ) {
-    const apiKey = this.configService.get('GEMINI_API_KEY', {
-      infer: true,
-    });
-
-    this.ai = new GoogleGenAI({
-      apiKey,
-    });
-  }
+  ) {}
 
   private cleanJsonResponse(text: string): string {
     return text
@@ -134,7 +126,7 @@ export class AiService {
     for (let attempt = 1; attempt <= retries + 1; attempt++) {
       const startTime = Date.now();
       try {
-        const response = await this.ai.models.generateContent({
+        const response = await this.geminiProvider.generateContent({
           model: 'gemini-3.5-flash-lite',
           contents,
         });

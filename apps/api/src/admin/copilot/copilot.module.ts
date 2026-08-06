@@ -11,6 +11,7 @@ import { SupportModule } from '../../support/support.module';
 import { KnowledgeModule } from '../../knowledge/knowledge.module';
 import { RealtimeModule } from '../../realtime/realtime.module';
 import { AuthModule } from '../../auth/auth.module';
+import { AiModule } from '../../ai/ai.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AuthModule } from '../../auth/auth.module';
     KnowledgeModule,
     RealtimeModule,
     AuthModule,
+    AiModule,
   ],
   controllers: [CopilotController],
   providers: [CopilotService],

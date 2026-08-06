@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
+import { GeminiProvider } from './gemini.provider';
 import { ActivityEntity, ActivityEntitySchema } from '../activities/activity.schema';
 import { ResponseEntity, ResponseSchema } from '../responses/response.schema';
 import { QuestionEntity, QuestionEntitySchema } from '../questions/question.schema';
@@ -30,6 +31,7 @@ import { BillingModule } from '../billing/billing.module';
     BillingModule,
   ],
   controllers: [AiController],
-  providers: [AiService],
+  providers: [AiService, GeminiProvider],
+  exports: [AiService, GeminiProvider],
 })
 export class AiModule {}

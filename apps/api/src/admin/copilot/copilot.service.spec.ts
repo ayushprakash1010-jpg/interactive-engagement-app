@@ -9,6 +9,7 @@ import { AiOperationLogEntity } from '../../ai/ai-operation-log.schema';
 import { AdminAuditLogEntity } from '../audit-log.schema';
 import { CopilotConversationEntity } from './conversation.schema';
 import { KnowledgeArticleEntity } from '../../knowledge/schemas/knowledge-article.schema';
+import { GeminiProvider } from '../../ai/gemini.provider';
 
 const mockAdminUser = {
   _id: 'admin_id_1',
@@ -50,6 +51,7 @@ describe('CopilotService', () => {
         { provide: AdminService, useValue: adminService },
         { provide: SupportService, useValue: supportService },
         { provide: KnowledgeService, useValue: {} },
+        { provide: GeminiProvider, useValue: { generateContent: jest.fn() } },
         { provide: getModelToken(CopilotConversationEntity.name), useValue: { create: jest.fn(), findById: jest.fn(), findByIdAndUpdate: jest.fn() } },
         { provide: getModelToken(AiOperationLogEntity.name), useValue: { create: jest.fn() } },
         { provide: getModelToken(AdminAuditLogEntity.name), useValue: { create: jest.fn() } },
