@@ -107,8 +107,9 @@ export class AiService {
 
     const startTime = Date.now();
     try {
+      const geminiModel = this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-3.5-flash-lite';
       const response = await this.geminiProvider.generateContent({
-        model: 'gemini-3.5-flash-lite',
+        model: geminiModel,
         contents,
       }, priority);
 
@@ -284,17 +285,17 @@ Topic: ${topic}
 {
   "questions": [
     {
-      "pollType": "single",
-      "title": "string",
+      "type": "single",
+      "text": "string",
       "options": ["", ""]
     },
     {
-      "pollType": "rating",
-      "title": "string"
+      "type": "rating",
+      "text": "string"
     },
     {
-      "pollType": "open",
-      "title": "string"
+      "type": "open",
+      "text": "string"
     }
   ]
 }
@@ -549,8 +550,8 @@ The JSON must follow this exact structure (the "activities" array contains 2-5 i
         "questions": [
           {
             "id": "q1",
-            "pollType": "single",
-            "title": "string",
+            "type": "single",
+            "text": "string",
             "options": [
               { "id": "q1-opt1", "label": "string" },
               { "id": "q1-opt2", "label": "string" }
@@ -559,8 +560,8 @@ The JSON must follow this exact structure (the "activities" array contains 2-5 i
           },
           {
             "id": "q2",
-            "pollType": "open",
-            "title": "string",
+            "type": "open",
+            "text": "string",
             "required": false
           }
         ]
@@ -577,7 +578,7 @@ CRITICAL RULES — violation will break the application:
 - QUIZ: each question MUST have a unique "id" field (e.g. "question-1", "question-2"). Each option in a question MUST have a unique "id" scoped to that question (e.g. "q1-option-1", "q1-option-2"). The "correctOptionId" value MUST exactly match one of the option "id" strings listed in that same question — do NOT use an integer index. "points" and "timeLimitSec" must be whole integers (no decimals). Generate as many quiz questions as the user requests; if no count is specified default to 3; maximum 5 questions per quiz.
 - WORDCLOUD: must include "prompt" (non-empty string) and "maxWordsPerParticipant" (whole integer between 1 and 20).
 - FEEDBACK: Use ONLY for a single open-ended reaction prompt — e.g. "How did you find this session?". It must include "prompt" (non-empty string) and a "fields" array with at least 1 item of type "rating" or "text". Do NOT use feedback as a replacement for a multi-question survey.
-- SURVEY: Use for structured multi-question data collection — e.g. registration forms, profiling, post-event evaluations with several distinct questions. Must include "questions" array with at least 2 items. Each question must have a unique "id". "pollType" can be "single", "multiple", "rating", or "open". If type is "single" or "multiple", it MUST have an "options" array. Each option MUST have a unique "id". If the user asks for a "survey", generate a survey — not a feedback.
+- SURVEY: Use for structured multi-question data collection — e.g. registration forms, profiling, post-event evaluations with several distinct questions. Must include "questions" array with at least 2 items. Each question must have a unique "id". IMPORTANT: each question's question-type field MUST be named "type" (NOT "pollType") and can be "single", "multiple", "rating", or "open". The question text field MUST be named "text" (NOT "title"). If type is "single" or "multiple", it MUST have an "options" array. Each option MUST have a unique "id". If the user asks for a "survey", generate a survey — not a feedback.
 - All "id" fields must be non-empty strings.
 - All title, description, and text fields must be non-empty strings.
 `,

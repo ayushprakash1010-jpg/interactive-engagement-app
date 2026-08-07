@@ -242,7 +242,7 @@ export function PollParticipant({
       quizQuestion?.text || config.question || "Waiting for question…";
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-5 animate-activity-in">
         <SurfacePanel tone="raised" className="p-4">
           <div className="mb-2 flex items-start justify-between gap-3">
             <div className="space-y-1">
@@ -333,7 +333,7 @@ export function PollParticipant({
 
   if (hasSubmitted && !isClosed) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 animate-activity-in">
         <SurfacePanel tone="raised" className="p-4">
           <Badge variant="success" className="mb-2">
             Vote submitted
@@ -352,7 +352,7 @@ export function PollParticipant({
 
   if (showResults) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 animate-activity-in">
         <SurfacePanel tone="raised" className="p-4">
           {hasSubmitted ? (
             <Badge variant="success" className="mb-2">
@@ -390,7 +390,7 @@ export function PollParticipant({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-activity-in">
       <div className="flex items-start justify-between gap-3">
         <p className="font-display text-lg font-semibold leading-snug tracking-tight text-foreground">
           {config.question}

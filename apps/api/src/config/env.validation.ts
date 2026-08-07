@@ -20,6 +20,7 @@ export const envSchema = z.object({
 
   // Google Gemini AI — strongly recommended; AI features gracefully degrade when absent.
   GEMINI_API_KEY: z.string().default(''),
+  GEMINI_MODEL: z.string().optional(),
   GEMINI_RATE_LIMIT_RPM: z.coerce.number().int().positive().default(14),
   GEMINI_MAX_RETRIES: z.coerce.number().int().nonnegative().default(3),
   // Rate limiting — wired in Sprint 7.

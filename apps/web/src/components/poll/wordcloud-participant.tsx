@@ -138,7 +138,7 @@ export function WordCloudParticipant({
 
   if (hasSubmitted || isClosed) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 animate-activity-in">
         <SurfacePanel tone="raised" className="p-4">
           {hasSubmitted ? (
             <Badge variant="success" className="mb-2">
@@ -209,7 +209,7 @@ export function WordCloudParticipant({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-activity-in">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-display text-lg font-semibold leading-snug tracking-tight text-foreground">

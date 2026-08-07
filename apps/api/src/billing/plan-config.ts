@@ -43,7 +43,7 @@ export const PLAN_CONFIGS: Readonly<Record<PlanTier, PlanConfig>> = Object.freez
     displayName: 'Free',
     limits: Object.freeze({
       participantsPerMonth: 50,
-      aiRequestsPerMonth: 10,
+      aiRequestsPerMonth: 25,
     }),
     features: Object.freeze({
       [FeatureKey.QA_MODERATION]: false,
