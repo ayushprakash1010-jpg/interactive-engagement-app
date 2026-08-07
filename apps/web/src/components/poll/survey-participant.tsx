@@ -257,7 +257,7 @@ export function SurveyParticipant({ activity, participantAnonId, eventCode }: Su
     if (!currentQ) return null;
 
     return (
-      <div className="flex flex-col h-full space-y-4">
+      <div className="flex flex-col h-full space-y-4 animate-activity-in">
         {config.welcomeMessage && currentStep === 0 && (
           <SurfacePanel className="p-5 sm:p-6 mb-4 bg-brand-subtle/20 border-brand/20">
             <h3 className="text-lg font-semibold">{config.welcomeMessage}</h3>
@@ -311,7 +311,7 @@ export function SurveyParticipant({ activity, participantAnonId, eventCode }: Su
 
   // Scroll mode
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col space-y-4 animate-activity-in">
       {config.welcomeMessage && (
         <SurfacePanel className="p-5 sm:p-6 mb-2 bg-brand-subtle/20 border-brand/20">
           <h3 className="text-lg font-semibold">{config.welcomeMessage}</h3>

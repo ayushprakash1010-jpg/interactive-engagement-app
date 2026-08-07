@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LeaderboardRow, LiveDot } from '@/components/pulse';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState, SurfacePanel } from '@/components/ui';
@@ -27,6 +27,15 @@ export function QuizProjectorView({
   leaderboard,
 }: QuizProjectorViewProps) {
   const [now, setNow] = useState(() => Date.now());
+  const prevLeaderboard = useRef(leaderboard);
+  const [leaderboardKey, setLeaderboardKey] = useState(0);
+
+  useEffect(() => {
+    if (leaderboard !== prevLeaderboard.current) {
+      prevLeaderboard.current = leaderboard;
+      setLeaderboardKey((k) => k + 1);
+    }
+  }, [leaderboard]);
 
   useEffect(() => {
     if (!question?.endsAt) {
@@ -144,9 +153,13 @@ export function QuizProjectorView({
             className="mt-6 border-border bg-surface-sunken/80 py-12"
           />
         ) : (
-          <ol className="mt-6 space-y-3">
+          <ol key={leaderboardKey} className="mt-6 space-y-3">
             {leaderboard.map((entry, index) => (
-              <li key={`${entry.name}-${index}`}>
+              <li 
+                key={`${entry.name}-${index}`}
+                style={{ animationDelay: `${index * 60}ms` }}
+                className="animate-leaderboard-row"
+              >
                 <LeaderboardRow
                   rank={index + 1}
                   name={entry.name}

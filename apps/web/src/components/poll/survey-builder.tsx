@@ -236,11 +236,11 @@ export function SurveyBuilder({
       }
 
       const generatedQuestions: SurveyQuestion[] = data.questions.map((q: any) => {
-        const type = ["single", "multiple", "rating", "open"].includes(q.pollType) ? q.pollType : "single";
+        const type = ["single", "multiple", "rating", "open"].includes(q.type) ? q.type : "single";
         return {
           id: uid(),
           type,
-          text: q.title || "Untitled Question",
+          text: q.text || "Untitled Question",
           options: (type === "single" || type === "multiple") && Array.isArray(q.options) 
             ? q.options.map((opt: any) => ({
                 id: uid(),

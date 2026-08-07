@@ -179,7 +179,7 @@ export function FeedbackParticipant({
   }, [timeLeftMs, submitted, isSubmitting, isFormValid]);
 
   return (
-    <SurfacePanel className="p-5 sm:p-6">
+    <SurfacePanel className="p-5 sm:p-6 animate-activity-in">
       <div className="mb-6 flex items-start justify-between gap-3">
         <div className="space-y-1">
           {title ? (
