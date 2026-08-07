@@ -40,7 +40,7 @@ function AnimatedTransition({ children, transitionKey }: { children: React.React
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="flex flex-col flex-1"
+      className="flex flex-col flex-1 lg:h-full"
     >
       {children}
     </motion.div>
@@ -139,7 +139,7 @@ export default function EventPage() {
   if (!isMounted) {
     return (
       <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
-        <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
+        <div className="mx-auto flex w-full max-w-container-sm lg:max-w-4xl flex-1 flex-col">
           <header className="flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card px-3 py-2.5 shadow-sm">
             <div className="flex items-center gap-2.5">
               <Logomark size={28} />
@@ -293,16 +293,38 @@ export default function EventPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-surface-canvas px-4 py-5 sm:py-6">
+    <main className="flex min-h-screen lg:h-screen lg:overflow-hidden flex-col bg-surface-canvas px-4 py-5 sm:py-6 lg:py-4">
       <FloatingReactions />
-      <div className="mx-auto flex w-full max-w-container-sm flex-1 flex-col">
+      {/* Desktop: floating vertical reaction pill pinned to the right edge */}
+      {!isZoom && (
+        <div className="hidden lg:flex fixed right-5 top-1/2 -translate-y-1/2 z-20">
+          <ReactionBar
+            onReact={sendReaction}
+            orientation="vertical"
+            className="flex flex-col gap-1.5 rounded-2xl border border-border bg-surface-card/95 p-2 shadow-lg backdrop-blur"
+          />
+        </div>
+      )}
+      <div className="mx-auto flex w-full max-w-container-sm lg:max-w-4xl flex-1 flex-col lg:min-h-0">
         {!isZoom && (
           <header className="sticky top-3 z-10 flex items-center justify-between gap-4 rounded-lg border border-border bg-surface-card/95 px-3 py-2.5 shadow-sm backdrop-blur">
             <div className="flex items-center gap-2.5">
               <Logomark size={28} />
               <JoinCode code={code} size="sm" />
+              {/* Desktop: show active activity name if one is running */}
+              {activeActivity && (
+                <span className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand-subtle px-2.5 py-0.5 text-xs font-semibold text-brand capitalize">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-brand animate-pulse" />
+                  {activeActivity.title || activeActivity.type}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
+              {/* Desktop: participant count badge */}
+              <span className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-sunken px-2.5 py-1 text-xs font-medium text-ink-secondary">
+                <Users className="h-3.5 w-3.5" aria-hidden />
+                {count} {count === 1 ? 'person' : 'people'} live
+              </span>
               <ThemeToggle />
               <ConnectionStatus />
             </div>
@@ -323,7 +345,7 @@ export default function EventPage() {
           </span>
         </SurfacePanel>
 
-        <div className="mt-4 grid w-full grid-cols-2 rounded-lg border border-border bg-surface-sunken p-1">
+        <div className="mt-4 grid w-full grid-cols-2 rounded-lg border border-border bg-surface-sunken p-1 lg:hidden">
           <button
             type="button"
             onClick={() => setActiveTab("activity")}
@@ -348,7 +370,9 @@ export default function EventPage() {
           </button>
         </div>
 
-        {activeTab === "activity" && (
+        <div className="lg:mt-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:flex-1 lg:min-h-0 lg:[grid-template-rows:1fr]">
+          {/* Activity column: full width on mobile (tab-driven), 2/3 on desktop */}
+          <div className={`lg:col-span-2 lg:flex lg:flex-col lg:h-full${activeTab !== "activity" ? " hidden lg:flex" : ""}`}>
           <AnimatePresence mode="wait">
             {showWaitingState && (
               <AnimatedTransition transitionKey="waiting">
@@ -364,13 +388,15 @@ export default function EventPage() {
                   title="Waiting for the host"
                   description="Hang tight. The next activity will appear here as soon as it starts."
                 />
-                <ReactionBar onReact={sendReaction} />
+                <div className="lg:hidden">
+                  <ReactionBar onReact={sendReaction} />
+                </div>
               </AnimatedTransition>
             )}
 
             {showPollInput && activeActivity && (
               <AnimatedTransition transitionKey={`poll-input-${activeActivity._id}`}>
-                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                <SurfacePanel className="mt-6 flex-1 flex flex-col p-5 sm:p-6">
                   <PollParticipant
                     key={activeActivity._id}
                     activity={activeActivity}
@@ -385,7 +411,7 @@ export default function EventPage() {
 
             {showPollSubmitted && activeActivity && (
               <AnimatedTransition transitionKey={`poll-submitted-${activeActivity._id}`}>
-                <SurfacePanel className="mt-6 space-y-4 p-5 sm:p-6">
+                <SurfacePanel className="mt-6 flex-1 flex flex-col space-y-4 p-5 sm:p-6">
                   <div>
                     <Eyebrow>Vote submitted</Eyebrow>
                     <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
@@ -402,7 +428,7 @@ export default function EventPage() {
 
             {showPollResults && activeActivity && (
               <AnimatedTransition transitionKey={`poll-results-${activeActivity._id}`}>
-                <SurfacePanel className="mt-6 space-y-4 p-5 sm:p-6">
+                <SurfacePanel className="mt-6 flex-1 flex flex-col space-y-4 p-5 sm:p-6">
                   <div>
                     <Eyebrow>Poll closed</Eyebrow>
                     <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
@@ -425,7 +451,7 @@ export default function EventPage() {
             {showQuizWaiting && (
               <AnimatedTransition transitionKey="quiz-waiting">
                 <EmptyState
-                  className="mt-6"
+                  className="mt-6 flex-1"
                   tone="brand"
                   icon={
                     <div className="relative flex h-6 w-6 items-center justify-center">
@@ -441,7 +467,7 @@ export default function EventPage() {
 
             {showQuizQuestion && quizQuestion && (
               <AnimatedTransition transitionKey={`quiz-question-${quizQuestion.questionId}`}>
-                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                <SurfacePanel className="mt-6 flex-1 flex flex-col p-5 sm:p-6">
                   <QuizParticipant
                     key={quizQuestion.questionId}
                     question={quizQuestion}
@@ -455,7 +481,7 @@ export default function EventPage() {
 
             {showQuizClosed && (
               <AnimatedTransition transitionKey="quiz-closed">
-                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                <SurfacePanel className="mt-6 flex-1 flex flex-col p-5 sm:p-6">
                   <EmptyState
                     className="mb-4 py-8"
                     title="Quiz ended"
@@ -489,7 +515,7 @@ export default function EventPage() {
 
             {showWordCloudInput && activeActivity && (
               <AnimatedTransition transitionKey={`wordcloud-input-${activeActivity._id}`}>
-                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                <SurfacePanel className="mt-6 flex-1 flex flex-col p-5 sm:p-6">
                   <WordCloudParticipant
                     key={activeActivity._id}
                     activity={activeActivity}
@@ -505,7 +531,7 @@ export default function EventPage() {
 
             {showWordCloudSubmitted && activeActivity && (
               <AnimatedTransition transitionKey={`wordcloud-submitted-${activeActivity._id}`}>
-                <SurfacePanel className="mt-6 p-5 sm:p-6">
+                <SurfacePanel className="mt-6 flex-1 flex flex-col p-5 sm:p-6">
                   <WordCloudParticipant
                     key={activeActivity._id}
                     activity={activeActivity}
@@ -521,7 +547,7 @@ export default function EventPage() {
 
             {showFeedbackInput && activeActivity && (
               <AnimatedTransition transitionKey={`feedback-input-${activeActivity._id}`}>
-                <div className="mt-6">
+                <div className="mt-6 flex-1 flex flex-col">
                   <FeedbackParticipant
                     key={activeActivity._id}
                     activityId={activeActivity._id}
@@ -537,7 +563,7 @@ export default function EventPage() {
 
             {showFeedbackSubmitted && activeActivity && (
               <AnimatedTransition transitionKey={`feedback-submitted-${activeActivity._id}`}>
-                <div className="mt-6">
+                <div className="mt-6 flex-1 flex flex-col">
                   <FeedbackParticipant
                     key={activeActivity._id}
                     activityId={activeActivity._id}
@@ -562,7 +588,7 @@ export default function EventPage() {
 
             {showSurveyInput && activeActivity && (
               <AnimatedTransition transitionKey={`survey-input-${activeActivity._id}`}>
-                <div className="mt-6 h-full flex-1">
+                <div className="mt-6 flex-1 flex flex-col">
                   <SurveyParticipant
                     key={activeActivity._id}
                     activity={activeActivity}
@@ -573,17 +599,19 @@ export default function EventPage() {
               </AnimatedTransition>
             )}
           </AnimatePresence>
-        )}
+          </div>
 
-        {activeTab === "qa" && (
-          <QaTab
-            questions={sortedApprovedQuestions}
-            votedQuestionIds={votedQuestionIds}
-            allowAnonymousQA={allowAnonymousQA}
-            onAskQuestion={handleAskQuestion}
-            onUpvoteQuestion={handleUpvoteQuestion}
-          />
-        )}
+          {/* Q&A column: full width on mobile (tab-driven), 1/3 on desktop, internally scrollable */}
+          <div className={`lg:col-span-1 mt-4 lg:mt-0 lg:overflow-y-auto${activeTab !== "qa" ? " hidden lg:block" : ""}`}>
+            <QaTab
+              questions={sortedApprovedQuestions}
+              votedQuestionIds={votedQuestionIds}
+              allowAnonymousQA={allowAnonymousQA}
+              onAskQuestion={handleAskQuestion}
+              onUpvoteQuestion={handleUpvoteQuestion}
+            />
+          </div>
+        </div>
       </div>
     </main>
   );
