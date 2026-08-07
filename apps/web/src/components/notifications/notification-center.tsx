@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
@@ -411,7 +412,16 @@ export function NotificationCenter() {
               </p>
             </div>
 
-            <span className="h-10 w-10" aria-hidden />
+            <DialogClose asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 text-ink-muted hover:text-foreground"
+                aria-label="Close notifications"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </DialogClose>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">

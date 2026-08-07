@@ -255,12 +255,13 @@ function DashboardLayoutContent({
             <div className="h-4 w-px bg-border mx-1 hidden sm:block" aria-hidden="true" />
             <div className="flex items-center gap-3">
               {user ? (
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand text-xs font-semibold uppercase ring-1 ring-brand/20 shadow-sm"
-                  title={displayName}
+                <Link
+                  href="/dashboard/account"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand text-xs font-semibold uppercase ring-1 ring-brand/20 shadow-sm transition-all hover:bg-brand/10 hover:ring-brand/40"
+                  title={`${displayName} (Go to Account)`}
                 >
                   {displayInitial}
-                </div>
+                </Link>
               ) : null}
               <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex transition-all hover:bg-surface-sunken">
                 <a href={logoutUrl}>Log out</a>
