@@ -5,7 +5,15 @@ import { motion } from 'framer-motion';
 
 const EMOJIS = ['❤️', '👏', '💡', '😂'];
 
-export function ReactionBar({ onReact }: { onReact: (emoji: string) => void }) {
+export function ReactionBar({
+  onReact,
+  className,
+  orientation = 'horizontal',
+}: {
+  onReact: (emoji: string) => void;
+  className?: string;
+  orientation?: 'horizontal' | 'vertical';
+}) {
   // Simple throttle to prevent completely spamming the UI locally
   const [lastReactTime, setLastReactTime] = useState(0);
 
@@ -16,8 +24,15 @@ export function ReactionBar({ onReact }: { onReact: (emoji: string) => void }) {
     onReact(emoji);
   };
 
+  const isVertical = orientation === 'vertical';
+
   return (
-    <div className="mx-auto mt-6 flex w-fit items-center gap-2 rounded-full border border-border bg-surface-card p-2 shadow-sm">
+    <div
+      className={
+        className ??
+        `mx-auto mt-6 flex w-fit items-center gap-2 rounded-full border border-border bg-surface-card p-2 shadow-sm ${isVertical ? 'flex-col' : ''}`
+      }
+    >
       {EMOJIS.map((emoji) => (
         <motion.button
           key={emoji}

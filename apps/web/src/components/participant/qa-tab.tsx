@@ -126,10 +126,10 @@ export function QaTab({
               return (
                 <article
                   key={question._id}
-                  className="flex items-start justify-between gap-4 rounded-lg border border-border bg-surface-raised p-4 shadow-xs"
+                  className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-4 shadow-xs"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium leading-6 text-foreground">{question.text}</p>
+                  <div className="min-w-0 w-full">
+                    <p className="text-sm font-medium leading-6 text-foreground break-words">{question.text}</p>
                     {question.status === 'answered' && question.answerText?.trim() && (
                       <div className="mt-3 rounded-md border border-border bg-surface-card px-3 py-2">
                         <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
@@ -140,7 +140,10 @@ export function QaTab({
                         </p>
                       </div>
                     )}
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                  </div>
+                  
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                       {/* FIX: When allowAnonymousQA is true always show "Anonymous"
                           regardless of what authorName contains. This is a defence-in-depth
                           guard on top of the server already stripping the name. */}
@@ -163,21 +166,21 @@ export function QaTab({
                           : `${question.voteCount} vote${question.voteCount === 1 ? '' : 's'}`}
                       </Badge>
                     </div>
-                  </div>
 
-                  <Button
-                    type="button"
-                    size="lg"
-                    variant={hasVoted ? 'secondary' : 'outline'}
-                    disabled={hasVoted || question.status === 'answered'}
-                    onClick={() => onUpvoteQuestion(question._id)}
-                    className="shrink-0"
-                  >
-                    {!hasVoted && question.status !== 'answered' && (
-                      <ThumbsUp className="h-4 w-4" />
-                    )}
-                    {question.status === 'answered' ? 'Answered' : hasVoted ? 'Upvoted' : 'Upvote'}
-                  </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={hasVoted ? 'secondary' : 'outline'}
+                      disabled={hasVoted || question.status === 'answered'}
+                      onClick={() => onUpvoteQuestion(question._id)}
+                      className="shrink-0"
+                    >
+                      {!hasVoted && question.status !== 'answered' && (
+                        <ThumbsUp className="h-4 w-4" />
+                      )}
+                      {question.status === 'answered' ? 'Answered' : hasVoted ? 'Upvoted' : 'Upvote'}
+                    </Button>
+                  </div>
                 </article>
               );
             })}
