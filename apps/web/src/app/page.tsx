@@ -47,6 +47,8 @@ import {
   FeedbackDemo,
   SurveyDemo,
   AnalyticsDemo,
+  AIAgendaDemo,
+  QRJoinDemo,
 } from '@/components/marketing/feature-demos';
 
 const SIGNUP_HREF = '/api/auth/signup?returnTo=/dashboard';
@@ -114,13 +116,33 @@ const FEATURES = [
   },
   {
     icon: LineChart,
-    title: 'Analytics \u0026 reports',
+    title: 'Analytics & reports',
     body: 'Participation, engagement timelines, and per-activity breakdowns. Export to CSV and PDF.',
     Demo: AnalyticsDemo,
     iconBg: 'bg-emerald-500/15',
     iconColor: 'text-emerald-400',
     iconHoverBg: 'group-hover:bg-emerald-500',
     accentBar: 'bg-emerald-500',
+  },
+  {
+    icon: Sparkles,
+    title: 'AI Agenda Builder',
+    body: 'Describe your session in plain text. Pulse drafts a full agenda — polls, Q&A, word clouds — ready before you go live.',
+    Demo: AIAgendaDemo,
+    iconBg: 'bg-fuchsia-500/15',
+    iconColor: 'text-fuchsia-400',
+    iconHoverBg: 'group-hover:bg-fuchsia-500',
+    accentBar: 'bg-fuchsia-500',
+  },
+  {
+    icon: QrCode,
+    title: 'Instant QR Join',
+    body: 'Participants join from any device via a 6-character code or QR scan. No app, no account, zero friction.',
+    Demo: QRJoinDemo,
+    iconBg: 'bg-cyan-500/15',
+    iconColor: 'text-cyan-400',
+    iconHoverBg: 'group-hover:bg-cyan-500',
+    accentBar: 'bg-cyan-500',
   },
 ];
 
@@ -455,18 +477,16 @@ export default function LandingPage() {
               </div>
             </ScrollReveal>
 
-            {/* Stagger reveal for the feature cards */}
+            {/* 9 cards → clean 3×3 grid, no orphan */}
             <StaggerContainer
               staggerMs={90}
               baseDelay={100}
               className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
-              {FEATURES.map((feature, i) => (
+              {FEATURES.map((feature) => (
                 <GlowCard
                   key={feature.title}
-                  className={`group h-full rounded-lg border border-border bg-surface-card shadow-xs transition duration-base hover:-translate-y-1 hover:shadow-lg ${
-                    i === 6 ? 'sm:col-span-2 lg:col-span-1 lg:col-start-2' : ''
-                  }`}
+                  className="group h-full rounded-lg border border-border bg-surface-card shadow-xs transition duration-base hover:-translate-y-1 hover:shadow-lg"
                 >
                   <CardContent className="p-6">
                     <span className={`inline-flex h-11 w-11 items-center justify-center rounded-md transition duration-base ${feature.iconBg} ${feature.iconColor} ${feature.iconHoverBg} group-hover:text-white`}>

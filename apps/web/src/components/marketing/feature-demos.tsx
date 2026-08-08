@@ -223,3 +223,63 @@ export function AnalyticsDemo() {
     </div>
   );
 }
+
+/* AI Agenda Builder demo */
+export function AIAgendaDemo() {
+  const items = [
+    'Opening poll — team energy check',
+    'Live Q&A — product roadmap',
+    'Closing word cloud — one word',
+  ];
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5 mb-2">
+        <div className="h-1.5 w-1.5 rounded-full bg-fuchsia-400 animate-pulse" />
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-fuchsia-400">AI drafting…</span>
+      </div>
+      {items.map((item, i) => (
+        <div
+          key={item}
+          className="flex items-center gap-2 rounded-md bg-surface-raised px-2.5 py-1.5 text-[10px] opacity-0 translate-y-1 transition-all duration-500 group-hover:opacity-100 group-hover:translate-y-0"
+          style={{ transitionDelay: `${i * 90}ms` }}
+        >
+          <span className="text-fuchsia-400">✦</span>
+          <span className="text-ink-muted">{item}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* QR Code Join demo */
+export function QRJoinDemo() {
+  // 5×5 pixel QR pattern (decorative, not scannable)
+  const cells = [
+    1,1,1,1,1,
+    1,0,0,0,1,
+    1,0,1,0,1,
+    1,0,0,0,1,
+    1,1,1,1,1,
+  ];
+  return (
+    <div className="flex items-center gap-4">
+      {/* Mini QR grid */}
+      <div className="grid grid-cols-5 gap-0.5 opacity-0 scale-90 transition-all duration-500 group-hover:opacity-100 group-hover:scale-100">
+        {cells.map((c, i) => (
+          <div
+            key={i}
+            className={`h-3 w-3 rounded-[2px] transition-all duration-300 ${c ? 'bg-cyan-400' : 'bg-surface-raised'}`}
+            style={{ transitionDelay: `${i * 15}ms` }}
+          />
+        ))}
+      </div>
+      {/* Join code */}
+      <div className="opacity-0 translate-x-2 transition-all duration-500 delay-200 group-hover:opacity-100 group-hover:translate-x-0">
+        <div className="text-[9px] font-medium text-ink-muted mb-1">Join code</div>
+        <div className="font-mono text-base font-bold tracking-[0.25em] text-cyan-400">QZ7K2P</div>
+        <div className="text-[9px] text-ink-muted mt-0.5">No app · No account</div>
+      </div>
+    </div>
+  );
+}
+
