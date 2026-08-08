@@ -605,7 +605,7 @@ export default function DashboardOverviewPage() {
       description: 'AI-assisted poll creation',
       color: 'bg-ai-subtle',
       iconColor: 'text-ai',
-      href: '/dashboard/ai',
+      href: '/dashboard/ai?type=poll',
     },
     {
       id: 'generate-quiz',
@@ -614,7 +614,7 @@ export default function DashboardOverviewPage() {
       description: 'Build a trivia game instantly',
       color: 'bg-ai-subtle',
       iconColor: 'text-ai',
-      href: '/dashboard/ai',
+      href: '/dashboard/ai?type=quiz',
     },
     {
       id: 'generate-survey',
@@ -623,7 +623,7 @@ export default function DashboardOverviewPage() {
       description: 'Multi-step questionnaires',
       color: 'bg-ai-subtle',
       iconColor: 'text-ai',
-      href: '/dashboard/ai',
+      href: '/dashboard/ai?type=survey',
     },
     {
       id: 'generate-feedback',
@@ -632,7 +632,7 @@ export default function DashboardOverviewPage() {
       description: 'Automated feedback forms',
       color: 'bg-ai-subtle',
       iconColor: 'text-ai',
-      href: '/dashboard/ai',
+      href: '/dashboard/ai?type=feedback',
     },
     {
       id: 'generate-wordcloud',
@@ -641,7 +641,7 @@ export default function DashboardOverviewPage() {
       description: 'Crowdsource ideas quickly',
       color: 'bg-ai-subtle',
       iconColor: 'text-ai',
-      href: '/dashboard/ai',
+      href: '/dashboard/ai?type=wordcloud',
     },
     {
       id: 'notifications',

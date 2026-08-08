@@ -351,15 +351,34 @@ export default function LandingPage() {
                       AI-powered engagement,{' '}
                     </span>
                     <br className="hidden sm:block" />
-                    <TypewriterText
-                      phrases={[
-                        'built for classrooms.',
-                        'built for webinars.',
-                        'built for all-hands.',
-                        'built for every audience.',
-                      ]}
-                      className="bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 bg-clip-text text-transparent"
-                    />
+                    {/*
+                      Ghost + overlay trick:
+                      The invisible ghost always renders the LONGEST phrase so the
+                      h1 keeps its maximum height at every viewport width.
+                      TypewriterText is positioned absolute on top — changes to its
+                      content never affect the layout of elements below the h1.
+                    */}
+                    <span className="relative block">
+                      {/* Ghost: invisible, reserves max space */}
+                      <span
+                        aria-hidden="true"
+                        className="invisible bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 bg-clip-text text-transparent"
+                      >
+                        built for every audience.
+                      </span>
+                      {/* Real typewriter: overlaid on the ghost */}
+                      <span className="absolute inset-0">
+                        <TypewriterText
+                          phrases={[
+                            'built for classrooms.',
+                            'built for webinars.',
+                            'built for all-hands.',
+                            'built for every audience.',
+                          ]}
+                          className="bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 bg-clip-text text-transparent"
+                        />
+                      </span>
+                    </span>
                   </h1>
 
                   {/* Slot 2: Description */}
