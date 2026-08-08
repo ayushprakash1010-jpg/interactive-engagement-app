@@ -562,12 +562,12 @@ export default function LandingPage() {
               <StaggerContainer
                 staggerMs={120}
                 baseDelay={200}
-                className="grid gap-5 md:grid-cols-3 relative z-20"
+                className="grid gap-5 md:grid-cols-3 md:items-stretch relative z-20"
               >
                 {STEPS.map((step, i) => (
                   <div
                     key={step.title}
-                    className="relative rounded-lg border border-border bg-surface-card p-6 shadow-xs transition duration-base hover:-translate-y-0.5 hover:shadow-md"
+                    className="relative flex h-full flex-col rounded-lg border border-border bg-surface-card p-6 shadow-xs transition duration-base hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-glow-brand">
                       <step.icon className="h-5 w-5" />
@@ -576,7 +576,7 @@ export default function LandingPage() {
                       Step {i + 1}
                     </div>
                     <h3 className="mt-1 text-lg font-semibold">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-ink-muted">{step.body}</p>
+                    <p className="mt-2 flex-1 text-sm leading-6 text-ink-muted">{step.body}</p>
                     {i === 0 && <StepDemoLink videoId="create-event" label="Watch 30s clip" />}
                     {i === 1 && <StepDemoLink videoId="getting-started" label="Watch 30s clip" />}
                     {i === 2 && <StepDemoLink videoId="live-poll" label="Watch 30s clip" />}
