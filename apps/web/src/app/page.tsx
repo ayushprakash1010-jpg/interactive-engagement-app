@@ -2,7 +2,6 @@ import Link from 'next/link';
 import {
   ArrowRight,
   BarChart3,
-  Check,
   CheckCircle2,
   Cloud,
   Download,
@@ -18,7 +17,7 @@ import {
   ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { CardContent } from '@/components/ui/card';
 import { SiteHeader } from '@/components/marketing/site-header';
 import { SiteFooter } from '@/components/marketing/site-footer';
 import { AIShowcase } from '@/components/marketing/ai-showcase';
@@ -31,8 +30,24 @@ import {
   HeroSequence,
   CursorParallax,
   FloatingShape,
+  TypewriterText,
+  AnimatedCounter,
 } from '@/components/marketing/landing-animations';
 import { LandingDemoButton, StepDemoLink } from '@/components/marketing/landing-video-buttons';
+import { LandingTestimonials } from '@/components/marketing/landing-testimonials';
+import { LandingIntegrations } from '@/components/marketing/landing-integrations';
+import { LandingUseCases } from '@/components/marketing/landing-use-cases';
+import { LandingPricing } from '@/components/marketing/landing-pricing';
+import { LandingFaq } from '@/components/marketing/landing-faq';
+import {
+  PollDemo,
+  QADemo,
+  QuizDemo,
+  WordCloudDemo,
+  FeedbackDemo,
+  SurveyDemo,
+  AnalyticsDemo,
+} from '@/components/marketing/feature-demos';
 
 const SIGNUP_HREF = '/api/auth/signup?returnTo=/dashboard';
 
@@ -41,36 +56,71 @@ const FEATURES = [
     icon: BarChart3,
     title: 'Live polls',
     body: 'Single choice, multiple choice, rating scales, and open text. Results animate in real time as votes land.',
+    Demo: PollDemo,
+    iconBg: 'bg-teal-500/15',
+    iconColor: 'text-teal-400',
+    iconHoverBg: 'group-hover:bg-teal-500',
+    accentBar: 'bg-teal-500',
   },
   {
     icon: MessagesSquare,
-    title: 'Anonymous Q&A',
+    title: 'Anonymous Q\u0026A',
     body: 'Your audience asks and upvotes questions. Moderate, approve, and mark answered from one queue.',
+    Demo: QADemo,
+    iconBg: 'bg-violet-500/15',
+    iconColor: 'text-violet-400',
+    iconHoverBg: 'group-hover:bg-violet-500',
+    accentBar: 'bg-violet-500',
   },
   {
     icon: Trophy,
     title: 'Interactive quizzes',
     body: 'Timed questions, points, and a live leaderboard that keeps the room competitive and engaged.',
+    Demo: QuizDemo,
+    iconBg: 'bg-amber-500/15',
+    iconColor: 'text-amber-400',
+    iconHoverBg: 'group-hover:bg-amber-500',
+    accentBar: 'bg-amber-500',
   },
   {
     icon: Cloud,
     title: 'Word clouds',
     body: 'Collect words on any prompt and watch a weighted cloud grow live on the big screen.',
+    Demo: WordCloudDemo,
+    iconBg: 'bg-sky-500/15',
+    iconColor: 'text-sky-400',
+    iconHoverBg: 'group-hover:bg-sky-500',
+    accentBar: 'bg-sky-500',
   },
   {
     icon: Star,
     title: 'Feedback forms',
     body: 'Rating and open-text feedback captured during or after a session - structured and exportable.',
+    Demo: FeedbackDemo,
+    iconBg: 'bg-orange-500/15',
+    iconColor: 'text-orange-400',
+    iconHoverBg: 'group-hover:bg-orange-500',
+    accentBar: 'bg-orange-500',
   },
   {
     icon: ClipboardList,
     title: 'Surveys',
     body: 'Multi-step questionnaires perfect for event registration, audience profiling, and comprehensive feedback.',
+    Demo: SurveyDemo,
+    iconBg: 'bg-pink-500/15',
+    iconColor: 'text-pink-400',
+    iconHoverBg: 'group-hover:bg-pink-500',
+    accentBar: 'bg-pink-500',
   },
   {
     icon: LineChart,
-    title: 'Analytics & reports',
+    title: 'Analytics \u0026 reports',
     body: 'Participation, engagement timelines, and per-activity breakdowns. Export to CSV and PDF.',
+    Demo: AnalyticsDemo,
+    iconBg: 'bg-emerald-500/15',
+    iconColor: 'text-emerald-400',
+    iconHoverBg: 'group-hover:bg-emerald-500',
+    accentBar: 'bg-emerald-500',
   },
 ];
 
@@ -92,76 +142,9 @@ const STEPS = [
   },
 ];
 
-const STATS = [
-  { value: '<1s', label: 'Broadcast latency' },
-  { value: '5,000+', label: 'Live participants per event' },
-  { value: 'No login', label: 'For participants' },
-  { value: 'CSV / PDF', label: 'Session reports' },
-];
 
-const PLANS = [
-  {
-    name: 'Free',
-    price: '₹0',
-    cadence: 'forever',
-    blurb: 'For trying it out and small sessions.',
-    features: [
-      'Up to 50 participants / mo',
-      '10 AI requests / mo',
-      'Basic analytics',
-      'Standard polling'
-    ],
-    cta: 'Start here',
-    href: SIGNUP_HREF,
-    highlighted: false,
-  },
-  {
-    name: 'Basic',
-    price: '₹499',
-    cadence: 'per host / month',
-    blurb: 'For individuals and small groups.',
-    features: [
-      'Unlimited participants',
-      'Unlimited AI requests',
-      'Basic analytics',
-      'Data exports (CSV/PDF)'
-    ],
-    cta: 'Start free trial',
-    href: SIGNUP_HREF,
-    highlighted: false,
-  },
-  {
-    name: 'Pro',
-    price: '₹999',
-    cadence: 'per host / month',
-    blurb: 'For regular hosts and growing teams.',
-    features: [
-      'Everything in Basic',
-      'Q&A moderation',
-      'Custom branding',
-      'Advanced analytics',
-    ],
-    cta: 'Start free trial',
-    href: SIGNUP_HREF,
-    highlighted: true,
-  },
-  {
-    name: 'Enterprise',
-    price: "Let's talk",
-    cadence: 'custom',
-    blurb: 'For organizations with SSO and scale needs.',
-    features: [
-      'Everything in Pro',
-      'Priority support',
-      'SSO / SAML',
-      'Org-level analytics',
-      'SLA & onboarding',
-    ],
-    cta: 'Contact sales',
-    href: '#',
-    highlighted: false,
-  },
-];
+
+
 
 const SHOWCASE_ACTIVITIES = [
   { label: 'Pulse check', type: 'Poll', value: '84%', tone: 'bg-brand' },
@@ -317,7 +300,7 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* ── Hero ────────────────────────────────────────────────── */}
-        <section className="relative isolate overflow-hidden border-b border-border">
+        <section className="noise-overlay relative isolate overflow-hidden border-b border-border">
           {/* Drifting radial gradient background */}
           <div className="hero-gradient-drift absolute inset-0 -z-10" />
           <div className="absolute left-1/2 top-0 -z-10 h-px w-[min(760px,80vw)] -translate-x-1/2 bg-gradient-to-r from-transparent via-brand/40 to-transparent" />
@@ -346,9 +329,15 @@ export default function LandingPage() {
                       AI-powered engagement,{' '}
                     </span>
                     <br className="hidden sm:block" />
-                    <span className="bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 bg-clip-text text-transparent">
-                      built for every audience.
-                    </span>
+                    <TypewriterText
+                      phrases={[
+                        'built for classrooms.',
+                        'built for webinars.',
+                        'built for all-hands.',
+                        'built for every audience.',
+                      ]}
+                      className="bg-gradient-to-r from-teal-400 via-emerald-400 to-teal-500 bg-clip-text text-transparent"
+                    />
                   </h1>
 
                   {/* Slot 2: Description */}
@@ -411,16 +400,40 @@ export default function LandingPage() {
         {/* ── Stats bar ───────────────────────────────────────────── */}
         <section className="border-b border-border bg-surface-card">
           <div className="mx-auto grid max-w-container-xl grid-cols-1 gap-3 px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
-            {STATS.map((stat) => (
-              <ScrollReveal key={stat.label}>
-                <div className="rounded-lg border border-border bg-surface-raised p-5 shadow-xs transition duration-base hover:-translate-y-0.5 hover:bg-surface-card hover:shadow-md">
-                  <div className="font-display text-3xl font-bold tracking-tight tabular-nums">
-                    {stat.value}
-                  </div>
-                  <div className="mt-1 text-sm font-medium text-ink-muted">{stat.label}</div>
+            {/* <1s — teal accent */}
+            <ScrollReveal delay={0}>
+              <div className="relative overflow-hidden rounded-lg border border-border bg-surface-raised p-5 shadow-xs transition duration-base hover:-translate-y-0.5 hover:bg-surface-card hover:shadow-md">
+                <div className="absolute left-0 top-0 h-full w-1 rounded-l-lg bg-teal-500" />
+                <div className="font-display text-3xl font-bold tracking-tight tabular-nums text-teal-400">&lt;1s</div>
+                <div className="mt-1 text-sm font-medium text-ink-muted">Broadcast latency</div>
+              </div>
+            </ScrollReveal>
+            {/* 5,000+ — brand accent + animated counter */}
+            <ScrollReveal delay={80}>
+              <div className="relative overflow-hidden rounded-lg border border-border bg-surface-raised p-5 shadow-xs transition duration-base hover:-translate-y-0.5 hover:bg-surface-card hover:shadow-md">
+                <div className="absolute left-0 top-0 h-full w-1 rounded-l-lg bg-brand" />
+                <div className="font-display text-3xl font-bold tracking-tight tabular-nums text-brand">
+                  <AnimatedCounter target={5000} suffix="+" duration={1800} />
                 </div>
-              </ScrollReveal>
-            ))}
+                <div className="mt-1 text-sm font-medium text-ink-muted">Live participants per event</div>
+              </div>
+            </ScrollReveal>
+            {/* No login — violet accent */}
+            <ScrollReveal delay={160}>
+              <div className="relative overflow-hidden rounded-lg border border-border bg-surface-raised p-5 shadow-xs transition duration-base hover:-translate-y-0.5 hover:bg-surface-card hover:shadow-md">
+                <div className="absolute left-0 top-0 h-full w-1 rounded-l-lg bg-violet-500" />
+                <div className="font-display text-3xl font-bold tracking-tight tabular-nums text-violet-400">No login</div>
+                <div className="mt-1 text-sm font-medium text-ink-muted">For participants</div>
+              </div>
+            </ScrollReveal>
+            {/* CSV / PDF — orange accent */}
+            <ScrollReveal delay={240}>
+              <div className="relative overflow-hidden rounded-lg border border-border bg-surface-raised p-5 shadow-xs transition duration-base hover:-translate-y-0.5 hover:bg-surface-card hover:shadow-md">
+                <div className="absolute left-0 top-0 h-full w-1 rounded-l-lg bg-orange-500" />
+                <div className="font-display text-3xl font-bold tracking-tight tabular-nums text-orange-400">CSV / PDF</div>
+                <div className="mt-1 text-sm font-medium text-ink-muted">Session reports</div>
+              </div>
+            </ScrollReveal>
           </div>
         </section>
 
@@ -448,23 +461,35 @@ export default function LandingPage() {
               baseDelay={100}
               className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
             >
-              {FEATURES.map((feature) => (
+              {FEATURES.map((feature, i) => (
                 <GlowCard
                   key={feature.title}
-                  className="group h-full rounded-lg border border-border bg-surface-card shadow-xs transition duration-base hover:-translate-y-1 hover:border-brand/30 hover:shadow-lg"
+                  className={`group h-full rounded-lg border border-border bg-surface-card shadow-xs transition duration-base hover:-translate-y-1 hover:shadow-lg ${
+                    i === 6 ? 'sm:col-span-2 lg:col-span-1 lg:col-start-2' : ''
+                  }`}
                 >
                   <CardContent className="p-6">
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-brand-subtle text-brand transition duration-base group-hover:bg-brand group-hover:text-brand-foreground">
+                    <span className={`inline-flex h-11 w-11 items-center justify-center rounded-md transition duration-base ${feature.iconBg} ${feature.iconColor} ${feature.iconHoverBg} group-hover:text-white`}>
                       <feature.icon className="h-5 w-5" />
                     </span>
                     <h3 className="mt-5 text-lg font-semibold">{feature.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-ink-muted">{feature.body}</p>
+                    {/* Mini animated demo — revealed on card hover */}
+                    <div className="mt-5 overflow-hidden rounded-md border border-border bg-surface-raised p-3 opacity-0 max-h-0 transition-all duration-500 group-hover:opacity-100 group-hover:max-h-40">
+                      <feature.Demo />
+                    </div>
                   </CardContent>
                 </GlowCard>
               ))}
             </StaggerContainer>
           </div>
         </section>
+
+        {/* ── Use Cases ─────────────────────────────────────────── */}
+        <LandingUseCases />
+
+        {/* ── Testimonials ─────────────────────────────────────────── */}
+        <LandingTestimonials />
 
         {/* ── AI Studio ───────────────────────────────────────────── */}
         <section id="ai" className="scroll-mt-20 border-y border-border bg-surface-raised">
@@ -500,7 +525,7 @@ export default function LandingPage() {
         </section>
 
         {/* ── How it works ────────────────────────────────────────── */}
-        <section id="how-it-works" className="scroll-mt-20">
+        <section id="how-it-works" className="dot-grid-bg scroll-mt-20">
           <div className="mx-auto max-w-container-xl px-6 py-24">
             <ScrollReveal>
               <div className="mx-auto max-w-2xl text-center">
@@ -542,73 +567,14 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Pricing ─────────────────────────────────────────────── */}
-        <section id="pricing" className="scroll-mt-20 border-t border-border bg-surface-raised">
-          <div className="mx-auto max-w-container-xl px-6 py-24">
-            <ScrollReveal>
-              <div className="mx-auto max-w-2xl text-center">
-                <Eyebrow className="mb-3">Pricing</Eyebrow>
-                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                  Simple, transparent pricing
-                </h2>
-                <p className="mt-4 text-ink-muted">Start free. Upgrade when your audience grows.</p>
-              </div>
-            </ScrollReveal>
+        {/* ── Integrations ─────────────────────────────────────────── */}
+        <LandingIntegrations />
 
-            <StaggerContainer
-              staggerMs={100}
-              baseDelay={100}
-              className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:items-stretch"
-            >
-              {PLANS.map((plan) => (
-                <Card
-                  key={plan.name}
-                  className={
-                    plan.highlighted
-                      ? 'relative rounded-lg border-2 border-brand bg-surface-card shadow-xl h-full flex flex-col'
-                      : 'relative rounded-lg border-border bg-surface-card shadow-xs h-full flex flex-col'
-                  }
-                >
-                  {plan.highlighted && (
-                    <span className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-brand-foreground shadow-sm">
-                      Most popular
-                    </span>
-                  )}
-                  <CardContent className="flex h-full flex-col p-6">
-                    <div>
-                      <h3 className="text-xl font-semibold">{plan.name}</h3>
-                      <p className="mt-2 min-h-10 text-sm leading-6 text-ink-muted">
-                        {plan.blurb}
-                      </p>
-                    </div>
-                    <div className="mt-6 flex items-baseline gap-2">
-                      <span className="font-display text-4xl font-bold tracking-tight">
-                        {plan.price}
-                      </span>
-                      <span className="text-sm text-ink-muted">{plan.cadence}</span>
-                    </div>
-                    <Button
-                      asChild
-                      className="mt-6 w-full"
-                      size="lg"
-                      variant={plan.highlighted ? 'default' : 'outline'}
-                    >
-                      <a href={plan.href}>{plan.cta}</a>
-                    </Button>
-                    <ul className="mt-6 space-y-3">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="flex items-start gap-2 text-sm">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                          <span>{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              ))}
-            </StaggerContainer>
-          </div>
-        </section>
+        {/* ── Pricing ─────────────────────────────────────────────── */}
+        <LandingPricing />
+
+        {/* ── FAQ ──────────────────────────────────────────────────── */}
+        <LandingFaq />
 
         {/* ── CTA ─────────────────────────────────────────────────── */}
         <section className="border-t border-border">

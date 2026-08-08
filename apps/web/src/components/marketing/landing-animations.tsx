@@ -492,3 +492,85 @@ export function PulsingBadge({
     </span>
   );
 }
+
+/* ──────────────────────────────────────────────────────────────
+ * TypewriterText — cycles through phrases with a typing cursor
+ * Falls back to the first phrase when prefers-reduced-motion is set.
+ * ────────────────────────────────────────────────────────────── */
+export function TypewriterText({
+  phrases,
+  typingSpeedMs = 58,
+  erasingSpeedMs = 32,
+  pauseMs = 2200,
+  className = '',
+}: {
+  phrases: string[];
+  typingSpeedMs?: number;
+  erasingSpeedMs?: number;
+  pauseMs?: number;
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
+  const [displayed, setDisplayed] = useState(phrases[0] ?? '');
+  const [charIndex, setCharIndex] = useState(phrases[0]?.length ?? 0);
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [phase, setPhase] = useState<'pausing' | 'erasing' | 'typing'>('pausing');
+
+  useEffect(() => {
+    if (reduced || phrases.length <= 1) return;
+
+    let id: ReturnType<typeof setTimeout>;
+
+    if (phase === 'pausing') {
+      id = setTimeout(() => setPhase('erasing'), pauseMs);
+    } else if (phase === 'erasing') {
+      if (charIndex > 0) {
+        id = setTimeout(() => {
+          const next = charIndex - 1;
+          setCharIndex(next);
+          setDisplayed((phrases[phraseIndex] ?? '').slice(0, next));
+        }, erasingSpeedMs);
+      } else {
+        const nextPhrase = (phraseIndex + 1) % phrases.length;
+        setPhraseIndex(nextPhrase);
+        setCharIndex(0);
+        setDisplayed('');
+        setPhase('typing');
+      }
+    } else {
+      const target = phrases[phraseIndex] ?? '';
+      if (charIndex < target.length) {
+        id = setTimeout(() => {
+          const next = charIndex + 1;
+          setCharIndex(next);
+          setDisplayed(target.slice(0, next));
+        }, typingSpeedMs);
+      } else {
+        setPhase('pausing');
+      }
+    }
+
+    return () => clearTimeout(id);
+  }, [phase, charIndex, phraseIndex, phrases, typingSpeedMs, erasingSpeedMs, pauseMs, reduced]);
+
+  return (
+    <span className={className}>
+      {displayed}
+      {/* blinking cursor */}
+      <span
+        aria-hidden="true"
+        className="typewriter-cursor"
+        style={{
+          display: 'inline-block',
+          width: '3px',
+          height: '0.85em',
+          background: 'currentColor',
+          marginLeft: '3px',
+          verticalAlign: 'text-bottom',
+          borderRadius: '1px',
+          opacity: reduced ? 0 : 1,
+        }}
+      />
+    </span>
+  );
+}
