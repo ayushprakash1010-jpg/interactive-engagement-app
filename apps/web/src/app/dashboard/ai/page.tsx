@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useFeatureFlags } from '@/lib/use-feature-flags';
 
@@ -619,8 +619,18 @@ function normaliseActivity(
   };
 }
 
+/** Maps the ?type= URL param to a contextual default prompt so each dashboard shortcut feels distinct */
+const TYPE_PROMPT_MAP: Record<string, string> = {
+  poll: 'Generate a single live poll that checks audience understanding or gathers quick opinions.',
+  quiz: 'Create a 5-question trivia quiz with timed questions and a live leaderboard.',
+  survey: 'Build a multi-step survey to collect structured feedback from attendees after the session.',
+  feedback: 'Generate a feedback form with a star rating and an open-text response for post-event sentiment.',
+  wordcloud: 'Create a word cloud activity asking participants to share one word that describes their experience.',
+};
+
 export default function AIStudioPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { flags, loading } = useFeatureFlags();
 
   React.useEffect(() => {
@@ -629,7 +639,10 @@ export default function AIStudioPage() {
     }
   }, [flags, loading, router]);
 
-  const [prompt, setPrompt] = React.useState('');
+  const [prompt, setPrompt] = React.useState(() => {
+    const type = searchParams.get('type') ?? '';
+    return TYPE_PROMPT_MAP[type] ?? '';
+  });
   const [generating, setGenerating] = React.useState(false);
   const [generateError, setGenerateError] = React.useState<string | null>(null);
 
@@ -1061,13 +1074,13 @@ export default function AIStudioPage() {
 
           <div className="mb-4">
             <h3 className="mb-3 text-sm font-semibold text-foreground">Inspiration Gallery</h3>
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10">
+            <div className="grid grid-cols-3 gap-3">
               {SESSION_TEMPLATES.map((tpl) => (
                 <button
                   key={tpl.title}
                   type="button"
                   onClick={() => setPrompt(tpl.prompt)}
-                  className={`group relative flex w-60 shrink-0 flex-col items-start gap-1 overflow-hidden rounded-xl border bg-gradient-to-br p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg ${tpl.gradient}`}
+                  className={`group relative flex flex-col items-start gap-1 overflow-hidden rounded-xl border bg-gradient-to-br p-4 text-left transition-all hover:scale-[1.02] hover:shadow-lg ${tpl.gradient}`}
                 >
                   <div className="absolute inset-0 bg-white/5 opacity-0 transition-opacity group-hover:opacity-100" />
                   <span className="font-semibold text-foreground">{tpl.title}</span>
