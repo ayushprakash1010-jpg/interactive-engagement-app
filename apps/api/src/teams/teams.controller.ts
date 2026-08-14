@@ -1,14 +1,17 @@
 import {
   Controller,
   Get,
+  Post,
   Query,
   Req,
   Res,
   UseGuards,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { TeamsService } from './teams.service';
+import { EventsService } from '../events/events.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
 
@@ -17,6 +20,7 @@ export class TeamsController {
   constructor(
     private readonly teamsService: TeamsService,
     private readonly configService: ConfigService,
+    private readonly eventsService: EventsService,
   ) {}
 
   /**
@@ -82,7 +86,7 @@ export class TeamsController {
     if (!meetingId) {
       throw new UnauthorizedException('Missing meetingId');
     }
-    const event = await this.teamsService.getOrCreateEventForMeeting(
+    const event = await this.teamsService.getEventForMeeting(
       meetingId,
       teamsUserId,
     );
@@ -93,14 +97,20 @@ export class TeamsController {
    * Called when a participant or host manually enters an event code in the Teams app.
    * Links the Teams meeting ID to the IEP event permanently.
    */
-  @Get('link-meeting')
+  @UseGuards(JwtAuthGuard)
+  @Post('link-meeting')
   async linkMeeting(
+    @Req() req: Request & { user: { id: string } },
     @Query('meetingId') meetingId: string,
     @Query('eventCode') eventCode: string,
   ) {
-    if (!meetingId || !eventCode) {
-      throw new UnauthorizedException('Missing meetingId or eventCode');
-    }
+    if (!meetingId || !eventCode) throw new UnauthorizedException('Missing parameters');
+    
+    // Verify ownership
+    const event = await this.eventsService.findByEventCode(eventCode);
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.hostId.toString() !== req.user.id) throw new UnauthorizedException('Only the host can link this event');
+
     await this.teamsService.linkMeetingToEvent(meetingId, eventCode);
     return { success: true };
   }

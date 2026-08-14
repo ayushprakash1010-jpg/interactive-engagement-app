@@ -23,6 +23,13 @@ export const eventJoinSchema = z.object({
 
 export const eventObserveSchema = z.object({
   eventCode: code,
+  /**
+   * Short-lived socket token issued by GET /auth/socket-token.
+   * Required for the host to perform privileged operations (launch, close,
+   * moderate, end session). If omitted the socket is treated as a read-only
+   * observer (projector mode / test).
+   */
+  hostToken: z.string().max(512).optional(),
 });
 
 export const activityIdSchema = z.object({

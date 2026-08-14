@@ -5,7 +5,9 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   'http://localhost:4000';
 
-export async function GET(req: NextRequest) {
+import { getAccessToken, withApiAuthRequired } from '@auth0/nextjs-auth0';
+
+export const POST = withApiAuthRequired(async (req: NextRequest) => {
   const meetingId = req.nextUrl.searchParams.get('meetingId');
   const eventCode = req.nextUrl.searchParams.get('eventCode');
 
@@ -14,8 +16,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const { accessToken } = await getAccessToken();
     const target = `${API_URL.replace(/\/+$/, '')}/api/zoom/link-meeting?meetingId=${meetingId}&eventCode=${eventCode}`;
-    const apiRes = await fetch(target);
+    const apiRes = await fetch(target, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
     
     if (apiRes.ok) {
       return NextResponse.json({ success: true });
@@ -25,4 +33,4 @@ export async function GET(req: NextRequest) {
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
-}
+});

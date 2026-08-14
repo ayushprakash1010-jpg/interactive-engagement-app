@@ -156,13 +156,7 @@ export class PowerPointService {
     );
   }
 
-  /**
-   * Called by the PowerPoint task pane on load.
-   * The add-in passes the presentation's document.id (from Office.js) as presentationId.
-   * If an event is already linked to this presentation, return it.
-   * If the user is a registered host with PowerPoint connected, auto-create an event.
-   */
-  async getOrCreateEventForPresentation(
+  async getEventForPresentation(
     presentationId: string,
     microsoftUserId?: string,
   ): Promise<EventDocument> {
@@ -176,33 +170,6 @@ export class PowerPointService {
 
     if (existingEvent) {
       return existingEvent;
-    }
-
-    // 2. If a host MS user ID was provided, try to auto-create an event
-    if (microsoftUserId) {
-      const hostUser = await this.usersService.findByPowerPointId(microsoftUserId);
-      if (hostUser) {
-        this.logger.log(
-          `Auto-creating event for PowerPoint presentation ${presentationId} (Host MS ID: ${microsoftUserId})`,
-        );
-        const event = await this.eventsService.create(hostUser._id.toString(), {
-          name: `PowerPoint Session ${new Date().toLocaleDateString()}`,
-          description: 'Auto-created from PowerPoint Add-in',
-          settings: {
-            allowAnonymousQA: true,
-            requireModeration: false,
-            participantNames: true,
-          },
-        });
-
-        event.integrations = [{ provider: 'powerpoint', externalId: presentationId }];
-        await event.save();
-
-        this.logger.log(
-          `Auto-created IEP event ${event.eventCode} for presentation ${presentationId}`,
-        );
-        return event;
-      }
     }
 
     throw new NotFoundException(

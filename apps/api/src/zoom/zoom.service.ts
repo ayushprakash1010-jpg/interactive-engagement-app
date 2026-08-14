@@ -5,6 +5,10 @@ import { EventsService } from '../events/events.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { EventDocument, EventEntity } from '../events/event.schema';
+import { randomBytes, createHash, createDecipheriv } from 'node:crypto';
+import { RedisService } from '../realtime/redis.service';
+
+const ZOOM_STATE_TTL_SECONDS = 10 * 60;
 
 @Injectable()
 export class ZoomService {
@@ -14,10 +18,35 @@ export class ZoomService {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
+    private readonly redisService: RedisService,
     @InjectModel(EventEntity.name) private readonly eventModel: Model<EventDocument>
   ) { }
 
-  async handleCallback(code: string, auth0Sub: string): Promise<string> {
+  private stateKey(state: string) {
+    return `zoom:oauth:state:${state}`;
+  }
+
+  async createAuthorizationUrl(auth0Sub: string): Promise<string> {
+    const clientId = this.configService.get<string>('ZOOM_CLIENT_ID');
+    const redirectUri = this.configService.get<string>('ZOOM_REDIRECT_URI');
+
+    if (!clientId || !redirectUri) {
+      throw new Error('Zoom configuration is missing');
+    }
+
+    const state = randomBytes(32).toString('base64url');
+    
+    await this.redisService.client.set(
+      this.stateKey(state),
+      auth0Sub,
+      'EX',
+      ZOOM_STATE_TTL_SECONDS,
+    );
+
+    return `https://zoom.us/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+  }
+
+  async handleCallback(code: string, state: string): Promise<string> {
     const clientId = this.configService.get<string>('ZOOM_CLIENT_ID');
     const clientSecret = this.configService.get<string>('ZOOM_CLIENT_SECRET');
     const redirectUri = this.configService.get<string>('ZOOM_REDIRECT_URI');
@@ -87,11 +116,17 @@ export class ZoomService {
       return dl;
     };
 
-    // 3. Save to user profile (if auth0Sub was provided)
-    if (!auth0Sub) {
-      this.logger.log(`Zoom connected for Zoom ID ${zoomUserId} (Web Marketplace Install - no auth0Sub)`);
+    // 3. Save to user profile (if state was provided)
+    if (!state) {
+      this.logger.log(`Zoom connected for Zoom ID ${zoomUserId} (Web Marketplace Install - no state)`);
       return await generateDeeplink();
     }
+
+    const auth0Sub = await this.redisService.client.get(this.stateKey(state));
+    if (!auth0Sub) {
+      throw new UnauthorizedException('Invalid or expired OAuth state');
+    }
+    await this.redisService.client.del(this.stateKey(state));
 
     const user = await this.usersService.findByAuth0Sub(auth0Sub);
     if (!user) {
@@ -136,28 +171,54 @@ export class ZoomService {
     return await generateDeeplink();
   }
 
-  async getOrCreateEventForMeeting(meetingId: string, zoomUserId?: string): Promise<EventDocument> {
-    // Check if an event already exists for this meeting
-    const existingEvent = await this.eventModel.findOne({
+  decryptContext(context: string, clientSecret: string) {
+    try {
+      const buffer = Buffer.from(context, 'base64url');
+      const iv = buffer.subarray(0, 16);
+      const aadLength = buffer.readUInt16LE(16);
+      const aad = buffer.subarray(18, 18 + aadLength);
+      const payload = buffer.subarray(18 + aadLength, buffer.length - 16);
+      const authTag = buffer.subarray(buffer.length - 16);
+      
+      const hash = createHash('sha256').update(clientSecret).digest();
+      const decipher = createDecipheriv('aes-256-gcm', hash, iv);
+      decipher.setAAD(aad);
+      decipher.setAuthTag(authTag);
+      
+      let decrypted = decipher.update(payload, undefined, 'utf8');
+      decrypted += decipher.final('utf8');
+      
+      return JSON.parse(decrypted);
+    } catch (e) {
+      this.logger.warn('Failed to decrypt Zoom App Context', e);
+      return null;
+    }
+  }
+
+  async getEventForMeeting(
+    meetingId: string,
+    zoomUserId?: string,
+  ): Promise<EventDocument> {
+    const existing = await this.eventModel.findOne({
       'integrations.provider': 'zoom',
-      'integrations.externalId': meetingId
-    }).exec();
-    if (existingEvent) {
-      return existingEvent;
-    }
+      'integrations.externalId': meetingId,
+    });
+    if (existing) return existing;
 
+    // Auto-create only if zoomUserId is securely provided
     if (!zoomUserId) {
-      throw new UnauthorizedException('Event for this Zoom meeting has not been created by the host yet.');
+      throw new UnauthorizedException('Missing verified Zoom Identity');
     }
-
-    // Try to find if this zoomUserId matches a registered host in our system
+    
+    let hostId = zoomUserId;
     const hostUser = await this.usersService.findByZoomId(zoomUserId);
     if (!hostUser) {
       throw new UnauthorizedException('Event for this Zoom meeting has not been created by the host yet.');
     }
+    hostId = hostUser._id.toString();
 
-    // Auto-create the event!
-    const newEvent = await this.eventsService.create(hostUser._id.toString(), {
+    // Auto-create the event
+    const newEvent = await this.eventsService.create(hostId, {
       name: `Zoom Meeting ${meetingId}`,
       description: 'Auto-created from Zoom App',
       settings: {
@@ -167,7 +228,6 @@ export class ZoomService {
       },
     });
 
-    // Add the Zoom integration
     newEvent.integrations = [{
       provider: 'zoom',
       externalId: meetingId,

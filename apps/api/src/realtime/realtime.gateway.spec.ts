@@ -50,6 +50,7 @@ describe('RealtimeGateway participant count', () => {
 
   const events = {
     findByEventCode: jest.fn(),
+    findById: jest.fn(),
   };
 
   const participants = {
@@ -134,6 +135,7 @@ describe('RealtimeGateway participant count', () => {
       analyticsService as any,
       rateLimitService as any,
       usageService as any,
+      { verify: jest.fn(), sign: jest.fn() } as any,
     );
 
     emit = jest.fn();
@@ -280,8 +282,11 @@ describe('RealtimeGateway participant count', () => {
       eventId: 'evt1',
       status: 'approved',
     });
+    events.findById.mockResolvedValueOnce({ _id: 'evt1', hostId: 'host1' });
 
-    await gateway.handleQaModerate({ questionId: 'q3', status: 'approved' }, createClient('s1'));
+    const client = createClient('s1');
+    gateway['socketState'].set('s1', { role: 'observer', eventId: 'evt1', hostId: 'host1' });
+    await gateway.handleQaModerate({ questionId: 'q3', status: 'approved' }, client);
 
     expect(questionsService.updateStatus).toHaveBeenCalledWith('q3', 'approved');
     expect(roomsTargeted()).toContain(rooms.event('evt1'));
@@ -300,10 +305,13 @@ describe('RealtimeGateway participant count', () => {
       status: 'answered',
       answerText: 'Here is the answer.',
     });
+    events.findById.mockResolvedValueOnce({ _id: 'evt1', hostId: 'host1' });
 
+    const client = createClient('s1');
+    gateway['socketState'].set('s1', { role: 'observer', eventId: 'evt1', hostId: 'host1' });
     await gateway.handleQaReply(
       { questionId: 'q4', answerText: 'Here is the answer.' },
-      createClient('s1'),
+      client,
     );
 
     expect(questionsService.reply).toHaveBeenCalledWith('q4', 'Here is the answer.');
@@ -352,6 +360,7 @@ describe('RealtimeGateway Admin Diagnostics', () => {
       {} as any,
       {} as any,
       {} as any,
+      { verify: jest.fn(), sign: jest.fn() } as any,
     );
   });
 
@@ -389,3 +398,109 @@ describe('RealtimeGateway Admin Diagnostics', () => {
     });
   });
 });
+
+describe('RealtimeGateway Security Hardening', () => {
+  let gateway: RealtimeGateway;
+  let emit: jest.Mock;
+  const events = { findById: jest.fn(), findByEventCode: jest.fn() };
+  const jwtService = { verify: jest.fn() };
+  const questionsService = { findApprovedByEvent: jest.fn(async () => []), findByEvent: jest.fn(async () => []) };
+  const responseService = { saveResponse: jest.fn() };
+  const analyticsService = { invalidateCacheIfLive: jest.fn() };
+  const activityService = { findById: jest.fn().mockResolvedValue({ eventId: 'evt1', status: 'live', type: 'poll' }), findLiveActivity: jest.fn() };
+  const participants = { upsertParticipant: jest.fn(), findParticipant: jest.fn().mockResolvedValue(null) };
+
+  beforeEach(() => {
+    gateway = new RealtimeGateway(
+      events as any,
+      participants as any,
+      createFakeRedis() as any,
+      activityService as any,
+      responseService as any,
+      questionsService as any,
+      analyticsService as any,
+      { consumeForAction: jest.fn(async () => ({ allowed: true })) } as any,
+      { checkParticipantLimit: jest.fn(async () => ({ allowed: true })), incrementParticipants: jest.fn() } as any,
+      jwtService as any,
+    );
+    emit = jest.fn();
+    const to = jest.fn().mockReturnValue({ emit });
+    gateway.server = { to, in: jest.fn().mockReturnValue({ fetchSockets: jest.fn().mockResolvedValue([]) }) } as any;
+  });
+
+  it('rejects host-only actions from a participant', async () => {
+    const client = createClient('s1');
+    gateway['socketState'].set('s1', { role: 'participant', eventId: 'evt1', anonId: 'anon1' });
+    
+    await gateway.handleActivityLaunch({ activityId: 'act1' }, client);
+    
+    expect(client.emit).toHaveBeenCalledWith(
+      ServerEvents.ERROR,
+      expect.objectContaining({ message: 'Participants cannot perform host actions' }),
+    );
+  });
+
+  it('rejects cross-event host access', async () => {
+    const client = createClient('s1');
+    gateway['socketState'].set('s1', { role: 'observer', eventId: 'evt1', hostId: 'host1' });
+    
+    // Observer tries to launch activity for a DIFFERENT event.
+    activityService.findById.mockResolvedValueOnce({ eventId: 'evt2' });
+
+    await gateway.handleActivityLaunch({ activityId: 'act1' }, client);
+    
+    expect(client.emit).toHaveBeenCalledWith(
+      ServerEvents.ERROR,
+      expect.objectContaining({ message: 'Action not authorized for this event' }),
+    );
+  });
+
+  it('rejects a host action if the observer hostId does not match the event hostId', async () => {
+    const client = createClient('s1');
+    gateway['socketState'].set('s1', { role: 'observer', eventId: 'evt1', hostId: 'hostA' });
+    
+    activityService.findById.mockResolvedValueOnce({ eventId: 'evt1' });
+    events.findById.mockResolvedValue({ _id: 'evt1', hostId: 'hostB' }); // Event owned by someone else
+
+    await gateway.handleActivityLaunch({ activityId: 'act1' }, client);
+    
+    expect(client.emit).toHaveBeenCalledWith(
+      ServerEvents.ERROR,
+      expect.objectContaining({ message: 'You are not the host of this event' }),
+    );
+  });
+
+  it('ignores invalid or expired hostTokens and downgrades observer to unauthenticated', async () => {
+    const client = createClient('s1');
+    jwtService.verify.mockImplementation(() => { throw new Error('jwt expired'); });
+    events.findByEventCode.mockResolvedValue({ _id: 'evt1', eventCode: 'ABC' });
+    
+    await gateway.handleEventObserve({ eventCode: 'ABC', hostToken: 'expired-token' } as any, client);
+    
+    // The socket should be recorded without a hostId
+    const state = gateway['socketState'].get('s1');
+    expect(state).toBeDefined();
+    expect((state as any).hostId).toBeUndefined();
+  });
+
+  it('binds participant anonId to the socket on EVENT_JOIN, preventing spoofing in later payloads', async () => {
+    const client = createClient('s1');
+    events.findByEventCode.mockResolvedValue({ _id: 'evt1', eventCode: 'ABC' });
+    
+    await gateway.handleEventJoin({ eventCode: 'ABC', anonId: 'real-anon' }, client);
+    
+    const state = gateway['socketState'].get('s1');
+    expect(state).toEqual({ role: 'participant', eventId: 'evt1', anonId: 'real-anon' });
+
+    activityService.findById.mockResolvedValueOnce({ _id: 'act1', eventId: 'evt1', status: 'live', type: 'poll' });
+
+    await gateway.handleActivityRespond({ activityId: 'act1', anonId: 'fake-anon', selectedOptionIds: ['opt1'] }, client);
+
+    // It should have forced the real anonId from the socket state!
+    expect(responseService.saveResponse).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ participantAnonId: 'real-anon' })
+    );
+  });
+});
+

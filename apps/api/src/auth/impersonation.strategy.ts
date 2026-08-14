@@ -2,14 +2,15 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AuthenticatedUser } from './jwt.strategy';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ImpersonationStrategy extends PassportStrategy(Strategy, 'impersonation') {
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.SESSION_SECRET || 'fallback-dev-secret-do-not-use-in-prod',
+      secretOrKey: configService.getOrThrow<string>('SESSION_SECRET'),
     });
   }
 

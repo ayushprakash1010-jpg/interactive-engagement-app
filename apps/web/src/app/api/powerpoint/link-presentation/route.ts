@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAccessToken, withApiAuthRequired } from '@auth0/nextjs-auth0';
 
 const API_URL =
   process.env.API_INTERNAL_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
   'http://localhost:4000';
 
-export async function GET(req: NextRequest) {
+export const POST = withApiAuthRequired(async (req: NextRequest) => {
   const presentationId = req.nextUrl.searchParams.get('presentationId');
   const eventCode = req.nextUrl.searchParams.get('eventCode');
 
@@ -14,18 +15,22 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const { accessToken } = await getAccessToken();
     const params = new URLSearchParams({ presentationId, eventCode });
     const target = `${API_URL.replace(/\/+$/, '')}/api/powerpoint/link-presentation?${params.toString()}`;
-    const apiRes = await fetch(target);
-
+    const apiRes = await fetch(target, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    
     if (apiRes.ok) {
-      const data = await apiRes.json();
-      return NextResponse.json(data);
+      return NextResponse.json({ success: true });
     } else {
-      const errData = await apiRes.json().catch(() => ({}));
-      return NextResponse.json(errData, { status: apiRes.status });
+      return NextResponse.json({ error: 'Failed to link' }, { status: apiRes.status });
     }
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
-}
+});

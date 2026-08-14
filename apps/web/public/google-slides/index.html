@@ -179,7 +179,7 @@
 
     var url = '/api/google-slides/link-presentation?presentationId=' + encodeURIComponent(presentationId) + '&eventCode=' + encodeURIComponent(code);
 
-    fetch(url)
+    fetch(url, { method: 'POST' })
       .then(function(r) {
         if (r.ok) {
           try { localStorage.setItem('iep-anon-id', 'gslides-' + presentationId); } catch(e) {}

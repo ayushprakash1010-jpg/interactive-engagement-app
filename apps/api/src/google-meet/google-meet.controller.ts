@@ -1,14 +1,17 @@
 import {
   Controller,
   Get,
+  Post,
   Query,
   Req,
   Res,
   UseGuards,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { GoogleMeetService } from './google-meet.service';
+import { EventsService } from '../events/events.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
 
@@ -16,6 +19,7 @@ import { ConfigService } from '@nestjs/config';
 export class GoogleMeetController {
   constructor(
     private readonly googleMeetService: GoogleMeetService,
+    private readonly eventsService: EventsService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -69,7 +73,7 @@ export class GoogleMeetController {
     if (!meetingId) {
       throw new UnauthorizedException('Missing meetingId');
     }
-    const event = await this.googleMeetService.getOrCreateEventForMeeting(
+    const event = await this.googleMeetService.getEventForMeeting(
       meetingId,
       meetUserId,
     );
@@ -79,14 +83,20 @@ export class GoogleMeetController {
   /**
    * Links a Google Meet meeting ID to the IEP event permanently.
    */
-  @Get('link-meeting')
+  @UseGuards(JwtAuthGuard)
+  @Post('link-meeting')
   async linkMeeting(
+    @Req() req: Request & { user: { id: string } },
     @Query('meetingId') meetingId: string,
     @Query('eventCode') eventCode: string,
   ) {
-    if (!meetingId || !eventCode) {
-      throw new UnauthorizedException('Missing meetingId or eventCode');
-    }
+    if (!meetingId || !eventCode) throw new UnauthorizedException('Missing parameters');
+    
+    // Verify ownership
+    const event = await this.eventsService.findByEventCode(eventCode);
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.hostId.toString() !== req.user.id) throw new UnauthorizedException('Only the host can link this event');
+
     await this.googleMeetService.linkMeetingToEvent(meetingId, eventCode);
     return { success: true };
   }

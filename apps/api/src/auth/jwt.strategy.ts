@@ -18,6 +18,7 @@ export interface JwtPayload {
   iss: string;
   iat: number;
   exp: number;
+  type?: string;
 }
 
 export interface AuthenticatedUser {
@@ -71,6 +72,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   async validate(req: Request, payload: JwtPayload): Promise<AuthenticatedUser> {
     if (!payload?.sub) {
       throw new UnauthorizedException('Token is missing the sub claim');
+    }
+
+    if (payload.type === 'socket-host') {
+      throw new UnauthorizedException('Socket tokens cannot be used for API access');
     }
 
     // 1. Look up the MongoDB user using stable auth0Sub

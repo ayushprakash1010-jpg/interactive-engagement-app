@@ -93,6 +93,11 @@ export class EventsService {
     return this.eventModel.findOne({ eventCode: code.toUpperCase() }).exec();
   }
 
+  async findById(id: string): Promise<EventDocument | null> {
+    this.assertObjectId(id);
+    return this.eventModel.findById(id).lean().exec() as unknown as Promise<EventDocument | null>;
+  }
+
   async update(
     id: string,
     hostId: string,

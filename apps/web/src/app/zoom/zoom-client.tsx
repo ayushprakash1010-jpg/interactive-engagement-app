@@ -102,7 +102,7 @@ export default function ZoomClient() {
                 const code = (document.getElementById('event-code-input') as HTMLInputElement).value.trim().toUpperCase();
                 if (!code) return;
                 try {
-                  const res = await fetch(`/api/public-proxy/api/zoom/link-meeting?meetingId=${meetingId}&eventCode=${code}`);
+                  const res = await fetch(`/api/zoom/link-meeting?meetingId=${meetingId}&eventCode=${code}`, { method: 'POST' });
                   if (res.ok) {
                     window.location.reload();
                   } else {

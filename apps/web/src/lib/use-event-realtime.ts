@@ -125,7 +125,7 @@ export function useEventRealtime(
 
     const code = eventCode.toUpperCase();
 
-    const join = () => {
+    const join = async () => {
       setError(null);
 
       if (mode === 'participant') {
@@ -135,7 +135,13 @@ export function useEventRealtime(
           displayName: getDisplayName() || undefined,
         });
       } else {
-        socket.emit(ClientEvents.EVENT_OBSERVE, { eventCode: code });
+        try {
+          const { token } = await apiFetch<{ token: string }>('auth/socket-token');
+          socket.emit(ClientEvents.EVENT_OBSERVE, { eventCode: code, hostToken: token });
+        } catch (err) {
+          // Fall back to unauthenticated observer (projector view)
+          socket.emit(ClientEvents.EVENT_OBSERVE, { eventCode: code });
+        }
       }
     };
 

@@ -189,14 +189,13 @@ export class TeamsService {
   }
 
   /**
-   * Finds an existing IEP event linked to this Teams meeting, or auto-creates
-   * one if the caller is a recognized host. Mirrors ZoomService.getOrCreateEventForMeeting.
+   * Finds an existing IEP event linked to this Teams meeting.
+   * Auto-creation was removed because identity could not be securely verified.
    */
-  async getOrCreateEventForMeeting(
+  async getEventForMeeting(
     meetingId: string,
     teamsUserId?: string,
   ): Promise<EventDocument> {
-    // First check if this meeting is already linked to an event
     const existingEvent = await this.eventModel
       .findOne({
         'integrations.provider': 'teams',
@@ -208,38 +207,9 @@ export class TeamsService {
       return existingEvent;
     }
 
-    if (!teamsUserId) {
-      throw new UnauthorizedException(
-        'No event linked to this Teams meeting yet. Enter an event code.',
-      );
-    }
-
-    // Try to find a host registered with this Teams user ID
-    const hostUser = await this.usersService.findByTeamsId(teamsUserId);
-    if (!hostUser) {
-      throw new UnauthorizedException(
-        'No event linked to this Teams meeting yet. Enter an event code.',
-      );
-    }
-
-    // Auto-create the event
-    const newEvent = await this.eventsService.create(hostUser._id.toString(), {
-      name: `Teams Meeting ${meetingId}`,
-      description: 'Auto-created from Microsoft Teams App',
-      settings: {
-        allowAnonymousQA: true,
-        requireModeration: false,
-        participantNames: true,
-      },
-    });
-
-    newEvent.integrations = [{ provider: 'teams', externalId: meetingId }];
-    await newEvent.save();
-
-    this.logger.log(
-      `Auto-created IEP event ${newEvent.eventCode} for Teams meeting ${meetingId} (Host: ${hostUser.email})`,
+    throw new UnauthorizedException(
+      'No event linked to this Teams meeting yet. Enter an event code.',
     );
-    return newEvent;
   }
 
   /**

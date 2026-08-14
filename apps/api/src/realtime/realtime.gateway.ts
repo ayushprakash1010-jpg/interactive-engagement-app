@@ -11,6 +11,7 @@ import {
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
 import type { ZodSchema } from 'zod';
+import { JwtService } from '@nestjs/jwt';
 
 import { EventsService } from '../events/events.service';
 import { ParticipantService } from '../participants/participant.service';
@@ -58,7 +59,7 @@ type ObservePayload = {
 
 type SocketState =
   | { role: 'participant'; eventId: string; anonId: string }
-  | { role: 'observer'; eventId: string };
+  | { role: 'observer'; eventId: string; hostId?: string };
 
 type QuizRuntimeState = {
   activityId: string;
@@ -103,6 +104,7 @@ export class RealtimeGateway
     private readonly analyticsService: AnalyticsService,
     private readonly rateLimitService: RateLimitService,
     private readonly usageService: UsageService,
+    private readonly jwtService: JwtService,
   ) { }
 
   @WebSocketServer()
@@ -134,6 +136,30 @@ export class RealtimeGateway
       return forwarded.split(',')[0]?.trim();
     }
     return client.handshake?.address;
+  }
+
+  private async assertIsHost(client: Socket, eventId: string): Promise<void> {
+    const state = this.socketState.get(client.id);
+    if (!state) {
+      throw new Error('Not connected');
+    }
+    if (state.role !== 'observer') {
+      throw new Error('Participants cannot perform host actions');
+    }
+    if (state.eventId !== eventId) {
+      throw new Error('Action not authorized for this event');
+    }
+    
+    // Validate hostId against event ownership
+    if (!state.hostId) {
+      throw new Error('Unauthenticated observer cannot perform host actions');
+    }
+    
+    // Look up the event and ensure the hostId matches
+    const event = await this.eventsService.findById(eventId);
+    if (!event || event.hostId.toString() !== state.hostId) {
+      throw new Error('You are not the host of this event');
+    }
   }
 
   private async enforceRateLimit(action: string, anonId: string, client: Socket): Promise<boolean> {
@@ -316,8 +342,20 @@ export class RealtimeGateway
     }
 
     const eventId = event._id.toString();
+    
+    let hostId: string | undefined;
+    if (data.hostToken) {
+      try {
+        const decoded = this.jwtService.verify(data.hostToken);
+        if (decoded && decoded.type === 'socket-host') {
+          hostId = decoded.sub;
+        }
+      } catch (err: any) {
+        this.logger.warn(`Invalid hostToken for observer: ${err.message}`);
+      }
+    }
 
-    this.socketState.set(client.id, { role: 'observer', eventId });
+    this.socketState.set(client.id, { role: 'observer', eventId, hostId });
     await client.join(rooms.event(eventId));
     await client.join(rooms.host(eventId));
 
@@ -350,6 +388,13 @@ export class RealtimeGateway
     }
 
     const eventId = activity.eventId.toString();
+
+    try {
+      await this.assertIsHost(client, eventId);
+    } catch (err: any) {
+      client.emit(ServerEvents.ERROR, { message: err.message });
+      return;
+    }
 
     const closed = await this.activityService.closeLiveActivity(eventId);
     if (closed) {
@@ -448,6 +493,13 @@ export class RealtimeGateway
 
     const eventId = activity.eventId.toString();
 
+    try {
+      await this.assertIsHost(client, eventId);
+    } catch (err: any) {
+      client.emit(ServerEvents.ERROR, { message: err.message });
+      return;
+    }
+
     await this.activityService.setStatus(activityId, 'closed');
     await this.eventsService.setActiveActivity(eventId, null);
 
@@ -507,7 +559,12 @@ export class RealtimeGateway
   ): Promise<void> {
     const data = this.parsePayload(activityRespondSocketSchema, payload, client);
     if (!data) return;
-    const { activityId, anonId, selectedOptionIds, textValue, ratingValue, feedbackAnswers } = data;
+    let { activityId, anonId, selectedOptionIds, textValue, ratingValue, feedbackAnswers } = data;
+
+    const state = this.socketState.get(client.id);
+    if (state?.role === 'participant') {
+      anonId = state.anonId;
+    }
 
     if (!(await this.enforceRateLimit('activity:respond', anonId, client))) {
       return;
@@ -586,7 +643,12 @@ export class RealtimeGateway
   ): Promise<void> {
     const data = this.parsePayload(wordCloudSubmitSchema, payload, client);
     if (!data) return;
-    const { activityId, anonId, words } = data;
+    let { activityId, anonId, words } = data;
+
+    const state = this.socketState.get(client.id);
+    if (state?.role === 'participant') {
+      anonId = state.anonId;
+    }
 
     if (!(await this.enforceRateLimit('activity:respond', anonId, client))) {
       return;
@@ -642,8 +704,24 @@ export class RealtimeGateway
   ): Promise<void> {
     const data = this.parsePayload(activityIdSchema, payload, client);
     if (!data) return;
+    const { activityId } = data;
+    
+    let activity: any;
+    try {
+      activity = await this.activityService.findById(activityId);
+    } catch {
+      client.emit(ServerEvents.ERROR, { message: 'Activity not found.' });
+      return;
+    }
+    const eventId = activity.eventId.toString();
+    try {
+      await this.assertIsHost(client, eventId);
+    } catch (err: any) {
+      client.emit(ServerEvents.ERROR, { message: err.message });
+      return;
+    }
 
-    await this.advanceQuizQuestion(data.activityId, client);
+    await this.advanceQuizQuestion(activityId, client);
   }
 
   @SubscribeMessage(ClientEvents.QUIZ_ANSWER)
@@ -660,7 +738,12 @@ export class RealtimeGateway
   ): Promise<void> {
     const data = this.parsePayload(quizAnswerSchema, payload, client);
     if (!data) return;
-    const { activityId, anonId, questionId, optionId } = data;
+    let { activityId, anonId, questionId, optionId } = data;
+
+    const state = this.socketState.get(client.id);
+    if (state?.role === 'participant') {
+      anonId = state.anonId;
+    }
 
     if (!(await this.enforceRateLimit('activity:respond', anonId, client))) {
       return;
@@ -746,7 +829,12 @@ export class RealtimeGateway
   ): Promise<void> {
     const data = this.parsePayload(qaAskSchema, payload, client);
     if (!data) return;
-    const { eventCode, anonId, text, displayName } = data;
+    let { eventCode, anonId, text, displayName } = data;
+
+    const state = this.socketState.get(client.id);
+    if (state?.role === 'participant') {
+      anonId = state.anonId;
+    }
 
     if (!(await this.enforceRateLimit('qa:ask', anonId, client))) {
       return;
@@ -800,7 +888,12 @@ export class RealtimeGateway
   ): Promise<void> {
     const data = this.parsePayload(qaUpvoteSchema, payload, client);
     if (!data) return;
-    const { questionId, anonId } = data;
+    let { questionId, anonId } = data;
+
+    const state = this.socketState.get(client.id);
+    if (state?.role === 'participant') {
+      anonId = state.anonId;
+    }
 
     try {
       const question = await this.questionsService.addVote(questionId, anonId);
@@ -837,6 +930,13 @@ export class RealtimeGateway
     try {
       const question = await this.questionsService.updateStatus(questionId, status);
       const eventId = question.eventId.toString();
+
+      try {
+        await this.assertIsHost(client, eventId);
+      } catch (err: any) {
+        client.emit(ServerEvents.ERROR, { message: err.message });
+        return;
+      }
 
       await this.analyticsService.invalidateCacheIfLive(eventId);
 
@@ -879,6 +979,13 @@ export class RealtimeGateway
       const question = await this.questionsService.reply(questionId, answerText);
       const eventId = question.eventId.toString();
 
+      try {
+        await this.assertIsHost(client, eventId);
+      } catch (err: any) {
+        client.emit(ServerEvents.ERROR, { message: err.message });
+        return;
+      }
+
       await this.analyticsService.invalidateCacheIfLive(eventId);
 
       this.server
@@ -903,6 +1010,12 @@ export class RealtimeGateway
     const data = this.parsePayload(sessionEndSchema, payload, client);
     if (!data) return;
     const { eventId } = data;
+    try {
+      await this.assertIsHost(client, eventId);
+    } catch (err: any) {
+      client.emit(ServerEvents.ERROR, { message: err.message });
+      return;
+    }
 
     try {
       await this.eventsService.endEvent(eventId);
@@ -1200,7 +1313,12 @@ export class RealtimeGateway
   ): Promise<void> {
     const data = this.parsePayload(reactionSendSchema, payload, client);
     if (!data) return;
-    const { eventCode, anonId, emoji } = data;
+    let { eventCode, anonId, emoji } = data;
+
+    const state = this.socketState.get(client.id);
+    if (state?.role === 'participant') {
+      anonId = state.anonId;
+    }
 
     // We allow a slightly higher rate limit for reactions, 50 per window
     const byAnon = await this.rateLimitService.consume(`reaction:send:anon:${anonId}`, 50);

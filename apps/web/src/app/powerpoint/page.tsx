@@ -48,7 +48,7 @@ export default function PowerPointPage() {
         presentationId: presentationId ?? 'unknown',
         eventCode: code,
       });
-      const res = await fetch(`/api/powerpoint/link-presentation?${params.toString()}`);
+      const res = await fetch(`/api/powerpoint/link-presentation?${params.toString()}`, { method: 'POST' });
       if (res.ok) {
         localStorage.setItem('iep-anon-id', `ppt-${presentationId ?? code}`);
         window.location.href = `/event/${code}`;

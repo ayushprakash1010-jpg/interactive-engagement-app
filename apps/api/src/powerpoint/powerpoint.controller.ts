@@ -1,14 +1,17 @@
 import {
   Controller,
   Get,
+  Post,
   Query,
   Req,
   Res,
   UseGuards,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { PowerPointService } from './powerpoint.service';
+import { EventsService } from '../events/events.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConfigService } from '@nestjs/config';
 
@@ -17,6 +20,7 @@ export class PowerPointController {
   constructor(
     private readonly powerPointService: PowerPointService,
     private readonly configService: ConfigService,
+    private readonly eventsService: EventsService,
   ) {}
 
   /**
@@ -76,7 +80,7 @@ export class PowerPointController {
     if (!presentationId) {
       throw new UnauthorizedException('Missing presentationId');
     }
-    const event = await this.powerPointService.getOrCreateEventForPresentation(
+    const event = await this.powerPointService.getEventForPresentation(
       presentationId,
       microsoftUserId,
     );
@@ -87,14 +91,20 @@ export class PowerPointController {
    * Called when the user manually enters an event code inside the task pane.
    * Links the presentation to the given Pulse event.
    */
-  @Get('link-presentation')
+  @UseGuards(JwtAuthGuard)
+  @Post('link-presentation')
   async linkPresentation(
+    @Req() req: Request & { user: { id: string } },
     @Query('presentationId') presentationId: string,
     @Query('eventCode') eventCode: string,
   ) {
-    if (!presentationId || !eventCode) {
-      throw new UnauthorizedException('Missing presentationId or eventCode');
-    }
+    if (!presentationId || !eventCode) throw new UnauthorizedException('Missing parameters');
+    
+    // Verify ownership
+    const event = await this.eventsService.findByEventCode(eventCode);
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.hostId.toString() !== req.user.id) throw new UnauthorizedException('Only the host can link this event');
+
     await this.powerPointService.linkPresentationToEvent(presentationId, eventCode);
     return { success: true };
   }

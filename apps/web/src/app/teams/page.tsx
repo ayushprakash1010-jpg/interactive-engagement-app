@@ -113,7 +113,7 @@ export default function TeamsPage() {
                 setConnectError('');
                 try {
                   const params = new URLSearchParams({ meetingId: meetingId ?? '', eventCode: code });
-                  const res = await fetch(`/api/teams/link-meeting?${params.toString()}`);
+                  const res = await fetch(`/api/teams/link-meeting?${params.toString()}`, { method: 'POST' });
                   if (res.ok) {
                     window.location.reload();
                   } else {

@@ -54,6 +54,10 @@ export class BillingController {
     @CurrentUser() user: AuthenticatedUser,
     @Body('plan') plan: string,
   ) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new BadRequestException('Mock billing is disabled in production.');
+    }
+
     if (!plan || !isValidPlanTier(plan)) {
       throw new BadRequestException(
         `Invalid plan tier: '${plan}'. Must be one of: free, basic, pro, enterprise`,

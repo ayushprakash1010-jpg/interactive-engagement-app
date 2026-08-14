@@ -1,10 +1,14 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UsersService } from '../users/users.service';
 import { EventsService } from '../events/events.service';
 import { EventEntity, EventDocument } from '../events/event.schema';
+import { randomBytes } from 'node:crypto';
+import { RedisService } from '../realtime/redis.service';
+
+const MEET_STATE_TTL_SECONDS = 10 * 60;
 
 @Injectable()
 export class GoogleMeetService {
@@ -14,9 +18,14 @@ export class GoogleMeetService {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly eventsService: EventsService,
+    private readonly redisService: RedisService,
     @InjectModel(EventEntity.name)
     private readonly eventModel: Model<EventDocument>,
   ) {}
+
+  private stateKey(state: string) {
+    return `meet:oauth:state:${state}`;
+  }
 
   async createAuthorizationUrl(auth0Sub: string): Promise<string> {
     const clientId = this.configService.get<string>('GOOGLE_MEET_CLIENT_ID');
@@ -33,7 +42,16 @@ export class GoogleMeetService {
       'openid profile email'
     );
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}&access_type=offline&prompt=consent&state=${encodeURIComponent(auth0Sub)}`;
+    const state = randomBytes(32).toString('base64url');
+    
+    await this.redisService.client.set(
+      this.stateKey(state),
+      auth0Sub,
+      'EX',
+      MEET_STATE_TTL_SECONDS,
+    );
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scopes}&access_type=offline&prompt=consent&state=${encodeURIComponent(state)}`;
 
     return authUrl;
   }
@@ -43,7 +61,11 @@ export class GoogleMeetService {
     const clientSecret = this.configService.get<string>('GOOGLE_MEET_CLIENT_SECRET');
     const redirectUri = this.configService.get<string>('GOOGLE_MEET_REDIRECT_URI');
 
-    const auth0Sub = state; // We passed auth0Sub in the state parameter
+    const auth0Sub = await this.redisService.client.get(this.stateKey(state));
+    if (!auth0Sub) {
+      throw new UnauthorizedException('Invalid or expired OAuth state');
+    }
+    await this.redisService.client.del(this.stateKey(state));
 
     try {
       // Exchange code for tokens
@@ -109,7 +131,7 @@ export class GoogleMeetService {
     }
   }
 
-  async getOrCreateEventForMeeting(meetingId: string, googleMeetUserId?: string): Promise<EventDocument> {
+  async getEventForMeeting(meetingId: string, googleMeetUserId?: string): Promise<EventDocument> {
     // 1. Check if meeting is already linked to an event
     const existingEvent = await this.eventModel
       .findOne({
@@ -122,29 +144,7 @@ export class GoogleMeetService {
       return existingEvent;
     }
 
-    // 2. If no event exists but we have a user ID, auto-create one for this host
-    if (googleMeetUserId) {
-      const user = await this.usersService.findByGoogleMeetId(googleMeetUserId);
-      if (user) {
-        this.logger.log(`Auto-creating event for Google Meet user ${googleMeetUserId}`);
-        const event = await this.eventsService.create(user._id.toString(), {
-          name: `Google Meet Session ${meetingId}`,
-          description: 'Auto-created from Google Meet Add-on',
-          settings: {
-            allowAnonymousQA: true,
-            requireModeration: false,
-            participantNames: true,
-          },
-        });
-        
-        event.integrations = [{ provider: 'meet', externalId: meetingId }];
-        await event.save();
-
-        return event;
-      }
-    }
-
-    throw new NotFoundException('No event found for this meeting and user is not a recognized host');
+    throw new UnauthorizedException('No event is linked to this Google Meet yet.');
   }
 
   async linkMeetingToEvent(meetingId: string, eventCode: string): Promise<void> {

@@ -200,8 +200,9 @@ export class ActivityController {
   findOne(
     @Param('eventId') eventId: string,
     @Param('id') id: string,
+    @Req() req: AuthRequest,
   ) {
-    return this.activityService.findOne(id, eventId);
+    return this.activityService.findOne(id, eventId, req.user._id);
   }
 
   @Patch('reorder')

@@ -1,31 +1,24 @@
-import { Controller, Get, Query, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Query, Req, Res, UseGuards, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 // Force TS server refresh
 import { ZoomService } from './zoom.service';
+import { EventsService } from '../events/events.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ConfigService } from '@nestjs/config';
 
 @Controller('api/zoom')
 export class ZoomController {
   constructor(
     private readonly zoomService: ZoomService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly eventsService: EventsService,
   ) { }
 
   @UseGuards(JwtAuthGuard)
   @Get('authorize')
-  authorize(@Req() req: Request & { user: { auth0Sub: string } }, @Res() res: Response) {
-    // Generate Zoom OAuth URL
-    const clientId = this.configService.get<string>('ZOOM_CLIENT_ID');
-    const redirectUri = this.configService.get<string>('ZOOM_REDIRECT_URI');
-    if (!clientId || !redirectUri) {
-      throw new Error('Zoom configuration is missing');
-    }
-
-    const state = req.user.auth0Sub; // Pass the user's ID in the state to map it later
-    const zoomAuthUrl = `https://zoom.us/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
-
-    return res.json({ url: zoomAuthUrl });
+  async authorize(@Req() req: Request & { user: { auth0Sub: string } }, @Res() res: Response) {
+    const url = await this.zoomService.createAuthorizationUrl(req.user.auth0Sub);
+    return res.json({ url });
   }
 
   @Get('callback')
@@ -45,23 +38,43 @@ export class ZoomController {
   @Get('context-to-event')
   async contextToEvent(
     @Query('meetingId') meetingId: string,
-    @Query('zoomUserId') zoomUserId?: string
+    @Req() req: Request
   ) {
     if (!meetingId) {
       throw new UnauthorizedException('Missing meetingId');
     }
-    const event = await this.zoomService.getOrCreateEventForMeeting(meetingId, zoomUserId);
+    
+    let verifiedZoomUserId: string | undefined;
+    const zoomContext = req.headers['x-zoom-app-context'] as string;
+    
+    if (zoomContext) {
+      const secret = this.configService.get<string>('ZOOM_CLIENT_SECRET');
+      if (secret) {
+        const decrypted = this.zoomService.decryptContext(zoomContext, secret);
+        if (decrypted && decrypted.uid) {
+          verifiedZoomUserId = decrypted.uid;
+        }
+      }
+    }
+
+    const event = await this.zoomService.getEventForMeeting(meetingId, verifiedZoomUserId);
     return { eventCode: event.eventCode };
   }
 
-  @Get('link-meeting')
+  @UseGuards(JwtAuthGuard)
+  @Post('link-meeting')
   async linkMeeting(
+    @Req() req: Request & { user: { id: string } },
     @Query('meetingId') meetingId: string,
     @Query('eventCode') eventCode: string
   ) {
-    if (!meetingId || !eventCode) {
-      throw new UnauthorizedException('Missing meetingId or eventCode');
-    }
+    if (!meetingId || !eventCode) throw new UnauthorizedException('Missing parameters');
+    
+    // Verify ownership
+    const event = await this.eventsService.findByEventCode(eventCode);
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.hostId.toString() !== req.user.id) throw new UnauthorizedException('Only the host can link this event');
+
     await this.zoomService.linkMeetingToEvent(meetingId, eventCode);
     return { success: true };
   }

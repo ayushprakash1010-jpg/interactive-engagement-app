@@ -79,8 +79,12 @@ export class ActivityService {
       .exec() as unknown as Promise<ActivityDocument | null>;
   }
 
-  async findOne(id: string, eventId: string): Promise<ActivityDocument> {
+  async findOne(id: string, eventId: string, hostId?: string): Promise<ActivityDocument> {
     this.assertObjectId(id);
+
+    if (hostId) {
+      await this.eventsService.findOne(eventId, hostId);
+    }
 
     const activity = (await this.activityModel
       .findOne({
@@ -117,7 +121,7 @@ export class ActivityService {
   ): Promise<ActivityDocument> {
     await this.eventsService.findOne(eventId, hostId);
 
-    const activity = await this.findOne(id, eventId);
+    const activity = await this.findOne(id, eventId, hostId);
 
     if ((activity as any).status === 'live') {
       throw new BadRequestException(
@@ -139,7 +143,7 @@ export class ActivityService {
   async remove(id: string, eventId: string, hostId: string): Promise<void> {
     await this.eventsService.findOne(eventId, hostId);
 
-    const activity = await this.findOne(id, eventId);
+    const activity = await this.findOne(id, eventId, hostId);
 
     if ((activity as any).status === 'live') {
       throw new BadRequestException(
@@ -203,7 +207,7 @@ export class ActivityService {
   ): Promise<void> {
     // Ownership check — throws NotFoundException if event doesn't belong to host
     await this.eventsService.findOne(eventId, hostId);
-    await this.findOne(id, eventId); // ensure activity belongs to this event
+    await this.findOne(id, eventId, hostId); // ensure activity belongs to this event
 
     await this.responseModel
       .deleteMany({ activityId: new Types.ObjectId(id) })

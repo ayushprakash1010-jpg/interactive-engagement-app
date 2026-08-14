@@ -1,14 +1,23 @@
 import {
   Controller,
   Get,
+  Post,
   Query,
+  Req,
+  UseGuards,
   UnauthorizedException,
+  NotFoundException,
 } from '@nestjs/common';
 import { GoogleSlidesService } from './google-slides.service';
+import { EventsService } from '../events/events.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('api/google-slides')
 export class GoogleSlidesController {
-  constructor(private readonly googleSlidesService: GoogleSlidesService) {}
+  constructor(
+    private readonly googleSlidesService: GoogleSlidesService,
+    private readonly eventsService: EventsService,
+  ) {}
 
   /**
    * Called by the Google Slides sidebar on load.
@@ -27,14 +36,20 @@ export class GoogleSlidesController {
    * Called when the user manually enters an event code inside the sidebar.
    * Links the presentation to the given Pulse event.
    */
-  @Get('link-presentation')
+  @UseGuards(JwtAuthGuard)
+  @Post('link-presentation')
   async linkPresentation(
+    @Req() req: any,
     @Query('presentationId') presentationId: string,
     @Query('eventCode') eventCode: string,
   ) {
-    if (!presentationId || !eventCode) {
-      throw new UnauthorizedException('Missing presentationId or eventCode');
-    }
+    if (!presentationId || !eventCode) throw new UnauthorizedException('Missing parameters');
+    
+    // Verify ownership
+    const event = await this.eventsService.findByEventCode(eventCode);
+    if (!event) throw new NotFoundException('Event not found');
+    if (event.hostId.toString() !== req.user.id) throw new UnauthorizedException('Only the host can link this event');
+
     await this.googleSlidesService.linkPresentationToEvent(presentationId, eventCode);
     return { success: true };
   }
