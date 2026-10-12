@@ -75,10 +75,10 @@ export class SubscriptionService {
       reason,
     });
 
-    // Ensure Organization points to this subscription
+    // Ensure Organization points to this subscription and has synced plan
     await this.orgModel.updateOne(
       { _id: orgIdObj },
-      { $set: { subscriptionId: updatedSub._id } }
+      { $set: { subscriptionId: updatedSub._id, plan: newPlan } }
     ).exec();
   }
 }

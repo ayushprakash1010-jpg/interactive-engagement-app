@@ -396,6 +396,11 @@ export class AdminService {
       powerpoint: connectedProviders.has('powerpoint'),
     };
 
+    const orgIdStr = user.organizationId ? (user.organizationId._id as Types.ObjectId).toHexString() : null;
+    const effectivePlan = orgIdStr
+      ? await this.subscriptionService.getCurrentPlan(orgIdStr)
+      : (user.plan ?? 'free');
+
     return {
       profile: {
         id: userId.toHexString(),
@@ -403,10 +408,10 @@ export class AdminService {
         name: user.name,
         email: user.email,
         role: user.role,
-        plan: user.plan,
+        plan: effectivePlan,
         aiUsageCount: user.aiUsageCount ?? 0,
         isSuspended: user.isSuspended,
-        organizationId: user.organizationId ? (user.organizationId._id as Types.ObjectId).toHexString() : null,
+        organizationId: orgIdStr,
         organizationName: user.organizationId ? user.organizationId.name : null,
         createdAt: (user as any).createdAt?.toISOString?.() ?? '',
       },
@@ -889,9 +894,11 @@ export class AdminService {
       throw new NotFoundException(`User ${userId} not found`);
     }
 
+    const orgPlan = await this.subscriptionService.getCurrentPlan(orgId);
+
     await this.userModel.updateOne(
       { _id: user._id },
-      { $set: { organizationId: new Types.ObjectId(orgId) } }
+      { $set: { organizationId: new Types.ObjectId(orgId), plan: orgPlan } }
     ).exec();
 
     await this.auditLogModel.create({
@@ -916,7 +923,7 @@ export class AdminService {
 
     await this.userModel.updateOne(
       { _id: user._id },
-      { $unset: { organizationId: 1 } }
+      { $unset: { organizationId: 1 }, $set: { plan: 'free' } }
     ).exec();
 
     await this.auditLogModel.create({
@@ -1215,6 +1222,12 @@ export class AdminService {
     
     // Invalidate the cache for immediate effect
     this.entitlementService.invalidateCache(orgId);
+
+    // Synchronize plan across all member users of this organization
+    await this.userModel.updateMany(
+      { organizationId: new Types.ObjectId(orgId) },
+      { $set: { plan } },
+    ).exec();
 
     // Reload the organization to reflect changes
     const updatedOrg = await this.organizationModel.findById(orgId).exec();
