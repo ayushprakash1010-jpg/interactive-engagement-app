@@ -73,7 +73,7 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border bg-surface-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border bg-surface-card shadow-sm">
       <div className="flex items-center justify-between border-b px-5 py-4">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-subtle text-brand">
@@ -261,6 +261,7 @@ export default function UserDetailPage() {
     setIsUpdatingPlan(true);
     try {
       await updateAdminOrgPlan(user.profile.organizationId, newPlan);
+      setUser((prev) => (prev ? { ...prev, profile: { ...prev.profile, plan: newPlan } } : null));
       // Reload user to get fresh data
       const freshUser = await fetchAdminUser(id as string);
       setUser(freshUser);
@@ -410,7 +411,7 @@ export default function UserDetailPage() {
                                 className="fixed inset-0 z-40" 
                                 onClick={() => setIsPlanDropdownOpen(false)}
                               />
-                              <div className="absolute left-0 top-full mt-2 w-48 rounded-xl border bg-surface-card p-1 shadow-xl z-50 animate-in fade-in zoom-in-95">
+                              <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border bg-surface-card p-1 shadow-xl z-50 animate-in fade-in zoom-in-95">
                                 <div className="px-2 py-1.5 text-2xs font-semibold text-ink-muted uppercase tracking-wider mb-1">
                                   Upgrade Organization
                                 </div>
